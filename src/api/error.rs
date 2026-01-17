@@ -95,24 +95,57 @@ mod tests {
 
     #[test]
     fn test_exit_codes() {
-        assert_eq!(ApiError::Unauthorized("".into()).exit_code(), EXIT_AUTH_ERROR);
+        assert_eq!(
+            ApiError::Unauthorized("".into()).exit_code(),
+            EXIT_AUTH_ERROR
+        );
         assert_eq!(ApiError::Forbidden("".into()).exit_code(), EXIT_AUTH_ERROR);
         assert_eq!(ApiError::NotFound("".into()).exit_code(), EXIT_NOT_FOUND);
-        assert_eq!(ApiError::ValidationError("".into()).exit_code(), EXIT_VALIDATION_ERROR);
-        assert_eq!(ApiError::ServerError("".into()).exit_code(), EXIT_NETWORK_ERROR);
-        assert_eq!(ApiError::ConfigError("".into()).exit_code(), EXIT_GENERAL_ERROR);
+        assert_eq!(
+            ApiError::ValidationError("".into()).exit_code(),
+            EXIT_VALIDATION_ERROR
+        );
+        assert_eq!(
+            ApiError::ServerError("".into()).exit_code(),
+            EXIT_NETWORK_ERROR
+        );
+        assert_eq!(
+            ApiError::ConfigError("".into()).exit_code(),
+            EXIT_GENERAL_ERROR
+        );
         assert_eq!(ApiError::Other("".into()).exit_code(), EXIT_GENERAL_ERROR);
     }
 
     #[test]
     fn test_from_response_status_codes() {
-        assert!(matches!(ApiError::from_response(401, "{}"), ApiError::Unauthorized(_)));
-        assert!(matches!(ApiError::from_response(403, "{}"), ApiError::Forbidden(_)));
-        assert!(matches!(ApiError::from_response(404, "{}"), ApiError::NotFound(_)));
-        assert!(matches!(ApiError::from_response(422, "{}"), ApiError::ValidationError(_)));
-        assert!(matches!(ApiError::from_response(500, "{}"), ApiError::ServerError(_)));
-        assert!(matches!(ApiError::from_response(503, "{}"), ApiError::ServerError(_)));
-        assert!(matches!(ApiError::from_response(400, "{}"), ApiError::Other(_)));
+        assert!(matches!(
+            ApiError::from_response(401, "{}"),
+            ApiError::Unauthorized(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(403, "{}"),
+            ApiError::Forbidden(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(404, "{}"),
+            ApiError::NotFound(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(422, "{}"),
+            ApiError::ValidationError(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(500, "{}"),
+            ApiError::ServerError(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(503, "{}"),
+            ApiError::ServerError(_)
+        ));
+        assert!(matches!(
+            ApiError::from_response(400, "{}"),
+            ApiError::Other(_)
+        ));
     }
 
     #[test]
@@ -124,7 +157,10 @@ mod tests {
     #[test]
     fn test_parse_error_message_with_validation_errors() {
         let body = r#"{"errors": {"domain": ["The domain field is required."]}}"#;
-        assert_eq!(parse_error_message(body), "domain: The domain field is required.");
+        assert_eq!(
+            parse_error_message(body),
+            "domain: The domain field is required."
+        );
     }
 
     #[test]
