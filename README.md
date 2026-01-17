@@ -29,6 +29,11 @@ tar xzf vector-x86_64-unknown-linux-gnu.tar.gz
 sudo mv vector /usr/local/bin/
 ```
 
+**macOS Gatekeeper:** If you get a security warning, run:
+```bash
+xattr -d com.apple.quarantine ./vector
+```
+
 ## Usage
 
 ### Authentication
