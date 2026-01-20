@@ -15,6 +15,7 @@ fn test_help() {
     assert!(stdout.contains("env"));
     assert!(stdout.contains("deploy"));
     assert!(stdout.contains("ssl"));
+    assert!(stdout.contains("mcp"));
 }
 
 #[test]
@@ -94,6 +95,41 @@ fn test_ssl_help() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("status"));
     assert!(stdout.contains("nudge"));
+}
+
+#[test]
+fn test_mcp_help() {
+    let output = vector_cmd()
+        .args(["mcp", "--help"])
+        .output()
+        .expect("Failed to run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("setup"));
+    assert!(stdout.contains("Claude"));
+}
+
+#[test]
+fn test_mcp_setup_help() {
+    let output = vector_cmd()
+        .args(["mcp", "setup", "--help"])
+        .output()
+        .expect("Failed to run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--force"));
+}
+
+#[test]
+fn test_mcp_setup_requires_auth() {
+    let output = vector_cmd()
+        .args(["mcp", "setup"])
+        .env("VECTOR_CONFIG_DIR", "/tmp/vector-test-nonexistent")
+        .env_remove("VECTOR_API_KEY")
+        .output()
+        .expect("Failed to run");
+    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(2)); // EXIT_AUTH_ERROR
 }
 
 #[test]

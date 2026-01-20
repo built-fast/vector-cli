@@ -44,6 +44,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: SslCommands,
     },
+    /// Configure MCP integration for Claude
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -272,5 +277,15 @@ pub enum SslCommands {
         site_id: String,
         /// Environment ID
         env_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum McpCommands {
+    /// Set up Claude Desktop with Vector MCP server
+    Setup {
+        /// Overwrite existing Vector MCP configuration
+        #[arg(long)]
+        force: bool,
     },
 }

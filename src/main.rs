@@ -8,8 +8,11 @@ use clap::Parser;
 use std::process;
 
 use api::{ApiClient, ApiError, EXIT_SUCCESS};
-use cli::{AuthCommands, Cli, Commands, DeployCommands, EnvCommands, SiteCommands, SslCommands};
-use commands::{auth, deploy, env, site, ssl};
+use cli::{
+    AuthCommands, Cli, Commands, DeployCommands, EnvCommands, McpCommands, SiteCommands,
+    SslCommands,
+};
+use commands::{auth, deploy, env, mcp, site, ssl};
 use config::{Config, Credentials};
 use output::{print_error, OutputFormat};
 
@@ -35,6 +38,7 @@ fn run(command: Commands, format: OutputFormat) -> Result<(), ApiError> {
         Commands::Env { command } => run_env(command, format),
         Commands::Deploy { command } => run_deploy(command, format),
         Commands::Ssl { command } => run_ssl(command, format),
+        Commands::Mcp { command } => run_mcp(command, format),
     }
 }
 
@@ -162,5 +166,11 @@ fn run_ssl(command: SslCommands, format: OutputFormat) -> Result<(), ApiError> {
     match command {
         SslCommands::Status { site_id, env_id } => ssl::status(&client, &site_id, &env_id, format),
         SslCommands::Nudge { site_id, env_id } => ssl::nudge(&client, &site_id, &env_id, format),
+    }
+}
+
+fn run_mcp(command: McpCommands, format: OutputFormat) -> Result<(), ApiError> {
+    match command {
+        McpCommands::Setup { force } => mcp::setup(force, format),
     }
 }
