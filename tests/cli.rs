@@ -4,6 +4,13 @@ fn vector_cmd() -> Command {
     Command::new(env!("CARGO_BIN_EXE_vector"))
 }
 
+fn nonexistent_config_dir() -> String {
+    std::env::temp_dir()
+        .join("vector-test-nonexistent")
+        .to_string_lossy()
+        .to_string()
+}
+
 #[test]
 fn test_help() {
     let output = vector_cmd().arg("--help").output().expect("Failed to run");
@@ -69,7 +76,7 @@ fn test_env_help() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("list"));
     assert!(stdout.contains("create"));
-    assert!(stdout.contains("suspend"));
+    assert!(stdout.contains("secret"));
 }
 
 #[test]
@@ -81,7 +88,7 @@ fn test_deploy_help() {
     assert!(output.status.success());
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("list"));
-    assert!(stdout.contains("create"));
+    assert!(stdout.contains("trigger"));
     assert!(stdout.contains("rollback"));
 }
 
@@ -124,7 +131,7 @@ fn test_mcp_setup_help() {
 fn test_mcp_setup_requires_auth() {
     let output = vector_cmd()
         .args(["mcp", "setup"])
-        .env("VECTOR_CONFIG_DIR", "/tmp/vector-test-nonexistent")
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .env_remove("VECTOR_API_KEY")
         .output()
         .expect("Failed to run");
@@ -136,7 +143,7 @@ fn test_mcp_setup_requires_auth() {
 fn test_auth_status_not_logged_in() {
     let output = vector_cmd()
         .args(["auth", "status", "--json"])
-        .env("VECTOR_CONFIG_DIR", "/tmp/vector-test-nonexistent")
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .output()
         .expect("Failed to run");
     assert!(output.status.success());
@@ -149,7 +156,7 @@ fn test_auth_status_not_logged_in() {
 fn test_site_list_requires_auth() {
     let output = vector_cmd()
         .args(["site", "list"])
-        .env("VECTOR_CONFIG_DIR", "/tmp/vector-test-nonexistent")
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .env_remove("VECTOR_API_KEY")
         .output()
         .expect("Failed to run");
@@ -170,7 +177,7 @@ fn test_invalid_subcommand() {
 fn test_json_flag() {
     let output = vector_cmd()
         .args(["--json", "auth", "status"])
-        .env("VECTOR_CONFIG_DIR", "/tmp/vector-test-nonexistent")
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .output()
         .expect("Failed to run");
     let stdout = String::from_utf8_lossy(&output.stdout);
