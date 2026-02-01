@@ -59,7 +59,7 @@ pub fn list(
             vec![
                 e["id"].as_str().unwrap_or("-").to_string(),
                 e["event"].as_str().unwrap_or("-").to_string(),
-                format_option(&e["actor"].as_str().map(String::from)),
+                format_actor(&e["actor"]),
                 format_resource(&e["resource"]),
                 format_option(&e["created_at"].as_str().map(String::from)),
             ]
@@ -73,6 +73,19 @@ pub fn list(
     }
 
     Ok(())
+}
+
+fn format_actor(value: &Value) -> String {
+    if value.is_null() {
+        return "-".to_string();
+    }
+    if let Some(token_name) = value["token_name"].as_str() {
+        return token_name.to_string();
+    }
+    if let Some(ip) = value["ip"].as_str() {
+        return ip.to_string();
+    }
+    "-".to_string()
 }
 
 fn format_resource(value: &Value) -> String {
