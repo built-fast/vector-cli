@@ -16,20 +16,36 @@ struct PaginationQuery {
 #[derive(Debug, Serialize)]
 struct CreateEnvRequest {
     name: String,
+    custom_domain: String,
+    php_version: String,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     is_production: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    custom_domain: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    php_version: Option<String>,
+    tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
 struct UpdateEnvRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     custom_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    php_version: Option<String>,
+    tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize)]
+struct CreateSecretRequest {
+    key: String,
+    value: String,
+}
+
+#[derive(Debug, Serialize)]
+struct UpdateSecretRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    value: Option<String>,
 }
 
 pub fn list(
@@ -84,12 +100,12 @@ pub fn list(
 pub fn show(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.get(&format!(
         "/api/v1/vector/sites/{}/environments/{}",
-        site_id, env_id
+        site_id, env_name
     ))?;
 
     if format == OutputFormat::Json {
@@ -124,6 +140,11 @@ pub fn show(
             format_option(&env["subdomain"].as_str().map(String::from)),
         ),
         (
+            "Provisioning Step",
+            format_option(&env["provisioning_step"].as_str().map(String::from)),
+        ),
+        ("Tags", format_tags(&env["tags"])),
+        (
             "Created",
             format_option(&env["created_at"].as_str().map(String::from)),
         ),
@@ -136,20 +157,23 @@ pub fn show(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create(
     client: &ApiClient,
     site_id: &str,
     name: &str,
+    custom_domain: &str,
+    php_version: &str,
     is_production: bool,
-    custom_domain: Option<String>,
-    php_version: Option<String>,
+    tags: Option<Vec<String>>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = CreateEnvRequest {
         name: name.to_string(),
+        custom_domain: custom_domain.to_string(),
+        php_version: php_version.to_string(),
         is_production,
-        custom_domain,
-        php_version,
+        tags,
     };
 
     let response: Value = client.post(
@@ -175,18 +199,20 @@ pub fn create(
 pub fn update(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
+    name: Option<String>,
     custom_domain: Option<String>,
-    php_version: Option<String>,
+    tags: Option<Vec<String>>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = UpdateEnvRequest {
+        name,
         custom_domain,
-        php_version,
+        tags,
     };
 
     let response: Value = client.put(
-        &format!("/api/v1/vector/sites/{}/environments/{}", site_id, env_id),
+        &format!("/api/v1/vector/sites/{}/environments/{}", site_id, env_name),
         &body,
     )?;
 
@@ -202,12 +228,12 @@ pub fn update(
 pub fn delete(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.delete(&format!(
         "/api/v1/vector/sites/{}/environments/{}",
-        site_id, env_id
+        site_id, env_name
     ))?;
 
     if format == OutputFormat::Json {
@@ -219,15 +245,15 @@ pub fn delete(
     Ok(())
 }
 
-pub fn suspend(
+pub fn reset_db_password(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/suspend",
-        site_id, env_id
+        "/api/v1/vector/sites/{}/environments/{}/database/reset-password",
+        site_id, env_name
     ))?;
 
     if format == OutputFormat::Json {
@@ -235,19 +261,73 @@ pub fn suspend(
         return Ok(());
     }
 
-    print_message("Environment suspended successfully.");
+    print_message("Database password reset successfully.");
     Ok(())
 }
 
-pub fn unsuspend(
+// Secret subcommands
+
+pub fn secret_list(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
+    page: u32,
+    per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/unsuspend",
-        site_id, env_id
+    let query = PaginationQuery { page, per_page };
+    let response: Value = client.get_with_query(
+        &format!(
+            "/api/v1/vector/sites/{}/environments/{}/secrets",
+            site_id, env_name
+        ),
+        &query,
+    )?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    let secrets = response["data"]
+        .as_array()
+        .ok_or_else(|| ApiError::Other("Invalid response format".to_string()))?;
+
+    if secrets.is_empty() {
+        print_message("No secrets found.");
+        return Ok(());
+    }
+
+    let rows: Vec<Vec<String>> = secrets
+        .iter()
+        .map(|s| {
+            vec![
+                s["id"].as_str().unwrap_or("-").to_string(),
+                s["key"].as_str().unwrap_or("-").to_string(),
+                format_option(&s["created_at"].as_str().map(String::from)),
+            ]
+        })
+        .collect();
+
+    print_table(vec!["ID", "Key", "Created"], rows);
+
+    if let Some((current, last, total)) = extract_pagination(&response) {
+        print_pagination(current, last, total);
+    }
+
+    Ok(())
+}
+
+pub fn secret_show(
+    client: &ApiClient,
+    site_id: &str,
+    env_name: &str,
+    secret_id: &str,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let response: Value = client.get(&format!(
+        "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
+        site_id, env_name, secret_id
     ))?;
 
     if format == OutputFormat::Json {
@@ -255,6 +335,120 @@ pub fn unsuspend(
         return Ok(());
     }
 
-    print_message("Environment unsuspended successfully.");
+    let secret = &response["data"];
+
+    print_key_value(vec![
+        ("ID", secret["id"].as_str().unwrap_or("-").to_string()),
+        ("Key", secret["key"].as_str().unwrap_or("-").to_string()),
+        (
+            "Created",
+            format_option(&secret["created_at"].as_str().map(String::from)),
+        ),
+        (
+            "Updated",
+            format_option(&secret["updated_at"].as_str().map(String::from)),
+        ),
+    ]);
+
     Ok(())
+}
+
+pub fn secret_create(
+    client: &ApiClient,
+    site_id: &str,
+    env_name: &str,
+    key: &str,
+    value: &str,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let body = CreateSecretRequest {
+        key: key.to_string(),
+        value: value.to_string(),
+    };
+
+    let response: Value = client.post(
+        &format!(
+            "/api/v1/vector/sites/{}/environments/{}/secrets",
+            site_id, env_name
+        ),
+        &body,
+    )?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    let secret = &response["data"];
+    print_message(&format!(
+        "Secret created: {} ({})",
+        secret["key"].as_str().unwrap_or("-"),
+        secret["id"].as_str().unwrap_or("-")
+    ));
+
+    Ok(())
+}
+
+pub fn secret_update(
+    client: &ApiClient,
+    site_id: &str,
+    env_name: &str,
+    secret_id: &str,
+    key: Option<String>,
+    value: Option<String>,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let body = UpdateSecretRequest { key, value };
+
+    let response: Value = client.put(
+        &format!(
+            "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
+            site_id, env_name, secret_id
+        ),
+        &body,
+    )?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    print_message("Secret updated successfully.");
+    Ok(())
+}
+
+pub fn secret_delete(
+    client: &ApiClient,
+    site_id: &str,
+    env_name: &str,
+    secret_id: &str,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let response: Value = client.delete(&format!(
+        "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
+        site_id, env_name, secret_id
+    ))?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    print_message("Secret deleted successfully.");
+    Ok(())
+}
+
+// Helper function to format tags
+fn format_tags(value: &Value) -> String {
+    if let Some(tags) = value.as_array() {
+        if tags.is_empty() {
+            return "-".to_string();
+        }
+        tags.iter()
+            .filter_map(|t| t.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    } else {
+        "-".to_string()
+    }
 }

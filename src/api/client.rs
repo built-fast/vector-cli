@@ -136,12 +136,68 @@ impl ApiClient {
         self.handle_response(response)
     }
 
+    pub fn put_empty<T: DeserializeOwned>(&self, path: &str) -> Result<T, ApiError> {
+        let url = format!("{}{}", self.base_url, path);
+        let response = self
+            .client
+            .put(&url)
+            .headers(self.headers()?)
+            .send()
+            .map_err(ApiError::NetworkError)?;
+
+        self.handle_response(response)
+    }
+
     pub fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, ApiError> {
         let url = format!("{}{}", self.base_url, path);
         let response = self
             .client
             .delete(&url)
             .headers(self.headers()?)
+            .send()
+            .map_err(ApiError::NetworkError)?;
+
+        self.handle_response(response)
+    }
+
+    pub fn post_file<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        file_path: &std::path::Path,
+    ) -> Result<T, ApiError> {
+        use reqwest::blocking::multipart::{Form, Part};
+        use std::fs::File;
+        use std::io::Read;
+
+        let url = format!("{}{}", self.base_url, path);
+
+        let mut file = File::open(file_path)
+            .map_err(|e| ApiError::Other(format!("Failed to open file: {}", e)))?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)
+            .map_err(|e| ApiError::Other(format!("Failed to read file: {}", e)))?;
+
+        let file_name = file_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("file.sql")
+            .to_string();
+
+        let part = Part::bytes(buffer)
+            .file_name(file_name)
+            .mime_str("application/octet-stream")
+            .map_err(|e| ApiError::Other(format!("Failed to set mime type: {}", e)))?;
+
+        let form = Form::new().part("file", part);
+
+        let mut headers = self.headers()?;
+        headers.remove(CONTENT_TYPE);
+
+        let response = self
+            .client
+            .post(&url)
+            .headers(headers)
+            .multipart(form)
             .send()
             .map_err(ApiError::NetworkError)?;
 

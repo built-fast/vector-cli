@@ -6,6 +6,7 @@ on:
       - 'v*'
 
 permissions:
+  actions: write
   contents: write
 
 env:
@@ -92,3 +93,12 @@ jobs:
         with:
           files: artifacts/*
           generate_release_notes: true
+
+      - name: Update homebrew tap
+        run: |
+          gh workflow run bump-formula.yml \
+            -f formula=vector \
+            -f version=${GITHUB_REF##refs/tags/} \
+            -R built-fast/homebrew-devtools
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}

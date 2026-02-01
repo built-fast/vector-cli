@@ -13,10 +13,16 @@ struct PaginationQuery {
     per_page: u32,
 }
 
+#[derive(Debug, Serialize)]
+struct RollbackRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    target_deployment_id: Option<String>,
+}
+
 pub fn list(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     page: u32,
     per_page: u32,
     format: OutputFormat,
@@ -25,7 +31,7 @@ pub fn list(
     let response: Value = client.get_with_query(
         &format!(
             "/api/v1/vector/sites/{}/environments/{}/deployments",
-            site_id, env_id
+            site_id, env_name
         ),
         &query,
     )?;
@@ -68,13 +74,13 @@ pub fn list(
 pub fn show(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     deploy_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.get(&format!(
         "/api/v1/vector/sites/{}/environments/{}/deployments/{}",
-        site_id, env_id, deploy_id
+        site_id, env_name, deploy_id
     ))?;
 
     if format == OutputFormat::Json {
@@ -119,15 +125,15 @@ pub fn show(
     Ok(())
 }
 
-pub fn create(
+pub fn trigger(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
+    env_name: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
         "/api/v1/vector/sites/{}/environments/{}/deployments",
-        site_id, env_id
+        site_id, env_name
     ))?;
 
     if format == OutputFormat::Json {
@@ -137,7 +143,7 @@ pub fn create(
 
     let deploy = &response["data"];
     print_message(&format!(
-        "Deployment created: {} ({})",
+        "Deployment initiated: {} ({})",
         deploy["id"].as_str().unwrap_or("-"),
         deploy["status"].as_str().unwrap_or("-")
     ));
@@ -148,14 +154,21 @@ pub fn create(
 pub fn rollback(
     client: &ApiClient,
     site_id: &str,
-    env_id: &str,
-    deploy_id: &str,
+    env_name: &str,
+    target_deployment_id: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/deployments/{}/rollback",
-        site_id, env_id, deploy_id
-    ))?;
+    let body = RollbackRequest {
+        target_deployment_id,
+    };
+
+    let response: Value = client.post(
+        &format!(
+            "/api/v1/vector/sites/{}/environments/{}/rollback",
+            site_id, env_name
+        ),
+        &body,
+    )?;
 
     if format == OutputFormat::Json {
         print_json(&response);

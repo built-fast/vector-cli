@@ -1,14 +1,15 @@
+<p align="center">
+    <img alt="BuiltFast Logo Light Mode" src="/assets/images/logo-light-mode.svg#gh-light-mode-only"/>
+    <img alt="BuiltFast Logo Dark Mode" src="/assets/images/logo-dark-mode.svg#gh-dark-mode-only"/>
+</p>
+
 # Vector CLI
 
-Command-line interface for the [Vector Pro](https://builtfast.com) hosting platform API.
+Official command-line interface for [Vector Pro](https://builtfast.dev/api) by [BuiltFast](https://builtfast.com).
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Installation
-
-### From source
-
-```bash
-cargo install --path .
-```
 
 ### Pre-built binaries
 
@@ -34,6 +35,12 @@ sudo mv vector /usr/local/bin/
 xattr -d com.apple.quarantine ./vector
 ```
 
+### From source
+
+```bash
+cargo install --path .
+```
+
 ## Usage
 
 ### Authentication
@@ -56,54 +63,178 @@ vector auth logout
 ### Sites
 
 ```bash
+# List and view sites
 vector site list
-vector site show <ID>
-vector site create --domain example.com
-vector site update <ID> --php-version 8.3
-vector site delete <ID> [--force]
-vector site suspend <ID>
-vector site unsuspend <ID>
-vector site reset-sftp-password <ID>
-vector site reset-db-password <ID>
-vector site purge-cache <ID> [--path /specific/path]
-vector site logs <ID> [--type error] [--lines 100]
+vector site show <site_id>
+
+# Create and manage sites
+vector site create --customer-id <id> --dev-php-version 8.3 [--tags tag1,tag2]
+vector site update <site_id> [--customer-id <id>] [--tags tag1,tag2]
+vector site delete <site_id>
+vector site clone <site_id> [--customer-id <id>] [--dev-php-version 8.3]
+
+# Site operations
+vector site suspend <site_id>
+vector site unsuspend <site_id>
+vector site reset-sftp-password <site_id>
+vector site reset-db-password <site_id>
+vector site purge-cache <site_id> [--cache-tag <tag>] [--url <url>]
+vector site logs <site_id> [--start-time <time>] [--end-time <time>] [--limit 100]
+```
+
+### Site SSH Keys
+
+```bash
+vector site ssh-key list <site_id>
+vector site ssh-key add <site_id> --name "My Key" --public-key "ssh-rsa ..."
+vector site ssh-key remove <site_id> <key_id>
 ```
 
 ### Environments
 
 ```bash
-vector env list <SITE_ID>
-vector env show <SITE_ID> <ENV_ID>
-vector env create <SITE_ID> --name staging
-vector env create <SITE_ID> --name production --is-production
-vector env update <SITE_ID> <ENV_ID> --php-version 8.3
-vector env delete <SITE_ID> <ENV_ID>
-vector env suspend <SITE_ID> <ENV_ID>
-vector env unsuspend <SITE_ID> <ENV_ID>
+# List and view environments
+vector env list <site_id>
+vector env show <site_id> <env_name>
+
+# Create and manage environments
+vector env create <site_id> --name staging --custom-domain example.com --php-version 8.3 [--is-production]
+vector env update <site_id> <env_name> [--name <name>] [--custom-domain <domain>]
+vector env delete <site_id> <env_name>
+
+# Reset database password
+vector env reset-db-password <site_id> <env_name>
+```
+
+### Environment Secrets
+
+```bash
+vector env secret list <site_id> <env_name>
+vector env secret show <site_id> <env_name> <secret_id>
+vector env secret create <site_id> <env_name> --key MY_SECRET --value "secret-value"
+vector env secret update <site_id> <env_name> <secret_id> [--key <key>] [--value <value>]
+vector env secret delete <site_id> <env_name> <secret_id>
 ```
 
 ### Deployments
 
 ```bash
-vector deploy list <SITE_ID> <ENV_ID>
-vector deploy show <SITE_ID> <ENV_ID> <DEPLOY_ID>
-vector deploy create <SITE_ID> <ENV_ID>
-vector deploy rollback <SITE_ID> <ENV_ID> <DEPLOY_ID>
+vector deploy list <site_id> <env_name>
+vector deploy show <site_id> <env_name> <deploy_id>
+vector deploy trigger <site_id> <env_name>
+vector deploy rollback <site_id> <env_name> [--target-deployment-id <id>]
 ```
 
 ### SSL
 
 ```bash
-vector ssl status <SITE_ID> <ENV_ID>
-vector ssl nudge <SITE_ID> <ENV_ID>
+vector ssl status <site_id> <env_name>
+vector ssl nudge <site_id> <env_name> [--retry]
+```
+
+### Database
+
+```bash
+# Direct import (files under 50MB)
+vector db import <site_id> <file.sql>
+
+# Import session for large files
+vector db import-session create <site_id>
+vector db import-session run <site_id> <import_id>
+vector db import-session status <site_id> <import_id>
+
+# Export
+vector db export create <site_id>
+vector db export status <site_id> <export_id>
+```
+
+### WAF
+
+```bash
+# Rate limits
+vector waf rate-limit list <site_id>
+vector waf rate-limit show <site_id> <rule_id>
+vector waf rate-limit create <site_id> --name "Limit" --request-count 100 --timeframe 60 --block-time 300
+vector waf rate-limit update <site_id> <rule_id> [--name <name>] [--request-count <n>]
+vector waf rate-limit delete <site_id> <rule_id>
+
+# Blocked IPs
+vector waf blocked-ip list <site_id>
+vector waf blocked-ip add <site_id> <ip>
+vector waf blocked-ip remove <site_id> <ip>
+
+# Blocked referrers
+vector waf blocked-referrer list <site_id>
+vector waf blocked-referrer add <site_id> <hostname>
+vector waf blocked-referrer remove <site_id> <hostname>
+
+# Allowed referrers
+vector waf allowed-referrer list <site_id>
+vector waf allowed-referrer add <site_id> <hostname>
+vector waf allowed-referrer remove <site_id> <hostname>
+```
+
+### Account
+
+```bash
+# Account summary
+vector account show
+
+# Account SSH keys
+vector account ssh-key list
+vector account ssh-key show <key_id>
+vector account ssh-key create --name "My Key" --public-key "ssh-rsa ..."
+vector account ssh-key delete <key_id>
+
+# API keys
+vector account api-key list
+vector account api-key create --name "CI Token" [--abilities read,write] [--expires-at 2025-12-31]
+vector account api-key delete <token_id>
+
+# Global secrets
+vector account secret list
+vector account secret show <secret_id>
+vector account secret create --key MY_SECRET --value "secret-value"
+vector account secret update <secret_id> [--key <key>] [--value <value>]
+vector account secret delete <secret_id>
+```
+
+### Events
+
+```bash
+vector event list [--from 2024-01-01] [--to 2024-12-31] [--event site.created]
+```
+
+### Webhooks
+
+```bash
+vector webhook list
+vector webhook show <webhook_id>
+vector webhook create --name "My Webhook" --url "https://example.com/hook" --events site.created,deployment.completed
+vector webhook update <webhook_id> [--name <name>] [--url <url>] [--enabled true]
+vector webhook delete <webhook_id>
+```
+
+### PHP Versions
+
+```bash
+vector php-versions
+```
+
+### MCP Integration
+
+Configure [Claude Desktop](https://claude.ai/download) to use Vector CLI as an MCP server:
+
+```bash
+vector mcp setup
 ```
 
 ## Output Format
 
-- **Interactive (TTY)**: Table format
+- **Interactive (TTY)**: Human-readable table format
 - **Piped/scripted**: JSON format
 
-Override with `--json` or `--no-json` flags:
+Override with flags:
 
 ```bash
 vector site list --json          # Force JSON
@@ -151,4 +282,4 @@ make clean      # Remove build artifacts
 
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE) for details.
