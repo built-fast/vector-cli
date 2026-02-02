@@ -14,6 +14,13 @@ struct PaginationQuery {
 }
 
 #[derive(Debug, Serialize)]
+struct ListEnvQuery {
+    site: String,
+    page: u32,
+    per_page: u32,
+}
+
+#[derive(Debug, Serialize)]
 struct CreateEnvRequest {
     name: String,
     custom_domain: String,
@@ -55,11 +62,12 @@ pub fn list(
     per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let query = PaginationQuery { page, per_page };
-    let response: Value = client.get_with_query(
-        &format!("/api/v1/vector/sites/{}/environments", site_id),
-        &query,
-    )?;
+    let query = ListEnvQuery {
+        site: site_id.to_string(),
+        page,
+        per_page,
+    };
+    let response: Value = client.get_with_query("/api/v1/vector/environments", &query)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -99,14 +107,10 @@ pub fn list(
 
 pub fn show(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/environments/{}",
-        site_id, env_name
-    ))?;
+    let response: Value = client.get(&format!("/api/v1/vector/environments/{}", env_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -198,8 +202,7 @@ pub fn create(
 
 pub fn update(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     name: Option<String>,
     custom_domain: Option<String>,
     tags: Option<Vec<String>>,
@@ -211,10 +214,8 @@ pub fn update(
         tags,
     };
 
-    let response: Value = client.put(
-        &format!("/api/v1/vector/sites/{}/environments/{}", site_id, env_name),
-        &body,
-    )?;
+    let response: Value =
+        client.put(&format!("/api/v1/vector/environments/{}", env_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -227,14 +228,10 @@ pub fn update(
 
 pub fn delete(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.delete(&format!(
-        "/api/v1/vector/sites/{}/environments/{}",
-        site_id, env_name
-    ))?;
+    let response: Value = client.delete(&format!("/api/v1/vector/environments/{}", env_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -247,13 +244,12 @@ pub fn delete(
 
 pub fn reset_db_password(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/database/reset-password",
-        site_id, env_name
+        "/api/v1/vector/environments/{}/database/reset-password",
+        env_id
     ))?;
 
     if format == OutputFormat::Json {
@@ -269,18 +265,14 @@ pub fn reset_db_password(
 
 pub fn secret_list(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     page: u32,
     per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let query = PaginationQuery { page, per_page };
     let response: Value = client.get_with_query(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/secrets",
-            site_id, env_name
-        ),
+        &format!("/api/v1/vector/environments/{}/secrets", env_id),
         &query,
     )?;
 
@@ -320,15 +312,10 @@ pub fn secret_list(
 
 pub fn secret_show(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
     secret_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
-        site_id, env_name, secret_id
-    ))?;
+    let response: Value = client.get(&format!("/api/v1/vector/secrets/{}", secret_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -355,8 +342,7 @@ pub fn secret_show(
 
 pub fn secret_create(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     key: &str,
     value: &str,
     format: OutputFormat,
@@ -367,10 +353,7 @@ pub fn secret_create(
     };
 
     let response: Value = client.post(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/secrets",
-            site_id, env_name
-        ),
+        &format!("/api/v1/vector/environments/{}/secrets", env_id),
         &body,
     )?;
 
@@ -391,8 +374,6 @@ pub fn secret_create(
 
 pub fn secret_update(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
     secret_id: &str,
     key: Option<String>,
     value: Option<String>,
@@ -400,13 +381,8 @@ pub fn secret_update(
 ) -> Result<(), ApiError> {
     let body = UpdateSecretRequest { key, value };
 
-    let response: Value = client.put(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
-            site_id, env_name, secret_id
-        ),
-        &body,
-    )?;
+    let response: Value =
+        client.put(&format!("/api/v1/vector/secrets/{}", secret_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -419,15 +395,10 @@ pub fn secret_update(
 
 pub fn secret_delete(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
     secret_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.delete(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/secrets/{}",
-        site_id, env_name, secret_id
-    ))?;
+    let response: Value = client.delete(&format!("/api/v1/vector/secrets/{}", secret_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);

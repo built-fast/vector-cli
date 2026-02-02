@@ -95,41 +95,41 @@ vector site ssh-key remove <site_id> <key_id>
 ```bash
 # List and view environments
 vector env list <site_id>
-vector env show <site_id> <env_name>
+vector env show <env_id>
 
 # Create and manage environments
 vector env create <site_id> --name staging --custom-domain example.com --php-version 8.3 [--is-production]
-vector env update <site_id> <env_name> [--name <name>] [--custom-domain <domain>]
-vector env delete <site_id> <env_name>
+vector env update <env_id> [--name <name>] [--custom-domain <domain>]
+vector env delete <env_id>
 
 # Reset database password
-vector env reset-db-password <site_id> <env_name>
+vector env reset-db-password <env_id>
 ```
 
 ### Environment Secrets
 
 ```bash
-vector env secret list <site_id> <env_name>
-vector env secret show <site_id> <env_name> <secret_id>
-vector env secret create <site_id> <env_name> --key MY_SECRET --value "secret-value"
-vector env secret update <site_id> <env_name> <secret_id> [--key <key>] [--value <value>]
-vector env secret delete <site_id> <env_name> <secret_id>
+vector env secret list <env_id>
+vector env secret show <secret_id>
+vector env secret create <env_id> --key MY_SECRET --value "secret-value"
+vector env secret update <secret_id> [--key <key>] [--value <value>]
+vector env secret delete <secret_id>
 ```
 
 ### Deployments
 
 ```bash
-vector deploy list <site_id> <env_name>
-vector deploy show <site_id> <env_name> <deploy_id>
-vector deploy trigger <site_id> <env_name>
-vector deploy rollback <site_id> <env_name> [--target-deployment-id <id>]
+vector deploy list <env_id>
+vector deploy show <deploy_id>
+vector deploy trigger <env_id>
+vector deploy rollback <env_id> [--target-deployment-id <id>]
 ```
 
 ### SSL
 
 ```bash
-vector ssl status <site_id> <env_name>
-vector ssl nudge <site_id> <env_name> [--retry]
+vector ssl status <env_id>
+vector ssl nudge <env_id> [--retry]
 ```
 
 ### Database

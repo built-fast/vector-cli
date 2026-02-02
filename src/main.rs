@@ -155,7 +155,7 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
             page,
             per_page,
         } => env::list(&client, &site_id, page, per_page, format),
-        EnvCommands::Show { site_id, env_name } => env::show(&client, &site_id, &env_name, format),
+        EnvCommands::Show { env_id } => env::show(&client, &env_id, format),
         EnvCommands::Create {
             site_id,
             name,
@@ -174,26 +174,13 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
             format,
         ),
         EnvCommands::Update {
-            site_id,
-            env_name,
+            env_id,
             name,
             custom_domain,
             tags,
-        } => env::update(
-            &client,
-            &site_id,
-            &env_name,
-            name,
-            custom_domain,
-            tags,
-            format,
-        ),
-        EnvCommands::Delete { site_id, env_name } => {
-            env::delete(&client, &site_id, &env_name, format)
-        }
-        EnvCommands::ResetDbPassword { site_id, env_name } => {
-            env::reset_db_password(&client, &site_id, &env_name, format)
-        }
+        } => env::update(&client, &env_id, name, custom_domain, tags, format),
+        EnvCommands::Delete { env_id } => env::delete(&client, &env_id, format),
+        EnvCommands::ResetDbPassword { env_id } => env::reset_db_password(&client, &env_id, format),
         EnvCommands::Secret { command } => run_env_secret(&client, command, format),
     }
 }
@@ -205,34 +192,20 @@ fn run_env_secret(
 ) -> Result<(), ApiError> {
     match command {
         EnvSecretCommands::List {
-            site_id,
-            env_name,
+            env_id,
             page,
             per_page,
-        } => env::secret_list(client, &site_id, &env_name, page, per_page, format),
-        EnvSecretCommands::Show {
-            site_id,
-            env_name,
-            secret_id,
-        } => env::secret_show(client, &site_id, &env_name, &secret_id, format),
-        EnvSecretCommands::Create {
-            site_id,
-            env_name,
-            key,
-            value,
-        } => env::secret_create(client, &site_id, &env_name, &key, &value, format),
+        } => env::secret_list(client, &env_id, page, per_page, format),
+        EnvSecretCommands::Show { secret_id } => env::secret_show(client, &secret_id, format),
+        EnvSecretCommands::Create { env_id, key, value } => {
+            env::secret_create(client, &env_id, &key, &value, format)
+        }
         EnvSecretCommands::Update {
-            site_id,
-            env_name,
             secret_id,
             key,
             value,
-        } => env::secret_update(client, &site_id, &env_name, &secret_id, key, value, format),
-        EnvSecretCommands::Delete {
-            site_id,
-            env_name,
-            secret_id,
-        } => env::secret_delete(client, &site_id, &env_name, &secret_id, format),
+        } => env::secret_update(client, &secret_id, key, value, format),
+        EnvSecretCommands::Delete { secret_id } => env::secret_delete(client, &secret_id, format),
     }
 }
 
@@ -241,24 +214,16 @@ fn run_deploy(command: DeployCommands, format: OutputFormat) -> Result<(), ApiEr
 
     match command {
         DeployCommands::List {
-            site_id,
-            env_name,
+            env_id,
             page,
             per_page,
-        } => deploy::list(&client, &site_id, &env_name, page, per_page, format),
-        DeployCommands::Show {
-            site_id,
-            env_name,
-            deploy_id,
-        } => deploy::show(&client, &site_id, &env_name, &deploy_id, format),
-        DeployCommands::Trigger { site_id, env_name } => {
-            deploy::trigger(&client, &site_id, &env_name, format)
-        }
+        } => deploy::list(&client, &env_id, page, per_page, format),
+        DeployCommands::Show { deploy_id } => deploy::show(&client, &deploy_id, format),
+        DeployCommands::Trigger { env_id } => deploy::trigger(&client, &env_id, format),
         DeployCommands::Rollback {
-            site_id,
-            env_name,
+            env_id,
             target_deployment_id,
-        } => deploy::rollback(&client, &site_id, &env_name, target_deployment_id, format),
+        } => deploy::rollback(&client, &env_id, target_deployment_id, format),
     }
 }
 
@@ -266,14 +231,8 @@ fn run_ssl(command: SslCommands, format: OutputFormat) -> Result<(), ApiError> {
     let client = get_client()?;
 
     match command {
-        SslCommands::Status { site_id, env_name } => {
-            ssl::status(&client, &site_id, &env_name, format)
-        }
-        SslCommands::Nudge {
-            site_id,
-            env_name,
-            retry,
-        } => ssl::nudge(&client, &site_id, &env_name, retry, format),
+        SslCommands::Status { env_id } => ssl::status(&client, &env_id, format),
+        SslCommands::Nudge { env_id, retry } => ssl::nudge(&client, &env_id, retry, format),
     }
 }
 

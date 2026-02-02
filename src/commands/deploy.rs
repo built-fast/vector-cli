@@ -21,18 +21,14 @@ struct RollbackRequest {
 
 pub fn list(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     page: u32,
     per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let query = PaginationQuery { page, per_page };
     let response: Value = client.get_with_query(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/deployments",
-            site_id, env_name
-        ),
+        &format!("/api/v1/vector/environments/{}/deployments", env_id),
         &query,
     )?;
 
@@ -73,15 +69,10 @@ pub fn list(
 
 pub fn show(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
     deploy_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/deployments/{}",
-        site_id, env_name, deploy_id
-    ))?;
+    let response: Value = client.get(&format!("/api/v1/vector/deployments/{}", deploy_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -127,13 +118,12 @@ pub fn show(
 
 pub fn trigger(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/deployments",
-        site_id, env_name
+        "/api/v1/vector/environments/{}/deployments",
+        env_id
     ))?;
 
     if format == OutputFormat::Json {
@@ -153,8 +143,7 @@ pub fn trigger(
 
 pub fn rollback(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     target_deployment_id: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
@@ -163,10 +152,7 @@ pub fn rollback(
     };
 
     let response: Value = client.post(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/rollback",
-            site_id, env_name
-        ),
+        &format!("/api/v1/vector/environments/{}/rollback", env_id),
         &body,
     )?;
 

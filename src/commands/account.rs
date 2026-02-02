@@ -353,7 +353,7 @@ pub fn secret_list(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let query = PaginationQuery { page, per_page };
-    let response: Value = client.get_with_query("/api/v1/vector/secrets", &query)?;
+    let response: Value = client.get_with_query("/api/v1/vector/global-secrets", &query)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -394,7 +394,7 @@ pub fn secret_show(
     secret_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!("/api/v1/vector/secrets/{}", secret_id))?;
+    let response: Value = client.get(&format!("/api/v1/vector/global-secrets/{}", secret_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -430,7 +430,7 @@ pub fn secret_create(
         value: value.to_string(),
     };
 
-    let response: Value = client.post("/api/v1/vector/secrets", &body)?;
+    let response: Value = client.post("/api/v1/vector/global-secrets", &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -456,7 +456,7 @@ pub fn secret_update(
 ) -> Result<(), ApiError> {
     let body = UpdateSecretRequest { key, value };
 
-    let response: Value = client.put(&format!("/api/v1/vector/secrets/{}", secret_id), &body)?;
+    let response: Value = client.put(&format!("/api/v1/vector/global-secrets/{}", secret_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -472,7 +472,7 @@ pub fn secret_delete(
     secret_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.delete(&format!("/api/v1/vector/secrets/{}", secret_id))?;
+    let response: Value = client.delete(&format!("/api/v1/vector/global-secrets/{}", secret_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);

@@ -14,14 +14,10 @@ struct NudgeRequest {
 
 pub fn status(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/environments/{}/ssl",
-        site_id, env_name
-    ))?;
+    let response: Value = client.get(&format!("/api/v1/vector/environments/{}/ssl", env_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -59,18 +55,14 @@ pub fn status(
 
 pub fn nudge(
     client: &ApiClient,
-    site_id: &str,
-    env_name: &str,
+    env_id: &str,
     retry: bool,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = NudgeRequest { retry };
 
     let response: Value = client.post(
-        &format!(
-            "/api/v1/vector/sites/{}/environments/{}/ssl/nudge",
-            site_id, env_name
-        ),
+        &format!("/api/v1/vector/environments/{}/ssl/nudge", env_id),
         &body,
     )?;
 

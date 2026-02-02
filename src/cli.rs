@@ -260,10 +260,8 @@ pub enum EnvCommands {
     },
     /// Show environment details
     Show {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
     },
     /// Create a new environment
     Create {
@@ -287,10 +285,8 @@ pub enum EnvCommands {
     },
     /// Update an environment
     Update {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// New environment name
         #[arg(long)]
         name: Option<String>,
@@ -303,17 +299,13 @@ pub enum EnvCommands {
     },
     /// Delete an environment
     Delete {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
     },
     /// Reset environment database password
     ResetDbPassword {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
     },
     /// Manage environment secrets
     Secret {
@@ -326,10 +318,8 @@ pub enum EnvCommands {
 pub enum EnvSecretCommands {
     /// List secrets for an environment
     List {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// Page number
         #[arg(long, default_value = "1")]
         page: u32,
@@ -339,19 +329,13 @@ pub enum EnvSecretCommands {
     },
     /// Show secret details
     Show {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
         /// Secret ID
         secret_id: String,
     },
     /// Create a secret
     Create {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// Secret key
         #[arg(long)]
         key: String,
@@ -361,10 +345,6 @@ pub enum EnvSecretCommands {
     },
     /// Update a secret
     Update {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
         /// Secret ID
         secret_id: String,
         /// Secret key
@@ -376,10 +356,6 @@ pub enum EnvSecretCommands {
     },
     /// Delete a secret
     Delete {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
         /// Secret ID
         secret_id: String,
     },
@@ -389,10 +365,8 @@ pub enum EnvSecretCommands {
 pub enum DeployCommands {
     /// List deployments for an environment
     List {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// Page number
         #[arg(long, default_value = "1")]
         page: u32,
@@ -402,26 +376,18 @@ pub enum DeployCommands {
     },
     /// Show deployment details
     Show {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
         /// Deployment ID
         deploy_id: String,
     },
     /// Trigger a new deployment
     Trigger {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
     },
     /// Rollback to a previous deployment
     Rollback {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// Target deployment ID to rollback to
         #[arg(long)]
         target_deployment_id: Option<String>,
@@ -432,17 +398,13 @@ pub enum DeployCommands {
 pub enum SslCommands {
     /// Check SSL status
     Status {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
     },
     /// Nudge SSL provisioning
     Nudge {
-        /// Site ID
-        site_id: String,
-        /// Environment name
-        env_name: String,
+        /// Environment ID
+        env_id: String,
         /// Retry from failed state
         #[arg(long)]
         retry: bool,
