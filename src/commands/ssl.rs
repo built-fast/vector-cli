@@ -12,11 +12,7 @@ struct NudgeRequest {
     retry: bool,
 }
 
-pub fn status(
-    client: &ApiClient,
-    env_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn status(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.get(&format!("/api/v1/vector/environments/{}/ssl", env_id))?;
 
     if format == OutputFormat::Json {

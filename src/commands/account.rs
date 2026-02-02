@@ -456,7 +456,10 @@ pub fn secret_update(
 ) -> Result<(), ApiError> {
     let body = UpdateSecretRequest { key, value };
 
-    let response: Value = client.put(&format!("/api/v1/vector/global-secrets/{}", secret_id), &body)?;
+    let response: Value = client.put(
+        &format!("/api/v1/vector/global-secrets/{}", secret_id),
+        &body,
+    )?;
 
     if format == OutputFormat::Json {
         print_json(&response);

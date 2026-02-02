@@ -67,11 +67,7 @@ pub fn list(
     Ok(())
 }
 
-pub fn show(
-    client: &ApiClient,
-    deploy_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn show(client: &ApiClient, deploy_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.get(&format!("/api/v1/vector/deployments/{}", deploy_id))?;
 
     if format == OutputFormat::Json {
@@ -116,11 +112,7 @@ pub fn show(
     Ok(())
 }
 
-pub fn trigger(
-    client: &ApiClient,
-    env_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn trigger(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
         "/api/v1/vector/environments/{}/deployments",
         env_id

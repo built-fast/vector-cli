@@ -105,11 +105,7 @@ pub fn list(
     Ok(())
 }
 
-pub fn show(
-    client: &ApiClient,
-    env_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn show(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.get(&format!("/api/v1/vector/environments/{}", env_id))?;
 
     if format == OutputFormat::Json {
@@ -214,8 +210,7 @@ pub fn update(
         tags,
     };
 
-    let response: Value =
-        client.put(&format!("/api/v1/vector/environments/{}", env_id), &body)?;
+    let response: Value = client.put(&format!("/api/v1/vector/environments/{}", env_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -226,11 +221,7 @@ pub fn update(
     Ok(())
 }
 
-pub fn delete(
-    client: &ApiClient,
-    env_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn delete(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.delete(&format!("/api/v1/vector/environments/{}", env_id))?;
 
     if format == OutputFormat::Json {
@@ -381,8 +372,7 @@ pub fn secret_update(
 ) -> Result<(), ApiError> {
     let body = UpdateSecretRequest { key, value };
 
-    let response: Value =
-        client.put(&format!("/api/v1/vector/secrets/{}", secret_id), &body)?;
+    let response: Value = client.put(&format!("/api/v1/vector/secrets/{}", secret_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
