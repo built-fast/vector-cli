@@ -450,7 +450,10 @@ pub fn logs(
         if response["data"]["has_more"].as_bool().unwrap_or(false) {
             if let Some(next_cursor) = response["data"]["cursor"].as_str() {
                 eprintln!();
-                eprintln!("More results available. Use --cursor {} to continue.", next_cursor);
+                eprintln!(
+                    "More results available. Use --cursor {} to continue.",
+                    next_cursor
+                );
             }
         }
     } else {
