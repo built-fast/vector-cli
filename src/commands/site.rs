@@ -59,6 +59,10 @@ struct LogsQuery {
     environment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     deployment_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -402,6 +406,8 @@ pub fn logs(
     limit: Option<u32>,
     environment: Option<String>,
     deployment_id: Option<String>,
+    level: Option<String>,
+    cursor: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let query = LogsQuery {
@@ -410,6 +416,8 @@ pub fn logs(
         limit,
         environment,
         deployment_id,
+        level,
+        cursor,
     };
     let response: Value =
         client.get_with_query(&format!("/api/v1/vector/sites/{}/logs", id), &query)?;
@@ -420,7 +428,7 @@ pub fn logs(
     }
 
     // Parse the Axiom-style log format
-    if let Some(tables) = response["data"]["tables"].as_array() {
+    if let Some(tables) = response["data"]["logs"]["tables"].as_array() {
         for table in tables {
             if let Some(rows) = table["rows"].as_array() {
                 for row in rows {
@@ -435,6 +443,14 @@ pub fn logs(
                         }
                     }
                 }
+            }
+        }
+
+        // Show pagination info if there are more results
+        if response["data"]["has_more"].as_bool().unwrap_or(false) {
+            if let Some(next_cursor) = response["data"]["cursor"].as_str() {
+                eprintln!();
+                eprintln!("More results available. Use --cursor {} to continue.", next_cursor);
             }
         }
     } else {

@@ -110,6 +110,8 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
             limit,
             environment,
             deployment_id,
+            level,
+            cursor,
         } => site::logs(
             &client,
             &id,
@@ -118,6 +120,8 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
             limit,
             environment,
             deployment_id,
+            level,
+            cursor,
             format,
         ),
         SiteCommands::SshKey { command } => run_site_ssh_key(&client, command, format),

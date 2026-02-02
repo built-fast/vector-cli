@@ -204,6 +204,12 @@ pub enum SiteCommands {
         /// Deployment ID to filter
         #[arg(long)]
         deployment_id: Option<String>,
+        /// Log level to filter (e.g., error, warning, info)
+        #[arg(long)]
+        level: Option<String>,
+        /// Pagination cursor from previous response
+        #[arg(long)]
+        cursor: Option<String>,
     },
     /// Manage site SSH keys
     SshKey {
