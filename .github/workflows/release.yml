@@ -101,4 +101,4 @@ jobs:
             -f version=${GITHUB_REF##refs/tags/} \
             -R built-fast/homebrew-devtools
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
