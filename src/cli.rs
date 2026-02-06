@@ -389,6 +389,9 @@ pub enum DeployCommands {
     Trigger {
         /// Environment ID
         env_id: String,
+        /// Include wp-content/uploads in the deployment
+        #[arg(long)]
+        include_uploads: bool,
     },
     /// Rollback to a previous deployment
     Rollback {

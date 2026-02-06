@@ -14,6 +14,12 @@ struct PaginationQuery {
 }
 
 #[derive(Debug, Serialize)]
+struct TriggerRequest {
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    include_uploads: bool,
+}
+
+#[derive(Debug, Serialize)]
 struct RollbackRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     target_deployment_id: Option<String>,
@@ -112,11 +118,17 @@ pub fn show(client: &ApiClient, deploy_id: &str, format: OutputFormat) -> Result
     Ok(())
 }
 
-pub fn trigger(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/environments/{}/deployments",
-        env_id
-    ))?;
+pub fn trigger(
+    client: &ApiClient,
+    env_id: &str,
+    include_uploads: bool,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let body = TriggerRequest { include_uploads };
+    let response: Value = client.post(
+        &format!("/api/v1/vector/environments/{}/deployments", env_id),
+        &body,
+    )?;
 
     if format == OutputFormat::Json {
         print_json(&response);

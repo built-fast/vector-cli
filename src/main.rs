@@ -223,7 +223,10 @@ fn run_deploy(command: DeployCommands, format: OutputFormat) -> Result<(), ApiEr
             per_page,
         } => deploy::list(&client, &env_id, page, per_page, format),
         DeployCommands::Show { deploy_id } => deploy::show(&client, &deploy_id, format),
-        DeployCommands::Trigger { env_id } => deploy::trigger(&client, &env_id, format),
+        DeployCommands::Trigger {
+            env_id,
+            include_uploads,
+        } => deploy::trigger(&client, &env_id, include_uploads, format),
         DeployCommands::Rollback {
             env_id,
             target_deployment_id,
