@@ -11,6 +11,12 @@ Official command-line interface for [Vector Pro](https://builtfast.dev/api) by [
 
 ## Installation
 
+### Homebrew (macOS)
+
+```bash
+brew install built-fast/devtools/vector
+```
+
 ### Pre-built binaries
 
 Download from [Releases](https://github.com/built-fast/vector-cli/releases):
