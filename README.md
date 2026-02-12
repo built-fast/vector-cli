@@ -85,6 +85,7 @@ vector site unsuspend <site_id>
 vector site reset-sftp-password <site_id>
 vector site reset-db-password <site_id>
 vector site purge-cache <site_id> [--cache-tag <tag>] [--url <url>]
+vector site wp-reconfig <site_id>
 vector site logs <site_id> [--start-time <time>] [--end-time <time>] [--limit 100]
 ```
 
@@ -117,9 +118,25 @@ vector env reset-db-password <env_id>
 ```bash
 vector env secret list <env_id>
 vector env secret show <secret_id>
-vector env secret create <env_id> --key MY_SECRET --value "secret-value"
-vector env secret update <secret_id> [--key <key>] [--value <value>]
+vector env secret create <env_id> --key MY_SECRET --value "secret-value" [--no-secret]
+vector env secret update <secret_id> [--key <key>] [--value <value>] [--no-secret]
 vector env secret delete <secret_id>
+```
+
+### Environment Database
+
+```bash
+# Direct import (files under 50MB)
+vector env db import <env_id> <file.sql> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
+
+# Import session for large files
+vector env db import-session create <env_id> [--filename <name>] [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
+vector env db import-session run <env_id> <import_id>
+vector env db import-session status <env_id> <import_id>
+
+# Promote dev database to environment
+vector env db promote <env_id> [--drop-tables] [--disable-foreign-keys]
+vector env db promote-status <env_id> <promote_id>
 ```
 
 ### Deployments
@@ -127,7 +144,7 @@ vector env secret delete <secret_id>
 ```bash
 vector deploy list <env_id>
 vector deploy show <deploy_id>
-vector deploy trigger <env_id>
+vector deploy trigger <env_id> [--include-uploads] [--include-database]
 vector deploy rollback <env_id> [--target-deployment-id <id>]
 ```
 
@@ -142,10 +159,10 @@ vector ssl nudge <env_id> [--retry]
 
 ```bash
 # Direct import (files under 50MB)
-vector db import <site_id> <file.sql>
+vector db import <site_id> <file.sql> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
 
 # Import session for large files
-vector db import-session create <site_id>
+vector db import-session create <site_id> [--filename <name>] [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
 vector db import-session run <site_id> <import_id>
 vector db import-session status <site_id> <import_id>
 
@@ -200,8 +217,8 @@ vector account api-key delete <token_id>
 # Global secrets
 vector account secret list
 vector account secret show <secret_id>
-vector account secret create --key MY_SECRET --value "secret-value"
-vector account secret update <secret_id> [--key <key>] [--value <value>]
+vector account secret create --key MY_SECRET --value "secret-value" [--no-secret]
+vector account secret update <secret_id> [--key <key>] [--value <value>] [--no-secret]
 vector account secret delete <secret_id>
 ```
 

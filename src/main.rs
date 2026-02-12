@@ -12,9 +12,10 @@ use api::{ApiClient, ApiError, EXIT_SUCCESS};
 use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
     AuthCommands, Cli, Commands, DbCommands, DbExportCommands, DbImportSessionCommands,
-    DeployCommands, EnvCommands, EnvSecretCommands, EventCommands, McpCommands, SiteCommands,
-    SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands, WafBlockedIpCommands,
-    WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands, WebhookCommands,
+    DeployCommands, EnvCommands, EnvDbCommands, EnvDbImportSessionCommands, EnvSecretCommands,
+    EventCommands, McpCommands, SiteCommands, SiteSshKeyCommands, SslCommands,
+    WafAllowedReferrerCommands, WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands,
+    WafRateLimitCommands, WebhookCommands,
 };
 use commands::{account, auth, db, deploy, env, event, mcp, site, ssl, waf, webhook};
 use config::{Config, Credentials};
@@ -124,6 +125,7 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
             cursor,
             format,
         ),
+        SiteCommands::WpReconfig { id } => site::wp_reconfig(&client, &id, format),
         SiteCommands::SshKey { command } => run_site_ssh_key(&client, command, format),
     }
 }
@@ -186,6 +188,7 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
         EnvCommands::Delete { env_id } => env::delete(&client, &env_id, format),
         EnvCommands::ResetDbPassword { env_id } => env::reset_db_password(&client, &env_id, format),
         EnvCommands::Secret { command } => run_env_secret(&client, command, format),
+        EnvCommands::Db { command } => run_env_db(&client, command, format),
     }
 }
 
@@ -201,15 +204,91 @@ fn run_env_secret(
             per_page,
         } => env::secret_list(client, &env_id, page, per_page, format),
         EnvSecretCommands::Show { secret_id } => env::secret_show(client, &secret_id, format),
-        EnvSecretCommands::Create { env_id, key, value } => {
-            env::secret_create(client, &env_id, &key, &value, format)
-        }
+        EnvSecretCommands::Create {
+            env_id,
+            key,
+            value,
+            no_secret,
+        } => env::secret_create(client, &env_id, &key, &value, no_secret, format),
         EnvSecretCommands::Update {
             secret_id,
             key,
             value,
-        } => env::secret_update(client, &secret_id, key, value, format),
+            no_secret,
+        } => env::secret_update(client, &secret_id, key, value, no_secret, format),
         EnvSecretCommands::Delete { secret_id } => env::secret_delete(client, &secret_id, format),
+    }
+}
+
+fn run_env_db(
+    client: &ApiClient,
+    command: EnvDbCommands,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    match command {
+        EnvDbCommands::Import {
+            env_id,
+            file,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+        } => env::db_import(
+            client,
+            &env_id,
+            &file,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+            format,
+        ),
+        EnvDbCommands::ImportSession { command } => {
+            run_env_db_import_session(client, command, format)
+        }
+        EnvDbCommands::Promote {
+            env_id,
+            drop_tables,
+            disable_foreign_keys,
+        } => env::db_promote(client, &env_id, drop_tables, disable_foreign_keys, format),
+        EnvDbCommands::PromoteStatus {
+            env_id,
+            promote_id,
+        } => env::db_promote_status(client, &env_id, &promote_id, format),
+    }
+}
+
+fn run_env_db_import_session(
+    client: &ApiClient,
+    command: EnvDbImportSessionCommands,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    match command {
+        EnvDbImportSessionCommands::Create {
+            env_id,
+            filename,
+            content_length,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+        } => env::db_import_session_create(
+            client,
+            &env_id,
+            filename,
+            content_length,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+            format,
+        ),
+        EnvDbImportSessionCommands::Run { env_id, import_id } => {
+            env::db_import_session_run(client, &env_id, &import_id, format)
+        }
+        EnvDbImportSessionCommands::Status { env_id, import_id } => {
+            env::db_import_session_status(client, &env_id, &import_id, format)
+        }
     }
 }
 
@@ -226,7 +305,8 @@ fn run_deploy(command: DeployCommands, format: OutputFormat) -> Result<(), ApiEr
         DeployCommands::Trigger {
             env_id,
             include_uploads,
-        } => deploy::trigger(&client, &env_id, include_uploads, format),
+            include_database,
+        } => deploy::trigger(&client, &env_id, include_uploads, include_database, format),
         DeployCommands::Rollback {
             env_id,
             target_deployment_id,
@@ -252,12 +332,16 @@ fn run_db(command: DbCommands, format: OutputFormat) -> Result<(), ApiError> {
             file,
             drop_tables,
             disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
         } => db::import_direct(
             &client,
             &site_id,
             &file,
             drop_tables,
             disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
             format,
         ),
         DbCommands::ImportSession { command } => run_db_import_session(&client, command, format),
@@ -277,6 +361,8 @@ fn run_db_import_session(
             content_length,
             drop_tables,
             disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
         } => db::import_session_create(
             client,
             &site_id,
@@ -284,6 +370,8 @@ fn run_db_import_session(
             content_length,
             drop_tables,
             disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
             format,
         ),
         DbImportSessionCommands::Run { site_id, import_id } => {
@@ -508,14 +596,17 @@ fn run_account_secret(
         AccountSecretCommands::Show { secret_id } => {
             account::secret_show(client, &secret_id, format)
         }
-        AccountSecretCommands::Create { key, value } => {
-            account::secret_create(client, &key, &value, format)
-        }
+        AccountSecretCommands::Create {
+            key,
+            value,
+            no_secret,
+        } => account::secret_create(client, &key, &value, no_secret, format),
         AccountSecretCommands::Update {
             secret_id,
             key,
             value,
-        } => account::secret_update(client, &secret_id, key, value, format),
+            no_secret,
+        } => account::secret_update(client, &secret_id, key, value, no_secret, format),
         AccountSecretCommands::Delete { secret_id } => {
             account::secret_delete(client, &secret_id, format)
         }

@@ -41,8 +41,8 @@ pub fn status(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<
             format_option(&env["custom_domain"].as_str().map(String::from)),
         ),
         (
-            "FQDN",
-            format_option(&env["fqdn"].as_str().map(String::from)),
+            "Platform Domain",
+            format_option(&env["platform_domain"].as_str().map(String::from)),
         ),
     ]);
 

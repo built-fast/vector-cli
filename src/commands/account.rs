@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    extract_pagination, format_option, print_json, print_key_value, print_message,
+    extract_pagination, format_bool, format_option, print_json, print_key_value, print_message,
     print_pagination, print_table, OutputFormat,
 };
 
@@ -32,6 +32,8 @@ struct CreateApiKeyRequest {
 struct CreateSecretRequest {
     key: String,
     value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_secret: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -40,6 +42,8 @@ struct UpdateSecretRequest {
     key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_secret: Option<bool>,
 }
 
 // Account summary
@@ -375,12 +379,14 @@ pub fn secret_list(
             vec![
                 s["id"].as_str().unwrap_or("-").to_string(),
                 s["key"].as_str().unwrap_or("-").to_string(),
+                format_bool(s["is_secret"].as_bool().unwrap_or(true)),
+                format_option(&s["value"].as_str().map(String::from)),
                 format_option(&s["created_at"].as_str().map(String::from)),
             ]
         })
         .collect();
 
-    print_table(vec!["ID", "Key", "Created"], rows);
+    print_table(vec!["ID", "Key", "Secret", "Value", "Created"], rows);
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
@@ -407,6 +413,14 @@ pub fn secret_show(
         ("ID", secret["id"].as_str().unwrap_or("-").to_string()),
         ("Key", secret["key"].as_str().unwrap_or("-").to_string()),
         (
+            "Secret",
+            format_bool(secret["is_secret"].as_bool().unwrap_or(true)),
+        ),
+        (
+            "Value",
+            format_option(&secret["value"].as_str().map(String::from)),
+        ),
+        (
             "Created",
             format_option(&secret["created_at"].as_str().map(String::from)),
         ),
@@ -423,11 +437,13 @@ pub fn secret_create(
     client: &ApiClient,
     key: &str,
     value: &str,
+    no_secret: bool,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = CreateSecretRequest {
         key: key.to_string(),
         value: value.to_string(),
+        is_secret: if no_secret { Some(false) } else { None },
     };
 
     let response: Value = client.post("/api/v1/vector/global-secrets", &body)?;
@@ -452,9 +468,14 @@ pub fn secret_update(
     secret_id: &str,
     key: Option<String>,
     value: Option<String>,
+    no_secret: bool,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let body = UpdateSecretRequest { key, value };
+    let body = UpdateSecretRequest {
+        key,
+        value,
+        is_secret: if no_secret { Some(false) } else { None },
+    };
 
     let response: Value = client.put(
         &format!("/api/v1/vector/global-secrets/{}", secret_id),

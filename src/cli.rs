@@ -211,6 +211,11 @@ pub enum SiteCommands {
         #[arg(long)]
         cursor: Option<String>,
     },
+    /// Regenerate wp-config.php
+    WpReconfig {
+        /// Site ID
+        id: String,
+    },
     /// Manage site SSH keys
     SshKey {
         #[command(subcommand)]
@@ -318,6 +323,11 @@ pub enum EnvCommands {
         #[command(subcommand)]
         command: EnvSecretCommands,
     },
+    /// Manage environment database
+    Db {
+        #[command(subcommand)]
+        command: EnvDbCommands,
+    },
 }
 
 #[derive(Subcommand)]
@@ -348,6 +358,9 @@ pub enum EnvSecretCommands {
         /// Secret value
         #[arg(long)]
         value: String,
+        /// Store as a plain environment variable instead of a secret
+        #[arg(long)]
+        no_secret: bool,
     },
     /// Update a secret
     Update {
@@ -359,11 +372,101 @@ pub enum EnvSecretCommands {
         /// Secret value
         #[arg(long)]
         value: Option<String>,
+        /// Store as a plain environment variable instead of a secret
+        #[arg(long)]
+        no_secret: bool,
     },
     /// Delete a secret
     Delete {
         /// Secret ID
         secret_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum EnvDbCommands {
+    /// Import a SQL file directly (files under 50MB)
+    Import {
+        /// Environment ID
+        env_id: String,
+        /// Path to SQL file
+        file: PathBuf,
+        /// Drop all existing tables before import
+        #[arg(long)]
+        drop_tables: bool,
+        /// Disable foreign key checks during import
+        #[arg(long)]
+        disable_foreign_keys: bool,
+        /// Search string for search-and-replace during import
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during import
+        #[arg(long)]
+        search_replace_to: Option<String>,
+    },
+    /// Manage import sessions for large files
+    ImportSession {
+        #[command(subcommand)]
+        command: EnvDbImportSessionCommands,
+    },
+    /// Promote dev database to this environment
+    Promote {
+        /// Environment ID
+        env_id: String,
+        /// Drop all existing tables before promote
+        #[arg(long)]
+        drop_tables: bool,
+        /// Disable foreign key checks during promote
+        #[arg(long)]
+        disable_foreign_keys: bool,
+    },
+    /// Check promote status
+    PromoteStatus {
+        /// Environment ID
+        env_id: String,
+        /// Promote ID
+        promote_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum EnvDbImportSessionCommands {
+    /// Create an import session
+    Create {
+        /// Environment ID
+        env_id: String,
+        /// Filename
+        #[arg(long)]
+        filename: Option<String>,
+        /// Content length in bytes
+        #[arg(long)]
+        content_length: Option<u64>,
+        /// Drop all existing tables before import
+        #[arg(long)]
+        drop_tables: bool,
+        /// Disable foreign key checks during import
+        #[arg(long)]
+        disable_foreign_keys: bool,
+        /// Search string for search-and-replace during import
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during import
+        #[arg(long)]
+        search_replace_to: Option<String>,
+    },
+    /// Run an import session
+    Run {
+        /// Environment ID
+        env_id: String,
+        /// Import ID
+        import_id: String,
+    },
+    /// Check import session status
+    Status {
+        /// Environment ID
+        env_id: String,
+        /// Import ID
+        import_id: String,
     },
 }
 
@@ -392,6 +495,9 @@ pub enum DeployCommands {
         /// Include wp-content/uploads in the deployment
         #[arg(long)]
         include_uploads: bool,
+        /// Include database in the deployment
+        #[arg(long)]
+        include_database: bool,
     },
     /// Rollback to a previous deployment
     Rollback {
@@ -434,6 +540,12 @@ pub enum DbCommands {
         /// Disable foreign key checks during import
         #[arg(long)]
         disable_foreign_keys: bool,
+        /// Search string for search-and-replace during import
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during import
+        #[arg(long)]
+        search_replace_to: Option<String>,
     },
     /// Manage import sessions for large files
     ImportSession {
@@ -465,6 +577,12 @@ pub enum DbImportSessionCommands {
         /// Disable foreign key checks during import
         #[arg(long)]
         disable_foreign_keys: bool,
+        /// Search string for search-and-replace during import
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during import
+        #[arg(long)]
+        search_replace_to: Option<String>,
     },
     /// Run an import session
     Run {
@@ -790,6 +908,9 @@ pub enum AccountSecretCommands {
         /// Secret value
         #[arg(long)]
         value: String,
+        /// Store as a plain environment variable instead of a secret
+        #[arg(long)]
+        no_secret: bool,
     },
     /// Update a secret
     Update {
@@ -801,6 +922,9 @@ pub enum AccountSecretCommands {
         /// Secret value
         #[arg(long)]
         value: Option<String>,
+        /// Store as a plain environment variable instead of a secret
+        #[arg(long)]
+        no_secret: bool,
     },
     /// Delete a secret
     Delete {

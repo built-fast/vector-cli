@@ -140,6 +140,14 @@ pub fn show(client: &ApiClient, id: &str, format: OutputFormat) -> Result<(), Ap
             "Dev PHP Version",
             format_option(&site["dev_php_version"].as_str().map(String::from)),
         ),
+        (
+            "Dev DB Host",
+            format_option(&site["dev_db_host"].as_str().map(String::from)),
+        ),
+        (
+            "Dev DB Name",
+            format_option(&site["dev_db_name"].as_str().map(String::from)),
+        ),
         ("Tags", format_tags(&site["tags"])),
         (
             "Created",
@@ -353,7 +361,7 @@ pub fn reset_db_password(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/database/reset-password",
+        "/api/v1/vector/sites/{}/db/reset-password",
         id
     ))?;
 
@@ -460,6 +468,19 @@ pub fn logs(
         print_message("No logs available.");
     }
 
+    Ok(())
+}
+
+pub fn wp_reconfig(client: &ApiClient, id: &str, format: OutputFormat) -> Result<(), ApiError> {
+    let response: Value =
+        client.post_empty(&format!("/api/v1/vector/sites/{}/wp/reconfig", id))?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    print_message("wp-config.php regenerated successfully.");
     Ok(())
 }
 

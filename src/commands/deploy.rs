@@ -17,6 +17,8 @@ struct PaginationQuery {
 struct TriggerRequest {
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     include_uploads: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    include_database: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -122,9 +124,13 @@ pub fn trigger(
     client: &ApiClient,
     env_id: &str,
     include_uploads: bool,
+    include_database: bool,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let body = TriggerRequest { include_uploads };
+    let body = TriggerRequest {
+        include_uploads,
+        include_database,
+    };
     let response: Value = client.post(
         &format!("/api/v1/vector/environments/{}/deployments", env_id),
         &body,

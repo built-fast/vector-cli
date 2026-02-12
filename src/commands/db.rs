@@ -23,6 +23,14 @@ struct ImportOptions {
     drop_tables: bool,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     disable_foreign_keys: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    search_replace: Option<SearchReplace>,
+}
+
+#[derive(Debug, Serialize)]
+struct SearchReplace {
+    from: String,
+    to: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -31,12 +39,15 @@ struct CreateExportRequest {
     format: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn import_direct(
     client: &ApiClient,
     site_id: &str,
     file_path: &Path,
     drop_tables: bool,
     disable_foreign_keys: bool,
+    search_replace_from: Option<String>,
+    search_replace_to: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     // Check file size - direct import only supports files under 50MB
@@ -53,10 +64,16 @@ pub fn import_direct(
     let mut path = format!("/api/v1/vector/sites/{}/db/import", site_id);
     let mut params = vec![];
     if drop_tables {
-        params.push("drop_tables=true");
+        params.push("drop_tables=true".to_string());
     }
     if disable_foreign_keys {
-        params.push("disable_foreign_keys=true");
+        params.push("disable_foreign_keys=true".to_string());
+    }
+    if let Some(ref from) = search_replace_from {
+        params.push(format!("search_replace_from={}", from));
+    }
+    if let Some(ref to) = search_replace_to {
+        params.push(format!("search_replace_to={}", to));
     }
     if !params.is_empty() {
         path = format!("{}?{}", path, params.join("&"));
@@ -87,6 +104,7 @@ pub fn import_direct(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn import_session_create(
     client: &ApiClient,
     site_id: &str,
@@ -94,12 +112,20 @@ pub fn import_session_create(
     content_length: Option<u64>,
     drop_tables: bool,
     disable_foreign_keys: bool,
+    search_replace_from: Option<String>,
+    search_replace_to: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let options = if drop_tables || disable_foreign_keys {
+    let search_replace = match (search_replace_from, search_replace_to) {
+        (Some(from), Some(to)) => Some(SearchReplace { from, to }),
+        _ => None,
+    };
+
+    let options = if drop_tables || disable_foreign_keys || search_replace.is_some() {
         Some(ImportOptions {
             drop_tables,
             disable_foreign_keys,
+            search_replace,
         })
     } else {
         None
