@@ -94,11 +94,12 @@ pub fn setup(force: bool, format: OutputFormat) -> Result<(), ApiError> {
 
     // Ensure parent directory exists
     if let Some(parent) = config_path.parent()
-        && !parent.exists() {
-            fs::create_dir_all(parent).map_err(|e| {
-                ApiError::ConfigError(format!("Failed to create Claude config directory: {}", e))
-            })?;
-        }
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent).map_err(|e| {
+            ApiError::ConfigError(format!("Failed to create Claude config directory: {}", e))
+        })?;
+    }
 
     // Write the config
     let content = serde_json::to_string_pretty(&config)

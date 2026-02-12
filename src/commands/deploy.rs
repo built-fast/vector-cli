@@ -106,14 +106,16 @@ pub fn show(client: &ApiClient, deploy_id: &str, format: OutputFormat) -> Result
     ]);
 
     if let Some(stdout) = deploy["stdout"].as_str()
-        && !stdout.is_empty() {
-            println!("\n--- stdout ---\n{}", stdout);
-        }
+        && !stdout.is_empty()
+    {
+        println!("\n--- stdout ---\n{}", stdout);
+    }
 
     if let Some(stderr) = deploy["stderr"].as_str()
-        && !stderr.is_empty() {
-            println!("\n--- stderr ---\n{}", stderr);
-        }
+        && !stderr.is_empty()
+    {
+        println!("\n--- stderr ---\n{}", stderr);
+    }
 
     Ok(())
 }
