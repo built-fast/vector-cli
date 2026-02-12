@@ -3,8 +3,8 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    extract_pagination, format_option, print_json, print_key_value, print_message,
-    print_pagination, print_table, OutputFormat,
+    OutputFormat, extract_pagination, format_option, print_json, print_key_value, print_message,
+    print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
@@ -360,10 +360,8 @@ pub fn reset_db_password(
     id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/db/reset-password",
-        id
-    ))?;
+    let response: Value =
+        client.post_empty(&format!("/api/v1/vector/sites/{}/db/reset-password", id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -472,8 +470,7 @@ pub fn logs(
 }
 
 pub fn wp_reconfig(client: &ApiClient, id: &str, format: OutputFormat) -> Result<(), ApiError> {
-    let response: Value =
-        client.post_empty(&format!("/api/v1/vector/sites/{}/wp/reconfig", id))?;
+    let response: Value = client.post_empty(&format!("/api/v1/vector/sites/{}/wp/reconfig", id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);

@@ -2,12 +2,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::api::ApiError;
 use crate::commands::auth::get_api_key;
 use crate::config::Credentials;
-use crate::output::{print_json, print_message, OutputFormat};
+use crate::output::{OutputFormat, print_json, print_message};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]

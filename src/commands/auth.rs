@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::config::{Config, Credentials};
-use crate::output::{print_json, print_message, OutputFormat};
+use crate::output::{OutputFormat, print_json, print_message};
 
 pub fn login(token: Option<String>, format: OutputFormat) -> Result<(), ApiError> {
     let api_token = match token {

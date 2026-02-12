@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::path::Path;
 
 use crate::api::{ApiClient, ApiError};
-use crate::output::{format_option, print_json, print_key_value, print_message, OutputFormat};
+use crate::output::{OutputFormat, format_option, print_json, print_key_value, print_message};
 
 #[derive(Debug, Serialize)]
 struct CreateImportSessionRequest {

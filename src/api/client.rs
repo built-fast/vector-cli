@@ -1,7 +1,7 @@
 use reqwest::blocking::{Client, Response};
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
-use serde::de::DeserializeOwned;
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use super::error::ApiError;
 

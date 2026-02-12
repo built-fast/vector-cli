@@ -4,8 +4,8 @@ use std::path::Path;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    extract_pagination, format_bool, format_option, print_json, print_key_value, print_message,
-    print_pagination, print_table, OutputFormat,
+    OutputFormat, extract_pagination, format_bool, format_option, print_json, print_key_value,
+    print_message, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
@@ -101,7 +101,10 @@ pub fn list(
         })
         .collect();
 
-    print_table(vec!["ID", "Name", "Status", "Production", "Platform Domain"], rows);
+    print_table(
+        vec!["ID", "Name", "Status", "Production", "Platform Domain"],
+        rows,
+    );
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
@@ -720,10 +723,7 @@ pub fn db_promote_status(
 
     let data = &response["data"];
     print_key_value(vec![
-        (
-            "Promote ID",
-            data["id"].as_str().unwrap_or("-").to_string(),
-        ),
+        ("Promote ID", data["id"].as_str().unwrap_or("-").to_string()),
         ("Status", data["status"].as_str().unwrap_or("-").to_string()),
         (
             "Duration (ms)",

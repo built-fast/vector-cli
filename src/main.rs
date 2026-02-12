@@ -19,7 +19,7 @@ use cli::{
 };
 use commands::{account, auth, db, deploy, env, event, mcp, site, ssl, waf, webhook};
 use config::{Config, Credentials};
-use output::{print_error, print_json, print_message, print_table, OutputFormat};
+use output::{OutputFormat, print_error, print_json, print_message, print_table};
 
 fn main() {
     let cli = Cli::parse();
@@ -251,10 +251,9 @@ fn run_env_db(
             drop_tables,
             disable_foreign_keys,
         } => env::db_promote(client, &env_id, drop_tables, disable_foreign_keys, format),
-        EnvDbCommands::PromoteStatus {
-            env_id,
-            promote_id,
-        } => env::db_promote_status(client, &env_id, &promote_id, format),
+        EnvDbCommands::PromoteStatus { env_id, promote_id } => {
+            env::db_promote_status(client, &env_id, &promote_id, format)
+        }
     }
 }
 

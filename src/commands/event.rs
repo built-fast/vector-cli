@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    extract_pagination, format_option, print_json, print_pagination, print_table, OutputFormat,
+    OutputFormat, extract_pagination, format_option, print_json, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
