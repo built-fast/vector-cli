@@ -58,9 +58,12 @@ jobs:
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          cd target/${{ matrix.target }}/release
-          tar czvf ../../../vector-${{ matrix.target }}.tar.gz vector
-          cd ../../..
+          staging="vector-${{ matrix.target }}"
+          mkdir -p "$staging/man/man1"
+          cp target/${{ matrix.target }}/release/vector "$staging/"
+          cp man/man1/vector.1 "$staging/man/man1/"
+          tar czvf "$staging.tar.gz" -C "$staging" .
+          rm -rf "$staging"
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
