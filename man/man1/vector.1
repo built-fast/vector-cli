@@ -1,0 +1,478 @@
+.TH VECTOR 1 "2026-02-15" "vector 0.2.1" "Vector Pro CLI"
+.SH NAME
+vector \- command-line interface for the Vector Pro API
+.SH SYNOPSIS
+.B vector
+.RI [ OPTIONS ]
+.I COMMAND
+.RI [ ARGS ]
+.SH DESCRIPTION
+.B vector
+is the official CLI for the Vector Pro WordPress hosting platform by BuiltFast.
+It provides full access to the Vector Pro API for managing sites, environments,
+deployments, SSL certificates, WAF rules, and account settings.
+.PP
+Output is automatically formatted as tables when connected to a terminal, or as
+JSON when piped to another program. This can be overridden with the
+.B \-\-json
+and
+.B \-\-no\-json
+flags.
+.SH OPTIONS
+.TP
+.B \-\-json
+Force JSON output.
+.TP
+.B \-\-no\-json
+Force table output.
+.TP
+.BR \-h ", " \-\-help
+Print help information.
+.TP
+.BR \-V ", " \-\-version
+Print version information.
+.SH COMMANDS
+.SS auth \- Manage authentication
+.TP
+.B auth login \fR[\fB\-\-token\fR \fITOKEN\fR]
+Log in with an API token. If
+.B \-\-token
+is not provided, you will be prompted to enter one interactively.
+.TP
+.B auth logout
+Log out and clear stored credentials.
+.TP
+.B auth status
+Check the current authentication status.
+.SS site \- Manage sites
+.TP
+.B site list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List all sites. Defaults to page 1 with 15 results per page.
+.TP
+.B site show \fIID\fR
+Show details for a site.
+.TP
+.B site create \fB\-\-customer\-id\fR \fIID\fR \fB\-\-dev\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-tags\fR \fITAGS\fR]
+Create a new site.
+.TP
+.B site update \fIID\fR \fR[\fB\-\-customer\-id\fR \fIID\fR] [\fB\-\-tags\fR \fITAGS\fR]
+Update a site.
+.TP
+.B site delete \fIID\fR \fR[\fB\-\-force\fR]
+Delete a site. Use
+.B \-\-force
+to skip the confirmation prompt.
+.TP
+.B site clone \fIID\fR \fR[\fB\-\-customer\-id\fR \fIID\fR] [\fB\-\-dev\-php\-version\fR \fIVERSION\fR] [\fB\-\-tags\fR \fITAGS\fR]
+Clone an existing site.
+.TP
+.B site suspend \fIID\fR
+Suspend a site.
+.TP
+.B site unsuspend \fIID\fR
+Unsuspend a site.
+.TP
+.B site reset\-sftp\-password \fIID\fR
+Reset the SFTP password for a site.
+.TP
+.B site reset\-db\-password \fIID\fR
+Reset the database password for a site.
+.TP
+.B site purge\-cache \fIID\fR \fR[\fB\-\-cache\-tag\fR \fITAG\fR] [\fB\-\-url\fR \fIURL\fR]
+Purge the cache for a site. Optionally filter by cache tag or URL.
+.TP
+.B site logs \fIID\fR \fR[\fIOPTIONS\fR]
+View site logs. Options:
+.B \-\-start\-time
+.IR ISO8601 ,
+.B \-\-end\-time
+.IR ISO8601 ,
+.B \-\-limit
+.IR N ,
+.B \-\-environment
+.IR NAME ,
+.B \-\-deployment\-id
+.IR ID ,
+.B \-\-level
+.IR LEVEL ,
+.B \-\-cursor
+.IR CURSOR .
+.TP
+.B site wp\-reconfig \fIID\fR
+Regenerate wp\-config.php for a site.
+.SS site ssh\-key \- Manage site SSH keys
+.TP
+.B site ssh\-key list \fISITE_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List SSH keys for a site.
+.TP
+.B site ssh\-key add \fISITE_ID\fR \fB\-\-name\fR \fINAME\fR \fB\-\-public\-key\fR \fIKEY\fR
+Add an SSH key to a site.
+.TP
+.B site ssh\-key remove \fISITE_ID\fR \fIKEY_ID\fR
+Remove an SSH key from a site.
+.SS env \- Manage environments
+.TP
+.B env list \fISITE_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List environments for a site.
+.TP
+.B env show \fIENV_ID\fR
+Show environment details.
+.TP
+.B env create \fISITE_ID\fR \fB\-\-name\fR \fINAME\fR \fB\-\-custom\-domain\fR \fIDOMAIN\fR \fB\-\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-is\-production\fR] [\fB\-\-tags\fR \fITAGS\fR]
+Create a new environment.
+.TP
+.B env update \fIENV_ID\fR \fR[\fB\-\-name\fR \fINAME\fR] [\fB\-\-custom\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR]
+Update an environment.
+.TP
+.B env delete \fIENV_ID\fR
+Delete an environment.
+.TP
+.B env reset\-db\-password \fIENV_ID\fR
+Reset the database password for an environment.
+.SS env secret \- Manage environment secrets
+.TP
+.B env secret list \fIENV_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List secrets for an environment.
+.TP
+.B env secret show \fISECRET_ID\fR
+Show secret details.
+.TP
+.B env secret create \fIENV_ID\fR \fB\-\-key\fR \fIKEY\fR \fB\-\-value\fR \fIVALUE\fR \fR[\fB\-\-no\-secret\fR]
+Create a secret. Use
+.B \-\-no\-secret
+to store as a plain environment variable.
+.TP
+.B env secret update \fISECRET_ID\fR \fR[\fB\-\-key\fR \fIKEY\fR] [\fB\-\-value\fR \fIVALUE\fR] [\fB\-\-no\-secret\fR]
+Update a secret.
+.TP
+.B env secret delete \fISECRET_ID\fR
+Delete a secret.
+.SS env db \- Manage environment databases
+.TP
+.B env db import \fIENV_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
+Import a SQL file (under 50MB) into an environment database. Options:
+.B \-\-drop\-tables\fR,
+.B \-\-disable\-foreign\-keys\fR,
+.B \-\-search\-replace\-from
+.IR FROM ,
+.B \-\-search\-replace\-to
+.IR TO .
+.TP
+.B env db promote \fIENV_ID\fR \fR[\fB\-\-drop\-tables\fR] [\fB\-\-disable\-foreign\-keys\fR]
+Promote the dev database to an environment.
+.TP
+.B env db promote\-status \fIENV_ID\fR \fIPROMOTE_ID\fR
+Check the status of a database promotion.
+.SS env db import\-session \- Large file import sessions
+.TP
+.B env db import\-session create \fIENV_ID\fR \fR[\fIOPTIONS\fR]
+Create an import session for large files. Options:
+.B \-\-filename
+.IR NAME ,
+.B \-\-content\-length
+.IR BYTES ,
+.B \-\-drop\-tables\fR,
+.B \-\-disable\-foreign\-keys\fR,
+.B \-\-search\-replace\-from
+.IR FROM ,
+.B \-\-search\-replace\-to
+.IR TO .
+.TP
+.B env db import\-session run \fIENV_ID\fR \fIIMPORT_ID\fR
+Run an import session.
+.TP
+.B env db import\-session status \fIENV_ID\fR \fIIMPORT_ID\fR
+Check the status of an import session.
+.SS deploy \- Manage deployments
+.TP
+.B deploy list \fIENV_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List deployments for an environment.
+.TP
+.B deploy show \fIDEPLOY_ID\fR
+Show deployment details.
+.TP
+.B deploy trigger \fIENV_ID\fR \fR[\fB\-\-include\-uploads\fR] [\fB\-\-include\-database\fR]
+Trigger a new deployment.
+.TP
+.B deploy rollback \fIENV_ID\fR \fR[\fB\-\-target\-deployment\-id\fR \fIID\fR]
+Rollback to a previous deployment.
+.SS ssl \- Manage SSL certificates
+.TP
+.B ssl status \fIENV_ID\fR
+Check SSL certificate status for an environment.
+.TP
+.B ssl nudge \fIENV_ID\fR \fR[\fB\-\-retry\fR]
+Nudge SSL provisioning. Use
+.B \-\-retry
+to retry from a failed state.
+.SS db \- Manage site databases
+.TP
+.B db import \fISITE_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
+Import a SQL file (under 50MB) into a site database. Options:
+.B \-\-drop\-tables\fR,
+.B \-\-disable\-foreign\-keys\fR,
+.B \-\-search\-replace\-from
+.IR FROM ,
+.B \-\-search\-replace\-to
+.IR TO .
+.SS db import\-session \- Large file import sessions (site\-level)
+.TP
+.B db import\-session create \fISITE_ID\fR \fR[\fIOPTIONS\fR]
+Create an import session. Options:
+.B \-\-filename
+.IR NAME ,
+.B \-\-content\-length
+.IR BYTES ,
+.B \-\-drop\-tables\fR,
+.B \-\-disable\-foreign\-keys\fR,
+.B \-\-search\-replace\-from
+.IR FROM ,
+.B \-\-search\-replace\-to
+.IR TO .
+.TP
+.B db import\-session run \fISITE_ID\fR \fIIMPORT_ID\fR
+Run an import session.
+.TP
+.B db import\-session status \fISITE_ID\fR \fIIMPORT_ID\fR
+Check the status of an import session.
+.SS db export \- Manage database exports
+.TP
+.B db export create \fISITE_ID\fR \fR[\fB\-\-format\fR \fIFORMAT\fR]
+Start a database export. Currently only
+.B sql
+format is supported.
+.TP
+.B db export status \fISITE_ID\fR \fIEXPORT_ID\fR
+Check the status of a database export.
+.SS waf \- Manage WAF rules and blocklists
+.SS waf rate\-limit \- Manage rate limit rules
+.TP
+.B waf rate\-limit list \fISITE_ID\fR
+List rate limit rules for a site.
+.TP
+.B waf rate\-limit show \fISITE_ID\fR \fIRULE_ID\fR
+Show rate limit rule details.
+.TP
+.B waf rate\-limit create \fISITE_ID\fR \fB\-\-name\fR \fINAME\fR \fB\-\-request\-count\fR \fIN\fR \fB\-\-timeframe\fR \fISECONDS\fR \fB\-\-block\-time\fR \fISECONDS\fR \fR[\fIOPTIONS\fR]
+Create a rate limit rule. Timeframe must be 1 or 10. Block time must be one of:
+30, 60, 300, 900, 1800, 3600. Additional options:
+.B \-\-description
+.IR DESC ,
+.B \-\-value
+.IR PATTERN ,
+.B \-\-operator
+.IR OP ,
+.B \-\-variables
+.IR VARS ,
+.B \-\-transformations
+.IR TRANS .
+.TP
+.B waf rate\-limit update \fISITE_ID\fR \fIRULE_ID\fR \fR[\fIOPTIONS\fR]
+Update a rate limit rule. All creation options are accepted.
+.TP
+.B waf rate\-limit delete \fISITE_ID\fR \fIRULE_ID\fR
+Delete a rate limit rule.
+.SS waf blocked\-ip \- Manage blocked IPs
+.TP
+.B waf blocked\-ip list \fISITE_ID\fR
+List blocked IPs for a site.
+.TP
+.B waf blocked\-ip add \fISITE_ID\fR \fIIP\fR
+Add an IP address to the blocklist.
+.TP
+.B waf blocked\-ip remove \fISITE_ID\fR \fIIP\fR
+Remove an IP address from the blocklist.
+.SS waf blocked\-referrer \- Manage blocked referrers
+.TP
+.B waf blocked\-referrer list \fISITE_ID\fR
+List blocked referrers for a site.
+.TP
+.B waf blocked\-referrer add \fISITE_ID\fR \fIHOSTNAME\fR
+Add a hostname to the blocked referrer list.
+.TP
+.B waf blocked\-referrer remove \fISITE_ID\fR \fIHOSTNAME\fR
+Remove a hostname from the blocked referrer list.
+.SS waf allowed\-referrer \- Manage allowed referrers
+.TP
+.B waf allowed\-referrer list \fISITE_ID\fR
+List allowed referrers for a site.
+.TP
+.B waf allowed\-referrer add \fISITE_ID\fR \fIHOSTNAME\fR
+Add a hostname to the allowed referrer list.
+.TP
+.B waf allowed\-referrer remove \fISITE_ID\fR \fIHOSTNAME\fR
+Remove a hostname from the allowed referrer list.
+.SS account \- Manage account settings
+.TP
+.B account show
+Show account summary.
+.SS account ssh\-key \- Manage account SSH keys
+.TP
+.B account ssh\-key list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List account SSH keys.
+.TP
+.B account ssh\-key show \fIKEY_ID\fR
+Show SSH key details.
+.TP
+.B account ssh\-key create \fB\-\-name\fR \fINAME\fR \fB\-\-public\-key\fR \fIKEY\fR
+Create an account SSH key.
+.TP
+.B account ssh\-key delete \fIKEY_ID\fR
+Delete an account SSH key.
+.SS account api\-key \- Manage API keys
+.TP
+.B account api\-key list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List API keys.
+.TP
+.B account api\-key create \fB\-\-name\fR \fINAME\fR \fR[\fB\-\-abilities\fR \fIABILITIES\fR] [\fB\-\-expires\-at\fR \fIISO8601\fR]
+Create an API key.
+.TP
+.B account api\-key delete \fITOKEN_ID\fR
+Delete an API key.
+.SS account secret \- Manage global secrets
+.TP
+.B account secret list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List global secrets.
+.TP
+.B account secret show \fISECRET_ID\fR
+Show secret details.
+.TP
+.B account secret create \fB\-\-key\fR \fIKEY\fR \fB\-\-value\fR \fIVALUE\fR \fR[\fB\-\-no\-secret\fR]
+Create a global secret.
+.TP
+.B account secret update \fISECRET_ID\fR \fR[\fB\-\-key\fR \fIKEY\fR] [\fB\-\-value\fR \fIVALUE\fR] [\fB\-\-no\-secret\fR]
+Update a global secret.
+.TP
+.B account secret delete \fISECRET_ID\fR
+Delete a global secret.
+.SS event \- View events
+.TP
+.B event list \fR[\fB\-\-from\fR \fIISO8601\fR] [\fB\-\-to\fR \fIISO8601\fR] [\fB\-\-event\fR \fITYPE\fR] [\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List events, optionally filtered by date range and event type.
+.SS webhook \- Manage webhooks
+.TP
+.B webhook list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List webhooks.
+.TP
+.B webhook show \fIWEBHOOK_ID\fR
+Show webhook details.
+.TP
+.B webhook create \fB\-\-name\fR \fINAME\fR \fB\-\-url\fR \fIURL\fR \fB\-\-events\fR \fIEVENTS\fR \fR[\fB\-\-secret\fR \fISECRET\fR]
+Create a webhook.
+.TP
+.B webhook update \fIWEBHOOK_ID\fR \fR[\fB\-\-name\fR \fINAME\fR] [\fB\-\-url\fR \fIURL\fR] [\fB\-\-events\fR \fIEVENTS\fR] [\fB\-\-secret\fR \fISECRET\fR] [\fB\-\-enabled\fR \fIBOOL\fR]
+Update a webhook.
+.TP
+.B webhook delete \fIWEBHOOK_ID\fR
+Delete a webhook.
+.SS php\-versions \- List available PHP versions
+.TP
+.B php\-versions
+List all PHP versions available on the platform.
+.SS mcp \- Configure MCP integration
+.TP
+.B mcp setup \fR[\fB\-\-force\fR]
+Set up Claude Desktop with the Vector MCP server. Use
+.B \-\-force
+to overwrite existing configuration.
+.SH ENVIRONMENT
+.TP
+.B VECTOR_API_KEY
+API token for authentication. Overrides stored credentials.
+.TP
+.B VECTOR_API_URL
+API base URL. Defaults to
+.IR https://api.builtfast.com .
+.TP
+.B VECTOR_CONFIG_DIR
+Configuration directory. Defaults to
+.IR ~/.config/vector .
+.SH FILES
+.TP
+.I ~/.config/vector/credentials.json
+Stored API token (file permissions 0600).
+.TP
+.I ~/.config/vector/config.json
+Optional configuration settings.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+General error.
+.TP
+.B 2
+Authentication error (HTTP 401 or 403).
+.TP
+.B 3
+Validation error (HTTP 422).
+.TP
+.B 4
+Resource not found (HTTP 404).
+.TP
+.B 5
+Network or server error (HTTP 5xx).
+.SH EXAMPLES
+Authenticate with the API:
+.PP
+.RS
+.nf
+$ vector auth login
+$ vector auth login \-\-token mytoken123
+.fi
+.RE
+.PP
+List all sites:
+.PP
+.RS
+.nf
+$ vector site list
+.fi
+.RE
+.PP
+Show site details as JSON:
+.PP
+.RS
+.nf
+$ vector \-\-json site show 42
+.fi
+.RE
+.PP
+Deploy an environment with uploads and database:
+.PP
+.RS
+.nf
+$ vector deploy trigger 15 \-\-include\-uploads \-\-include\-database
+.fi
+.RE
+.PP
+Import a database with search and replace:
+.PP
+.RS
+.nf
+$ vector db import 42 dump.sql \-\-search\-replace\-from old.example.com \-\-search\-replace\-to new.example.com
+.fi
+.RE
+.PP
+Block an IP address:
+.PP
+.RS
+.nf
+$ vector waf blocked\-ip add 42 203.0.113.50
+.fi
+.RE
+.PP
+Use in a pipeline (auto\-JSON output):
+.PP
+.RS
+.nf
+$ vector site list | jq '.[].id'
+.fi
+.RE
+.SH AUTHORS
+BuiltFast <https://builtfast.com>
+.SH BUGS
+Report bugs at <https://github.com/built-fast/vector-cli/issues>.
+.SH SEE ALSO
+The Vector Pro API documentation is available at <https://builtfast.dev/api/>.
