@@ -11,13 +11,13 @@ use std::process;
 use api::{ApiClient, ApiError, EXIT_SUCCESS};
 use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
-    AuthCommands, Cli, Commands, DbCommands, DbExportCommands, DbImportSessionCommands,
-    DeployCommands, EnvCommands, EnvDbCommands, EnvDbImportSessionCommands, EnvSecretCommands,
-    EventCommands, McpCommands, SiteCommands, SiteSshKeyCommands, SslCommands,
-    WafAllowedReferrerCommands, WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands,
-    WafRateLimitCommands, WebhookCommands,
+    AuthCommands, BackupCommands, Cli, Commands, DbCommands, DbExportCommands,
+    DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
+    EnvDbImportSessionCommands, EnvSecretCommands, EventCommands, McpCommands, SiteCommands,
+    SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands, WafBlockedIpCommands,
+    WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands, WebhookCommands,
 };
-use commands::{account, auth, db, deploy, env, event, mcp, site, ssl, waf, webhook};
+use commands::{account, auth, backup, db, deploy, env, event, mcp, site, ssl, waf, webhook};
 use config::{Config, Credentials};
 use output::{OutputFormat, print_error, print_json, print_message, print_table};
 
@@ -46,6 +46,7 @@ fn run(command: Commands, format: OutputFormat) -> Result<(), ApiError> {
         Commands::Db { command } => run_db(command, format),
         Commands::Waf { command } => run_waf(command, format),
         Commands::Account { command } => run_account(command, format),
+        Commands::Backup { command } => run_backup(command, format),
         Commands::Event { command } => run_event(command, format),
         Commands::Webhook { command } => run_webhook(command, format),
         Commands::PhpVersions => run_php_versions(format),
@@ -609,6 +610,26 @@ fn run_account_secret(
         AccountSecretCommands::Delete { secret_id } => {
             account::secret_delete(client, &secret_id, format)
         }
+    }
+}
+
+fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiError> {
+    let client = get_client()?;
+
+    match command {
+        BackupCommands::List {
+            site_id,
+            page,
+            per_page,
+        } => backup::list(&client, &site_id, page, per_page, format),
+        BackupCommands::Show {
+            site_id,
+            backup_id,
+        } => backup::show(&client, &site_id, &backup_id, format),
+        BackupCommands::Create {
+            site_id,
+            description,
+        } => backup::create(&client, &site_id, description, format),
     }
 }
 

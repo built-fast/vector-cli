@@ -1,5 +1,6 @@
 pub mod account;
 pub mod auth;
+pub mod backup;
 pub mod db;
 pub mod deploy;
 pub mod env;

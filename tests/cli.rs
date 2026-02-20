@@ -165,6 +165,55 @@ fn test_site_list_requires_auth() {
 }
 
 #[test]
+fn test_backup_help() {
+    let output = vector_cmd()
+        .args(["backup", "--help"])
+        .output()
+        .expect("Failed to run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("list"));
+    assert!(stdout.contains("show"));
+    assert!(stdout.contains("create"));
+}
+
+#[test]
+fn test_backup_list_requires_auth() {
+    let output = vector_cmd()
+        .args(["backup", "list", "test-site"])
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
+        .env_remove("VECTOR_API_KEY")
+        .output()
+        .expect("Failed to run");
+    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(2)); // EXIT_AUTH_ERROR
+}
+
+#[test]
+fn test_backup_show_requires_auth() {
+    let output = vector_cmd()
+        .args(["backup", "show", "test-site", "test-backup"])
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
+        .env_remove("VECTOR_API_KEY")
+        .output()
+        .expect("Failed to run");
+    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(2)); // EXIT_AUTH_ERROR
+}
+
+#[test]
+fn test_backup_create_requires_auth() {
+    let output = vector_cmd()
+        .args(["backup", "create", "test-site"])
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
+        .env_remove("VECTOR_API_KEY")
+        .output()
+        .expect("Failed to run");
+    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(2)); // EXIT_AUTH_ERROR
+}
+
+#[test]
 fn test_invalid_subcommand() {
     let output = vector_cmd()
         .args(["invalid"])
