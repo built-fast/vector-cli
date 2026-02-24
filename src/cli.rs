@@ -75,6 +75,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: BackupCommands,
     },
+    /// Manage restores
+    Restore {
+        #[command(subcommand)]
+        command: RestoreCommands,
+    },
     /// List available PHP versions
     PhpVersions,
     /// Configure MCP integration for Claude
@@ -987,6 +992,38 @@ pub enum BackupCommands {
         /// Backup description
         #[arg(long)]
         description: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum RestoreCommands {
+    /// List restores for a site
+    List {
+        /// Site ID
+        site_id: String,
+        /// Page number
+        #[arg(long, default_value = "1")]
+        page: u32,
+        /// Items per page
+        #[arg(long, default_value = "15")]
+        per_page: u32,
+    },
+    /// Show restore details
+    Show {
+        /// Site ID
+        site_id: String,
+        /// Restore ID
+        restore_id: String,
+    },
+    /// Create a restore from a backup
+    Create {
+        /// Site ID
+        site_id: String,
+        /// Backup ID to restore from
+        backup_id: String,
+        /// Restore scope (full, database, files)
+        #[arg(long, default_value = "full")]
+        scope: String,
     },
 }
 

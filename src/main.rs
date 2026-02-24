@@ -13,11 +13,12 @@ use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
     AuthCommands, BackupCommands, Cli, Commands, DbCommands, DbExportCommands,
     DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
-    EnvDbImportSessionCommands, EnvSecretCommands, EventCommands, McpCommands, SiteCommands,
-    SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands, WafBlockedIpCommands,
-    WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands, WebhookCommands,
+    EnvDbImportSessionCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands,
+    SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
+    WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
+    WebhookCommands,
 };
-use commands::{account, auth, backup, db, deploy, env, event, mcp, site, ssl, waf, webhook};
+use commands::{account, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook};
 use config::{Config, Credentials};
 use output::{OutputFormat, print_error, print_json, print_message, print_table};
 
@@ -47,6 +48,7 @@ fn run(command: Commands, format: OutputFormat) -> Result<(), ApiError> {
         Commands::Waf { command } => run_waf(command, format),
         Commands::Account { command } => run_account(command, format),
         Commands::Backup { command } => run_backup(command, format),
+        Commands::Restore { command } => run_restore(command, format),
         Commands::Event { command } => run_event(command, format),
         Commands::Webhook { command } => run_webhook(command, format),
         Commands::PhpVersions => run_php_versions(format),
@@ -630,6 +632,27 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
             site_id,
             description,
         } => backup::create(&client, &site_id, description, format),
+    }
+}
+
+fn run_restore(command: RestoreCommands, format: OutputFormat) -> Result<(), ApiError> {
+    let client = get_client()?;
+
+    match command {
+        RestoreCommands::List {
+            site_id,
+            page,
+            per_page,
+        } => restore::list(&client, &site_id, page, per_page, format),
+        RestoreCommands::Show {
+            site_id,
+            restore_id,
+        } => restore::show(&client, &site_id, &restore_id, format),
+        RestoreCommands::Create {
+            site_id,
+            backup_id,
+            scope,
+        } => restore::create(&client, &site_id, &backup_id, &scope, format),
     }
 }
 

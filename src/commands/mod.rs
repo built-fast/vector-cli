@@ -2,6 +2,7 @@ pub mod account;
 pub mod auth;
 pub mod backup;
 pub mod db;
+pub mod restore;
 pub mod deploy;
 pub mod env;
 pub mod event;
