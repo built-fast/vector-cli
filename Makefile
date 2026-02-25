@@ -1,32 +1,43 @@
-.PHONY: help build release clean check fmt clippy test
+.DEFAULT_GOAL := help
 
-help:
-	@echo "Available commands:"
-	@echo "  make build    - Build debug binary"
-	@echo "  make release  - Build optimized release binary"
-	@echo "  make test     - Run tests"
-	@echo "  make check    - Run cargo check"
-	@echo "  make fmt      - Format code with rustfmt"
-	@echo "  make clippy   - Run clippy lints"
-	@echo "  make clean    - Remove build artifacts"
+##@ Development
 
-build:
+.PHONY: build
+build: ## Build debug binary
 	cargo build
 
-release:
-	cargo build --release
-
-test:
+.PHONY: test
+test: ## Run tests
 	cargo test
 
-check:
+.PHONY: check
+check: ## Run cargo check
 	cargo check
 
-fmt:
+.PHONY: fmt
+fmt: ## Format code with rustfmt
 	cargo fmt
 
-clippy:
+.PHONY: clippy
+clippy: ## Run clippy lints
 	cargo clippy -- -D warnings
 
-clean:
+##@ Release
+
+.PHONY: release
+release: ## Build optimized release binary
+	cargo build --release
+
+##@ Maintenance
+
+.PHONY: clean
+clean: ## Remove build artifacts
 	cargo clean
+
+##@ Info
+
+.PHONY: help
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
+		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } \
+		/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
