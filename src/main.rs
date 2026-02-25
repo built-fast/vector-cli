@@ -18,7 +18,9 @@ use cli::{
     WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
     WebhookCommands,
 };
-use commands::{account, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook};
+use commands::{
+    account, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook,
+};
 use config::{Config, Credentials};
 use output::{OutputFormat, print_error, print_json, print_message, print_table};
 
@@ -624,10 +626,9 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
             page,
             per_page,
         } => backup::list(&client, &site_id, page, per_page, format),
-        BackupCommands::Show {
-            site_id,
-            backup_id,
-        } => backup::show(&client, &site_id, &backup_id, format),
+        BackupCommands::Show { site_id, backup_id } => {
+            backup::show(&client, &site_id, &backup_id, format)
+        }
         BackupCommands::Create {
             site_id,
             description,

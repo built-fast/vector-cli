@@ -90,7 +90,10 @@ pub fn show(
         ("ID", restore["id"].as_str().unwrap_or("-").to_string()),
         (
             "Backup ID",
-            restore["vector_backup_id"].as_str().unwrap_or("-").to_string(),
+            restore["vector_backup_id"]
+                .as_str()
+                .unwrap_or("-")
+                .to_string(),
         ),
         (
             "Scope",
@@ -145,10 +148,8 @@ pub fn create(
         scope: scope.to_string(),
     };
 
-    let response: Value = client.post(
-        &format!("/api/v1/vector/sites/{}/restores", site_id),
-        &body,
-    )?;
+    let response: Value =
+        client.post(&format!("/api/v1/vector/sites/{}/restores", site_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -167,7 +168,10 @@ pub fn create(
         ("ID", restore_id.to_string()),
         (
             "Backup ID",
-            restore["vector_backup_id"].as_str().unwrap_or("-").to_string(),
+            restore["vector_backup_id"]
+                .as_str()
+                .unwrap_or("-")
+                .to_string(),
         ),
         (
             "Scope",

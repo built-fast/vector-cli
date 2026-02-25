@@ -291,7 +291,14 @@ fn test_restore_create_scope_default_requires_auth() {
 #[test]
 fn test_restore_create_scope_database_requires_auth() {
     let output = vector_cmd()
-        .args(["restore", "create", "test-site", "test-backup", "--scope", "database"])
+        .args([
+            "restore",
+            "create",
+            "test-site",
+            "test-backup",
+            "--scope",
+            "database",
+        ])
         .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .env_remove("VECTOR_API_KEY")
         .output()
@@ -303,7 +310,14 @@ fn test_restore_create_scope_database_requires_auth() {
 #[test]
 fn test_restore_create_scope_files_requires_auth() {
     let output = vector_cmd()
-        .args(["restore", "create", "test-site", "test-backup", "--scope", "files"])
+        .args([
+            "restore",
+            "create",
+            "test-site",
+            "test-backup",
+            "--scope",
+            "files",
+        ])
         .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
         .env_remove("VECTOR_API_KEY")
         .output()

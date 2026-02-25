@@ -28,10 +28,8 @@ pub fn list(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let query = PaginationQuery { page, per_page };
-    let response: Value = client.get_with_query(
-        &format!("/api/v1/vector/sites/{}/backups", site_id),
-        &query,
-    )?;
+    let response: Value =
+        client.get_with_query(&format!("/api/v1/vector/sites/{}/backups", site_id), &query)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -134,10 +132,8 @@ pub fn create(
         description,
     };
 
-    let response: Value = client.post(
-        &format!("/api/v1/vector/sites/{}/backups", site_id),
-        &body,
-    )?;
+    let response: Value =
+        client.post(&format!("/api/v1/vector/sites/{}/backups", site_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
