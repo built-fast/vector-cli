@@ -60,7 +60,10 @@ pub fn list(
         })
         .collect();
 
-    print_table(vec!["ID", "Type", "Scope", "Status", "Description", "Created"], rows);
+    print_table(
+        vec!["ID", "Type", "Scope", "Status", "Description", "Created"],
+        rows,
+    );
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
