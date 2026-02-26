@@ -60,7 +60,10 @@ pub fn list(
         })
         .collect();
 
-    print_table(vec!["ID", "Type", "Scope", "Status", "Description", "Created"], rows);
+    print_table(
+        vec!["ID", "Type", "Scope", "Status", "Description", "Created"],
+        rows,
+    );
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
@@ -90,10 +93,7 @@ pub fn show(
     print_key_value(vec![
         ("ID", backup["id"].as_str().unwrap_or("-").to_string()),
         ("Type", backup["type"].as_str().unwrap_or("-").to_string()),
-        (
-            "Scope",
-            backup["scope"].as_str().unwrap_or("-").to_string(),
-        ),
+        ("Scope", backup["scope"].as_str().unwrap_or("-").to_string()),
         (
             "Status",
             backup["status"].as_str().unwrap_or("-").to_string(),
