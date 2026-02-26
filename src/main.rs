@@ -11,8 +11,8 @@ use std::process;
 use api::{ApiClient, ApiError, EXIT_SUCCESS};
 use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
-    AuthCommands, BackupCommands, Cli, Commands, DbCommands, DbExportCommands,
-    DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
+    AuthCommands, BackupCommands, BackupDownloadCommands, Cli, Commands, DbCommands,
+    DbExportCommands, DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
     EnvDbImportSessionCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands,
     SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
     WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
@@ -634,6 +634,24 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
             scope,
             description,
         } => backup::create(&client, &site_id, &scope, description, format),
+        BackupCommands::Download { command } => run_backup_download(&client, command, format),
+    }
+}
+
+fn run_backup_download(
+    client: &ApiClient,
+    command: BackupDownloadCommands,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    match command {
+        BackupDownloadCommands::Create { site_id, backup_id } => {
+            backup::download_create(client, &site_id, &backup_id, format)
+        }
+        BackupDownloadCommands::Status {
+            site_id,
+            backup_id,
+            download_id,
+        } => backup::download_status(client, &site_id, &backup_id, &download_id, format),
     }
 }
 

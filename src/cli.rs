@@ -996,6 +996,31 @@ pub enum BackupCommands {
         #[arg(long)]
         description: Option<String>,
     },
+    /// Download a backup archive
+    Download {
+        #[command(subcommand)]
+        command: BackupDownloadCommands,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum BackupDownloadCommands {
+    /// Create a backup download request
+    Create {
+        /// Site ID
+        site_id: String,
+        /// Backup ID
+        backup_id: String,
+    },
+    /// Check backup download status
+    Status {
+        /// Site ID
+        site_id: String,
+        /// Backup ID
+        backup_id: String,
+        /// Download ID
+        download_id: String,
+    },
 }
 
 #[derive(Subcommand)]
