@@ -16,6 +16,7 @@ struct PaginationQuery {
 #[derive(Debug, Serialize)]
 struct CreateBackupRequest {
     r#type: String,
+    scope: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 }
@@ -51,6 +52,7 @@ pub fn list(
             vec![
                 b["id"].as_str().unwrap_or("-").to_string(),
                 b["type"].as_str().unwrap_or("-").to_string(),
+                b["scope"].as_str().unwrap_or("-").to_string(),
                 b["status"].as_str().unwrap_or("-").to_string(),
                 format_option(&b["description"].as_str().map(String::from)),
                 format_option(&b["created_at"].as_str().map(String::from)),
@@ -58,7 +60,7 @@ pub fn list(
         })
         .collect();
 
-    print_table(vec!["ID", "Type", "Status", "Description", "Created"], rows);
+    print_table(vec!["ID", "Type", "Scope", "Status", "Description", "Created"], rows);
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
@@ -89,6 +91,10 @@ pub fn show(
         ("ID", backup["id"].as_str().unwrap_or("-").to_string()),
         ("Type", backup["type"].as_str().unwrap_or("-").to_string()),
         (
+            "Scope",
+            backup["scope"].as_str().unwrap_or("-").to_string(),
+        ),
+        (
             "Status",
             backup["status"].as_str().unwrap_or("-").to_string(),
         ),
@@ -97,8 +103,12 @@ pub fn show(
             format_option(&backup["description"].as_str().map(String::from)),
         ),
         (
-            "Snapshot ID",
-            format_option(&backup["snapshot_id"].as_str().map(String::from)),
+            "File Snapshot ID",
+            format_option(&backup["file_snapshot_id"].as_str().map(String::from)),
+        ),
+        (
+            "Database Snapshot ID",
+            format_option(&backup["database_snapshot_id"].as_str().map(String::from)),
         ),
         (
             "Started At",
@@ -124,11 +134,13 @@ pub fn show(
 pub fn create(
     client: &ApiClient,
     site_id: &str,
+    scope: &str,
     description: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = CreateBackupRequest {
         r#type: "manual".to_string(),
+        scope: scope.to_string(),
         description,
     };
 

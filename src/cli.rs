@@ -989,6 +989,9 @@ pub enum BackupCommands {
     Create {
         /// Site ID
         site_id: String,
+        /// Backup scope (full, database, files)
+        #[arg(long, default_value = "full")]
+        scope: String,
         /// Backup description
         #[arg(long)]
         description: Option<String>,
