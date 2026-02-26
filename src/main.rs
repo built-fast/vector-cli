@@ -631,8 +631,9 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
         }
         BackupCommands::Create {
             site_id,
+            scope,
             description,
-        } => backup::create(&client, &site_id, description, format),
+        } => backup::create(&client, &site_id, &scope, description, format),
     }
 }
 
