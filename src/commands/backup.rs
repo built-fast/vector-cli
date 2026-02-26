@@ -178,3 +178,94 @@ pub fn create(
 
     Ok(())
 }
+
+pub fn download_create(
+    client: &ApiClient,
+    site_id: &str,
+    backup_id: &str,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let response: Value = client.post_empty(&format!(
+        "/api/v1/vector/sites/{}/backups/{}/downloads",
+        site_id, backup_id
+    ))?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    let data = &response["data"];
+    print_message(&format!(
+        "Download requested: {} ({})",
+        data["id"].as_str().unwrap_or("-"),
+        data["status"].as_str().unwrap_or("-")
+    ));
+    print_message("\nCheck status with:");
+    print_message(&format!(
+        "  vector backup download status {} {} {}",
+        site_id,
+        backup_id,
+        data["id"].as_str().unwrap_or("DOWNLOAD_ID")
+    ));
+
+    Ok(())
+}
+
+pub fn download_status(
+    client: &ApiClient,
+    site_id: &str,
+    backup_id: &str,
+    download_id: &str,
+    format: OutputFormat,
+) -> Result<(), ApiError> {
+    let response: Value = client.get(&format!(
+        "/api/v1/vector/sites/{}/backups/{}/downloads/{}",
+        site_id, backup_id, download_id
+    ))?;
+
+    if format == OutputFormat::Json {
+        print_json(&response);
+        return Ok(());
+    }
+
+    let data = &response["data"];
+    print_key_value(vec![
+        ("ID", data["id"].as_str().unwrap_or("-").to_string()),
+        ("Status", data["status"].as_str().unwrap_or("-").to_string()),
+        (
+            "Size (bytes)",
+            format_option(&data["size_bytes"].as_u64().map(|v| v.to_string())),
+        ),
+        (
+            "Duration (ms)",
+            format_option(&data["duration_ms"].as_u64().map(|v| v.to_string())),
+        ),
+        (
+            "Error",
+            format_option(&data["error_message"].as_str().map(String::from)),
+        ),
+        (
+            "Download URL",
+            format_option(&data["download_url"].as_str().map(String::from)),
+        ),
+        (
+            "Download Expires",
+            format_option(&data["download_expires_at"].as_str().map(String::from)),
+        ),
+        (
+            "Started At",
+            format_option(&data["started_at"].as_str().map(String::from)),
+        ),
+        (
+            "Completed At",
+            format_option(&data["completed_at"].as_str().map(String::from)),
+        ),
+        (
+            "Created At",
+            format_option(&data["created_at"].as_str().map(String::from)),
+        ),
+    ]);
+
+    Ok(())
+}
