@@ -3,19 +3,28 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    OutputFormat, extract_pagination, format_option, print_json, print_key_value, print_message,
-    print_pagination, print_table,
+    OutputFormat, extract_pagination, format_archivable_type, format_option, print_json,
+    print_key_value, print_message, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
-struct PaginationQuery {
+struct ListBackupsQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    site_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    environment_id: Option<String>,
     page: u32,
     per_page: u32,
 }
 
 #[derive(Debug, Serialize)]
 struct CreateBackupRequest {
-    r#type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    site_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    environment_id: Option<String>,
     scope: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -23,14 +32,21 @@ struct CreateBackupRequest {
 
 pub fn list(
     client: &ApiClient,
-    site_id: &str,
+    site_id: Option<String>,
+    environment_id: Option<String>,
+    backup_type: Option<String>,
     page: u32,
     per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let query = PaginationQuery { page, per_page };
-    let response: Value =
-        client.get_with_query(&format!("/api/v1/vector/sites/{}/backups", site_id), &query)?;
+    let query = ListBackupsQuery {
+        r#type: backup_type,
+        site_id,
+        environment_id,
+        page,
+        per_page,
+    };
+    let response: Value = client.get_with_query("/api/v1/vector/backups", &query)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -51,6 +67,10 @@ pub fn list(
         .map(|b| {
             vec![
                 b["id"].as_str().unwrap_or("-").to_string(),
+                b["archivable_type"]
+                    .as_str()
+                    .map(format_archivable_type)
+                    .unwrap_or_else(|| "-".to_string()),
                 b["type"].as_str().unwrap_or("-").to_string(),
                 b["scope"].as_str().unwrap_or("-").to_string(),
                 b["status"].as_str().unwrap_or("-").to_string(),
@@ -61,7 +81,7 @@ pub fn list(
         .collect();
 
     print_table(
-        vec!["ID", "Type", "Scope", "Status", "Description", "Created"],
+        vec!["ID", "Model", "Type", "Scope", "Status", "Description", "Created"],
         rows,
     );
 
@@ -74,14 +94,10 @@ pub fn list(
 
 pub fn show(
     client: &ApiClient,
-    site_id: &str,
     backup_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/backups/{}",
-        site_id, backup_id
-    ))?;
+    let response: Value = client.get(&format!("/api/v1/vector/backups/{}", backup_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -92,6 +108,20 @@ pub fn show(
 
     print_key_value(vec![
         ("ID", backup["id"].as_str().unwrap_or("-").to_string()),
+        (
+            "Model",
+            backup["archivable_type"]
+                .as_str()
+                .map(format_archivable_type)
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        (
+            "Model ID",
+            backup["archivable_id"]
+                .as_str()
+                .unwrap_or("-")
+                .to_string(),
+        ),
         ("Type", backup["type"].as_str().unwrap_or("-").to_string()),
         ("Scope", backup["scope"].as_str().unwrap_or("-").to_string()),
         (
@@ -133,19 +163,26 @@ pub fn show(
 
 pub fn create(
     client: &ApiClient,
-    site_id: &str,
+    site_id: Option<String>,
+    environment_id: Option<String>,
     scope: &str,
     description: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
+    if site_id.is_none() && environment_id.is_none() {
+        return Err(ApiError::Other(
+            "Either --site-id or --environment-id is required".to_string(),
+        ));
+    }
+
     let body = CreateBackupRequest {
-        r#type: "manual".to_string(),
+        site_id,
+        environment_id,
         scope: scope.to_string(),
         description,
     };
 
-    let response: Value =
-        client.post(&format!("/api/v1/vector/sites/{}/backups", site_id), &body)?;
+    let response: Value = client.post("/api/v1/vector/backups", &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -181,13 +218,12 @@ pub fn create(
 
 pub fn download_create(
     client: &ApiClient,
-    site_id: &str,
     backup_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/backups/{}/downloads",
-        site_id, backup_id
+        "/api/v1/vector/backups/{}/downloads",
+        backup_id
     ))?;
 
     if format == OutputFormat::Json {
@@ -203,8 +239,7 @@ pub fn download_create(
     ));
     print_message("\nCheck status with:");
     print_message(&format!(
-        "  vector backup download status {} {} {}",
-        site_id,
+        "  vector backup download status {} {}",
         backup_id,
         data["id"].as_str().unwrap_or("DOWNLOAD_ID")
     ));
@@ -214,14 +249,13 @@ pub fn download_create(
 
 pub fn download_status(
     client: &ApiClient,
-    site_id: &str,
     backup_id: &str,
     download_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/backups/{}/downloads/{}",
-        site_id, backup_id, download_id
+        "/api/v1/vector/backups/{}/downloads/{}",
+        backup_id, download_id
     ))?;
 
     if format == OutputFormat::Json {

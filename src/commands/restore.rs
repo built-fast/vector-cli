@@ -3,12 +3,20 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    OutputFormat, extract_pagination, format_option, print_json, print_key_value, print_message,
-    print_pagination, print_table,
+    OutputFormat, extract_pagination, format_archivable_type, format_option, print_json,
+    print_key_value, print_message, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
-struct PaginationQuery {
+struct ListRestoresQuery {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    site_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    environment_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    backup_id: Option<String>,
     page: u32,
     per_page: u32,
 }
@@ -21,16 +29,23 @@ struct CreateRestoreRequest {
 
 pub fn list(
     client: &ApiClient,
-    site_id: &str,
+    site_id: Option<String>,
+    environment_id: Option<String>,
+    restore_type: Option<String>,
+    backup_id: Option<String>,
     page: u32,
     per_page: u32,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let query = PaginationQuery { page, per_page };
-    let response: Value = client.get_with_query(
-        &format!("/api/v1/vector/sites/{}/restores", site_id),
-        &query,
-    )?;
+    let query = ListRestoresQuery {
+        r#type: restore_type,
+        site_id,
+        environment_id,
+        backup_id,
+        page,
+        per_page,
+    };
+    let response: Value = client.get_with_query("/api/v1/vector/restores", &query)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -51,6 +66,10 @@ pub fn list(
         .map(|r| {
             vec![
                 r["id"].as_str().unwrap_or("-").to_string(),
+                r["archivable_type"]
+                    .as_str()
+                    .map(format_archivable_type)
+                    .unwrap_or_else(|| "-".to_string()),
                 r["vector_backup_id"].as_str().unwrap_or("-").to_string(),
                 r["scope"].as_str().unwrap_or("-").to_string(),
                 r["status"].as_str().unwrap_or("-").to_string(),
@@ -59,7 +78,10 @@ pub fn list(
         })
         .collect();
 
-    print_table(vec!["ID", "Backup ID", "Scope", "Status", "Created"], rows);
+    print_table(
+        vec!["ID", "Model", "Backup ID", "Scope", "Status", "Created"],
+        rows,
+    );
 
     if let Some((current, last, total)) = extract_pagination(&response) {
         print_pagination(current, last, total);
@@ -70,14 +92,11 @@ pub fn list(
 
 pub fn show(
     client: &ApiClient,
-    site_id: &str,
     restore_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/restores/{}",
-        site_id, restore_id
-    ))?;
+    let response: Value =
+        client.get(&format!("/api/v1/vector/restores/{}", restore_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -88,6 +107,20 @@ pub fn show(
 
     print_key_value(vec![
         ("ID", restore["id"].as_str().unwrap_or("-").to_string()),
+        (
+            "Model",
+            restore["archivable_type"]
+                .as_str()
+                .map(format_archivable_type)
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        (
+            "Model ID",
+            restore["archivable_id"]
+                .as_str()
+                .unwrap_or("-")
+                .to_string(),
+        ),
         (
             "Backup ID",
             restore["vector_backup_id"]
@@ -138,7 +171,6 @@ pub fn show(
 
 pub fn create(
     client: &ApiClient,
-    site_id: &str,
     backup_id: &str,
     scope: &str,
     format: OutputFormat,
@@ -148,8 +180,7 @@ pub fn create(
         scope: scope.to_string(),
     };
 
-    let response: Value =
-        client.post(&format!("/api/v1/vector/sites/{}/restores", site_id), &body)?;
+    let response: Value = client.post("/api/v1/vector/restores", &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -160,8 +191,8 @@ pub fn create(
     let restore_id = restore["id"].as_str().unwrap_or("-");
 
     print_message(&format!(
-        "Restore initiated. Use `vector restore show {} {}` to check progress.",
-        site_id, restore_id
+        "Restore initiated. Use `vector restore show {}` to check progress.",
+        restore_id
     ));
 
     print_key_value(vec![

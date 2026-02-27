@@ -623,17 +623,18 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
     match command {
         BackupCommands::List {
             site_id,
+            environment_id,
+            backup_type,
             page,
             per_page,
-        } => backup::list(&client, &site_id, page, per_page, format),
-        BackupCommands::Show { site_id, backup_id } => {
-            backup::show(&client, &site_id, &backup_id, format)
-        }
+        } => backup::list(&client, site_id, environment_id, backup_type, page, per_page, format),
+        BackupCommands::Show { backup_id } => backup::show(&client, &backup_id, format),
         BackupCommands::Create {
             site_id,
+            environment_id,
             scope,
             description,
-        } => backup::create(&client, &site_id, &scope, description, format),
+        } => backup::create(&client, site_id, environment_id, &scope, description, format),
         BackupCommands::Download { command } => run_backup_download(&client, command, format),
     }
 }
@@ -644,14 +645,13 @@ fn run_backup_download(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     match command {
-        BackupDownloadCommands::Create { site_id, backup_id } => {
-            backup::download_create(client, &site_id, &backup_id, format)
+        BackupDownloadCommands::Create { backup_id } => {
+            backup::download_create(client, &backup_id, format)
         }
         BackupDownloadCommands::Status {
-            site_id,
             backup_id,
             download_id,
-        } => backup::download_status(client, &site_id, &backup_id, &download_id, format),
+        } => backup::download_status(client, &backup_id, &download_id, format),
     }
 }
 
@@ -661,18 +661,16 @@ fn run_restore(command: RestoreCommands, format: OutputFormat) -> Result<(), Api
     match command {
         RestoreCommands::List {
             site_id,
+            environment_id,
+            restore_type,
+            backup_id,
             page,
             per_page,
-        } => restore::list(&client, &site_id, page, per_page, format),
-        RestoreCommands::Show {
-            site_id,
-            restore_id,
-        } => restore::show(&client, &site_id, &restore_id, format),
-        RestoreCommands::Create {
-            site_id,
-            backup_id,
-            scope,
-        } => restore::create(&client, &site_id, &backup_id, &scope, format),
+        } => restore::list(&client, site_id, environment_id, restore_type, backup_id, page, per_page, format),
+        RestoreCommands::Show { restore_id } => restore::show(&client, &restore_id, format),
+        RestoreCommands::Create { backup_id, scope } => {
+            restore::create(&client, &backup_id, &scope, format)
+        }
     }
 }
 
