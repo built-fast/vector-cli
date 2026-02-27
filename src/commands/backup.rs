@@ -81,7 +81,15 @@ pub fn list(
         .collect();
 
     print_table(
-        vec!["ID", "Model", "Type", "Scope", "Status", "Description", "Created"],
+        vec![
+            "ID",
+            "Model",
+            "Type",
+            "Scope",
+            "Status",
+            "Description",
+            "Created",
+        ],
         rows,
     );
 
@@ -92,11 +100,7 @@ pub fn list(
     Ok(())
 }
 
-pub fn show(
-    client: &ApiClient,
-    backup_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
+pub fn show(client: &ApiClient, backup_id: &str, format: OutputFormat) -> Result<(), ApiError> {
     let response: Value = client.get(&format!("/api/v1/vector/backups/{}", backup_id))?;
 
     if format == OutputFormat::Json {
@@ -117,10 +121,7 @@ pub fn show(
         ),
         (
             "Model ID",
-            backup["archivable_id"]
-                .as_str()
-                .unwrap_or("-")
-                .to_string(),
+            backup["archivable_id"].as_str().unwrap_or("-").to_string(),
         ),
         ("Type", backup["type"].as_str().unwrap_or("-").to_string()),
         ("Scope", backup["scope"].as_str().unwrap_or("-").to_string()),
@@ -221,10 +222,8 @@ pub fn download_create(
     backup_id: &str,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/backups/{}/downloads",
-        backup_id
-    ))?;
+    let response: Value =
+        client.post_empty(&format!("/api/v1/vector/backups/{}/downloads", backup_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);

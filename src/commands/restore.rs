@@ -90,13 +90,8 @@ pub fn list(
     Ok(())
 }
 
-pub fn show(
-    client: &ApiClient,
-    restore_id: &str,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
-    let response: Value =
-        client.get(&format!("/api/v1/vector/restores/{}", restore_id))?;
+pub fn show(client: &ApiClient, restore_id: &str, format: OutputFormat) -> Result<(), ApiError> {
+    let response: Value = client.get(&format!("/api/v1/vector/restores/{}", restore_id))?;
 
     if format == OutputFormat::Json {
         print_json(&response);
@@ -116,10 +111,7 @@ pub fn show(
         ),
         (
             "Model ID",
-            restore["archivable_id"]
-                .as_str()
-                .unwrap_or("-")
-                .to_string(),
+            restore["archivable_id"].as_str().unwrap_or("-").to_string(),
         ),
         (
             "Backup ID",

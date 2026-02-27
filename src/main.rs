@@ -627,14 +627,29 @@ fn run_backup(command: BackupCommands, format: OutputFormat) -> Result<(), ApiEr
             backup_type,
             page,
             per_page,
-        } => backup::list(&client, site_id, environment_id, backup_type, page, per_page, format),
+        } => backup::list(
+            &client,
+            site_id,
+            environment_id,
+            backup_type,
+            page,
+            per_page,
+            format,
+        ),
         BackupCommands::Show { backup_id } => backup::show(&client, &backup_id, format),
         BackupCommands::Create {
             site_id,
             environment_id,
             scope,
             description,
-        } => backup::create(&client, site_id, environment_id, &scope, description, format),
+        } => backup::create(
+            &client,
+            site_id,
+            environment_id,
+            &scope,
+            description,
+            format,
+        ),
         BackupCommands::Download { command } => run_backup_download(&client, command, format),
     }
 }
@@ -666,7 +681,16 @@ fn run_restore(command: RestoreCommands, format: OutputFormat) -> Result<(), Api
             backup_id,
             page,
             per_page,
-        } => restore::list(&client, site_id, environment_id, restore_type, backup_id, page, per_page, format),
+        } => restore::list(
+            &client,
+            site_id,
+            environment_id,
+            restore_type,
+            backup_id,
+            page,
+            per_page,
+            format,
+        ),
         RestoreCommands::Show { restore_id } => restore::show(&client, &restore_id, format),
         RestoreCommands::Create { backup_id, scope } => {
             restore::create(&client, &backup_id, &scope, format)
