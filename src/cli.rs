@@ -967,10 +967,17 @@ pub enum EventCommands {
 
 #[derive(Subcommand)]
 pub enum BackupCommands {
-    /// List backups for a site
+    /// List backups
     List {
-        /// Site ID
-        site_id: String,
+        /// Filter by site ID
+        #[arg(long)]
+        site_id: Option<String>,
+        /// Filter by environment ID
+        #[arg(long)]
+        environment_id: Option<String>,
+        /// Filter by type (site, environment)
+        #[arg(long = "type")]
+        backup_type: Option<String>,
         /// Page number
         #[arg(long, default_value = "1")]
         page: u32,
@@ -980,15 +987,17 @@ pub enum BackupCommands {
     },
     /// Show backup details
     Show {
-        /// Site ID
-        site_id: String,
         /// Backup ID
         backup_id: String,
     },
     /// Create a manual backup
     Create {
         /// Site ID
-        site_id: String,
+        #[arg(long)]
+        site_id: Option<String>,
+        /// Environment ID
+        #[arg(long)]
+        environment_id: Option<String>,
         /// Backup scope (full, database, files)
         #[arg(long, default_value = "full")]
         scope: String,
@@ -1007,15 +1016,11 @@ pub enum BackupCommands {
 pub enum BackupDownloadCommands {
     /// Create a backup download request
     Create {
-        /// Site ID
-        site_id: String,
         /// Backup ID
         backup_id: String,
     },
     /// Check backup download status
     Status {
-        /// Site ID
-        site_id: String,
         /// Backup ID
         backup_id: String,
         /// Download ID
@@ -1025,10 +1030,20 @@ pub enum BackupDownloadCommands {
 
 #[derive(Subcommand)]
 pub enum RestoreCommands {
-    /// List restores for a site
+    /// List restores
     List {
-        /// Site ID
-        site_id: String,
+        /// Filter by site ID
+        #[arg(long)]
+        site_id: Option<String>,
+        /// Filter by environment ID
+        #[arg(long)]
+        environment_id: Option<String>,
+        /// Filter by type (site, environment)
+        #[arg(long = "type")]
+        restore_type: Option<String>,
+        /// Filter by backup ID
+        #[arg(long)]
+        backup_id: Option<String>,
         /// Page number
         #[arg(long, default_value = "1")]
         page: u32,
@@ -1038,15 +1053,11 @@ pub enum RestoreCommands {
     },
     /// Show restore details
     Show {
-        /// Site ID
-        site_id: String,
         /// Restore ID
         restore_id: String,
     },
     /// Create a restore from a backup
     Create {
-        /// Site ID
-        site_id: String,
         /// Backup ID to restore from
         backup_id: String,
         /// Restore scope (full, database, files)

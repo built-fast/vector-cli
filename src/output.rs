@@ -67,6 +67,14 @@ pub fn format_option<T: std::fmt::Display>(opt: &Option<T>) -> String {
     }
 }
 
+pub fn format_archivable_type(value: &str) -> String {
+    match value {
+        "vector_site" => "Site".to_string(),
+        "vector_environment" => "Environment".to_string(),
+        _ => value.to_string(),
+    }
+}
+
 pub fn format_bool(b: bool) -> String {
     if b {
         "Yes".to_string()
@@ -114,6 +122,13 @@ mod tests {
     #[test]
     fn test_format_option_none() {
         assert_eq!(format_option::<String>(&None), "-");
+    }
+
+    #[test]
+    fn test_format_archivable_type() {
+        assert_eq!(format_archivable_type("vector_site"), "Site");
+        assert_eq!(format_archivable_type("vector_environment"), "Environment");
+        assert_eq!(format_archivable_type("unknown"), "unknown");
     }
 
     #[test]
