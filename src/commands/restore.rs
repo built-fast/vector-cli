@@ -8,17 +8,17 @@ use crate::output::{
 };
 
 #[derive(Debug, Serialize)]
-struct ListRestoresQuery {
+pub struct ListRestoresQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
-    r#type: Option<String>,
+    pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    site_id: Option<String>,
+    pub site_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    environment_id: Option<String>,
+    pub environment_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    backup_id: Option<String>,
-    page: u32,
-    per_page: u32,
+    pub backup_id: Option<String>,
+    pub page: u32,
+    pub per_page: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -29,22 +29,9 @@ struct CreateRestoreRequest {
 
 pub fn list(
     client: &ApiClient,
-    site_id: Option<String>,
-    environment_id: Option<String>,
-    restore_type: Option<String>,
-    backup_id: Option<String>,
-    page: u32,
-    per_page: u32,
+    query: ListRestoresQuery,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let query = ListRestoresQuery {
-        r#type: restore_type,
-        site_id,
-        environment_id,
-        backup_id,
-        page,
-        per_page,
-    };
     let response: Value = client.get_with_query("/api/v1/vector/restores", &query)?;
 
     if format == OutputFormat::Json {
