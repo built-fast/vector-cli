@@ -239,9 +239,7 @@ fn run_env_db(
         EnvDbCommands::PromoteStatus { env_id, promote_id } => {
             env::db_promote_status(client, &env_id, &promote_id, format)
         }
-        EnvDbCommands::DomainChange { command } => {
-            run_env_domain_change(client, command, format)
-        }
+        EnvDbCommands::DomainChange { command } => run_env_domain_change(client, command, format),
     }
 }
 

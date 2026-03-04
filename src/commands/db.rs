@@ -72,10 +72,8 @@ pub fn import_session_create(
         options,
     };
 
-    let response: Value = client.post(
-        &format!("/api/v1/vector/sites/{}/imports", site_id),
-        &body,
-    )?;
+    let response: Value =
+        client.post(&format!("/api/v1/vector/sites/{}/imports", site_id), &body)?;
 
     if format == OutputFormat::Json {
         print_json(&response);
