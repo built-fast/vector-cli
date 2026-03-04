@@ -24,6 +24,7 @@ fn test_help() {
     assert!(stdout.contains("ssl"));
     assert!(stdout.contains("mcp"));
     assert!(stdout.contains("restore"));
+    assert!(stdout.contains("archive"));
 }
 
 #[test]
@@ -368,6 +369,45 @@ fn test_restore_create_scope_files_requires_auth() {
         .expect("Failed to run");
     assert!(!output.status.success());
     assert_eq!(output.status.code(), Some(2));
+}
+
+#[test]
+fn test_archive_help() {
+    let output = vector_cmd()
+        .args(["archive", "--help"])
+        .output()
+        .expect("Failed to run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("import"));
+}
+
+#[test]
+fn test_archive_import_help() {
+    let output = vector_cmd()
+        .args(["archive", "import", "--help"])
+        .output()
+        .expect("Failed to run");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--drop-tables"));
+    assert!(stdout.contains("--disable-foreign-keys"));
+    assert!(stdout.contains("--search-replace-from"));
+    assert!(stdout.contains("--search-replace-to"));
+    assert!(stdout.contains("--wait"));
+    assert!(stdout.contains("--poll-interval"));
+}
+
+#[test]
+fn test_archive_import_requires_auth() {
+    let output = vector_cmd()
+        .args(["archive", "import", "test-site", "test-file.tar.gz"])
+        .env("VECTOR_CONFIG_DIR", &nonexistent_config_dir())
+        .env_remove("VECTOR_API_KEY")
+        .output()
+        .expect("Failed to run");
+    assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(2)); // EXIT_AUTH_ERROR
 }
 
 #[test]

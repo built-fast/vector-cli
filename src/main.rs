@@ -11,15 +11,15 @@ use std::process;
 use api::{ApiClient, ApiError, EXIT_SUCCESS};
 use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
-    AuthCommands, BackupCommands, BackupDownloadCommands, Cli, Commands, DbCommands,
-    DbExportCommands, DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
-    EnvDomainChangeCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands,
-    SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
+    ArchiveCommands, AuthCommands, BackupCommands, BackupDownloadCommands, Cli, Commands,
+    DbCommands, DbExportCommands, DbImportSessionCommands, DeployCommands, EnvCommands,
+    EnvDbCommands, EnvDomainChangeCommands, EnvSecretCommands, EventCommands, McpCommands,
+    RestoreCommands, SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
     WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
     WebhookCommands,
 };
 use commands::{
-    account, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook,
+    account, archive, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook,
 };
 use config::{Config, Credentials};
 use output::{OutputFormat, print_error, print_json, print_message, print_table};
@@ -47,6 +47,7 @@ fn run(command: Commands, format: OutputFormat) -> Result<(), ApiError> {
         Commands::Deploy { command } => run_deploy(command, format),
         Commands::Ssl { command } => run_ssl(command, format),
         Commands::Db { command } => run_db(command, format),
+        Commands::Archive { command } => run_archive(command, format),
         Commands::Waf { command } => run_waf(command, format),
         Commands::Account { command } => run_account(command, format),
         Commands::Backup { command } => run_backup(command, format),
@@ -346,6 +347,34 @@ fn run_db_export(
         DbExportCommands::Status { site_id, export_id } => {
             db::export_status(client, &site_id, &export_id, format)
         }
+    }
+}
+
+fn run_archive(command: ArchiveCommands, format: OutputFormat) -> Result<(), ApiError> {
+    let client = get_client()?;
+
+    match command {
+        ArchiveCommands::Import {
+            site_id,
+            file,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+            wait,
+            poll_interval,
+        } => archive::import(
+            &client,
+            &site_id,
+            &file,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+            wait,
+            poll_interval,
+            format,
+        ),
     }
 }
 
