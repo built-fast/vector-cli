@@ -143,6 +143,10 @@ pub fn show(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<()
             format_option(&env["custom_domain"].as_str().map(String::from)),
         ),
         (
+            "DNS Target",
+            format_option(&env["dns_target"].as_str().map(String::from)),
+        ),
+        (
             "Subdomain",
             format_option(&env["subdomain"].as_str().map(String::from)),
         ),
@@ -565,8 +569,20 @@ pub fn domain_change_status(
         ),
         ("Status", data["status"].as_str().unwrap_or("-").to_string()),
         (
+            "DNS Target",
+            format_option(&data["dns_target"].as_str().map(String::from)),
+        ),
+        (
             "Error",
             format_option(&data["error_message"].as_str().map(String::from)),
+        ),
+        (
+            "Duration (ms)",
+            format_option(&data["duration_ms"].as_u64().map(|v| v.to_string())),
+        ),
+        (
+            "Started At",
+            format_option(&data["started_at"].as_str().map(String::from)),
         ),
         (
             "Created",
