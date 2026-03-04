@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "vector")]
@@ -395,30 +394,6 @@ pub enum EnvSecretCommands {
 
 #[derive(Subcommand)]
 pub enum EnvDbCommands {
-    /// Import a SQL file directly (files under 50MB)
-    Import {
-        /// Environment ID
-        env_id: String,
-        /// Path to SQL file
-        file: PathBuf,
-        /// Drop all existing tables before import
-        #[arg(long)]
-        drop_tables: bool,
-        /// Disable foreign key checks during import
-        #[arg(long)]
-        disable_foreign_keys: bool,
-        /// Search string for search-and-replace during import
-        #[arg(long)]
-        search_replace_from: Option<String>,
-        /// Replace string for search-and-replace during import
-        #[arg(long)]
-        search_replace_to: Option<String>,
-    },
-    /// Manage import sessions for large files
-    ImportSession {
-        #[command(subcommand)]
-        command: EnvDbImportSessionCommands,
-    },
     /// Promote dev database to this environment
     Promote {
         /// Environment ID
@@ -437,46 +412,26 @@ pub enum EnvDbCommands {
         /// Promote ID
         promote_id: String,
     },
+    /// Manage domain changes
+    DomainChange {
+        #[command(subcommand)]
+        command: EnvDomainChangeCommands,
+    },
 }
 
 #[derive(Subcommand)]
-pub enum EnvDbImportSessionCommands {
-    /// Create an import session
+pub enum EnvDomainChangeCommands {
+    /// Create a domain change
     Create {
         /// Environment ID
         env_id: String,
-        /// Filename
-        #[arg(long)]
-        filename: Option<String>,
-        /// Content length in bytes
-        #[arg(long)]
-        content_length: Option<u64>,
-        /// Drop all existing tables before import
-        #[arg(long)]
-        drop_tables: bool,
-        /// Disable foreign key checks during import
-        #[arg(long)]
-        disable_foreign_keys: bool,
-        /// Search string for search-and-replace during import
-        #[arg(long)]
-        search_replace_from: Option<String>,
-        /// Replace string for search-and-replace during import
-        #[arg(long)]
-        search_replace_to: Option<String>,
     },
-    /// Run an import session
-    Run {
-        /// Environment ID
-        env_id: String,
-        /// Import ID
-        import_id: String,
-    },
-    /// Check import session status
+    /// Check domain change status
     Status {
         /// Environment ID
         env_id: String,
-        /// Import ID
-        import_id: String,
+        /// Domain change ID
+        domain_change_id: String,
     },
 }
 
@@ -538,26 +493,7 @@ pub enum SslCommands {
 
 #[derive(Subcommand)]
 pub enum DbCommands {
-    /// Import a SQL file directly (files under 50MB)
-    Import {
-        /// Site ID
-        site_id: String,
-        /// Path to SQL file
-        file: PathBuf,
-        /// Drop all existing tables before import
-        #[arg(long)]
-        drop_tables: bool,
-        /// Disable foreign key checks during import
-        #[arg(long)]
-        disable_foreign_keys: bool,
-        /// Search string for search-and-replace during import
-        #[arg(long)]
-        search_replace_from: Option<String>,
-        /// Replace string for search-and-replace during import
-        #[arg(long)]
-        search_replace_to: Option<String>,
-    },
-    /// Manage import sessions for large files
+    /// Manage archive import sessions
     ImportSession {
         #[command(subcommand)]
         command: DbImportSessionCommands,
@@ -571,7 +507,7 @@ pub enum DbCommands {
 
 #[derive(Subcommand)]
 pub enum DbImportSessionCommands {
-    /// Create an import session
+    /// Create an archive import session
     Create {
         /// Site ID
         site_id: String,
@@ -594,14 +530,14 @@ pub enum DbImportSessionCommands {
         #[arg(long)]
         search_replace_to: Option<String>,
     },
-    /// Run an import session
+    /// Run an archive import session
     Run {
         /// Site ID
         site_id: String,
         /// Import ID
         import_id: String,
     },
-    /// Check import session status
+    /// Check archive import session status
     Status {
         /// Site ID
         site_id: String,
@@ -1063,6 +999,18 @@ pub enum RestoreCommands {
         /// Restore scope (full, database, files)
         #[arg(long, default_value = "full")]
         scope: String,
+        /// Drop all existing tables before restore
+        #[arg(long)]
+        drop_tables: bool,
+        /// Disable foreign key checks during restore
+        #[arg(long)]
+        disable_foreign_keys: bool,
+        /// Search string for search-and-replace during restore
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during restore
+        #[arg(long)]
+        search_replace_to: Option<String>,
     },
 }
 

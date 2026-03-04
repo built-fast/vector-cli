@@ -1,6 +1,5 @@
 use serde::Serialize;
 use serde_json::Value;
-use std::path::Path;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{OutputFormat, format_option, print_json, print_key_value, print_message};
@@ -40,71 +39,6 @@ struct CreateExportRequest {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn import_direct(
-    client: &ApiClient,
-    site_id: &str,
-    file_path: &Path,
-    drop_tables: bool,
-    disable_foreign_keys: bool,
-    search_replace_from: Option<String>,
-    search_replace_to: Option<String>,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
-    // Check file size - direct import only supports files under 50MB
-    let metadata = std::fs::metadata(file_path)
-        .map_err(|e| ApiError::Other(format!("Failed to read file: {}", e)))?;
-
-    if metadata.len() > 50 * 1024 * 1024 {
-        return Err(ApiError::Other(
-            "File too large for direct import. Use 'import-session' for files over 50MB."
-                .to_string(),
-        ));
-    }
-
-    let mut path = format!("/api/v1/vector/sites/{}/db/import", site_id);
-    let mut params = vec![];
-    if drop_tables {
-        params.push("drop_tables=true".to_string());
-    }
-    if disable_foreign_keys {
-        params.push("disable_foreign_keys=true".to_string());
-    }
-    if let Some(ref from) = search_replace_from {
-        params.push(format!("search_replace_from={}", from));
-    }
-    if let Some(ref to) = search_replace_to {
-        params.push(format!("search_replace_to={}", to));
-    }
-    if !params.is_empty() {
-        path = format!("{}?{}", path, params.join("&"));
-    }
-
-    let response: Value = client.post_file(&path, file_path)?;
-
-    if format == OutputFormat::Json {
-        print_json(&response);
-        return Ok(());
-    }
-
-    let data = &response["data"];
-    if data["success"].as_bool().unwrap_or(false) {
-        print_message(&format!(
-            "Database imported successfully ({}ms).",
-            data["duration_ms"].as_u64().unwrap_or(0)
-        ));
-    } else {
-        return Err(ApiError::Other(
-            data["error"]
-                .as_str()
-                .unwrap_or("Import failed")
-                .to_string(),
-        ));
-    }
-
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
 pub fn import_session_create(
     client: &ApiClient,
     site_id: &str,
@@ -139,7 +73,7 @@ pub fn import_session_create(
     };
 
     let response: Value = client.post(
-        &format!("/api/v1/vector/sites/{}/db/imports", site_id),
+        &format!("/api/v1/vector/sites/{}/imports", site_id),
         &body,
     )?;
 
@@ -179,7 +113,7 @@ pub fn import_session_run(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/db/imports/{}/run",
+        "/api/v1/vector/sites/{}/imports/{}/run",
         site_id, import_id
     ))?;
 
@@ -205,7 +139,7 @@ pub fn import_session_status(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let response: Value = client.get(&format!(
-        "/api/v1/vector/sites/{}/db/imports/{}",
+        "/api/v1/vector/sites/{}/imports/{}",
         site_id, import_id
     ))?;
 
