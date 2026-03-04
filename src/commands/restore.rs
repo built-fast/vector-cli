@@ -25,6 +25,24 @@ pub struct ListRestoresQuery {
 struct CreateRestoreRequest {
     backup_id: String,
     scope: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    options: Option<RestoreOptions>,
+}
+
+#[derive(Debug, Serialize)]
+struct RestoreOptions {
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    drop_tables: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    disable_foreign_keys: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    search_replace: Option<RestoreSearchReplace>,
+}
+
+#[derive(Debug, Serialize)]
+struct RestoreSearchReplace {
+    from: String,
+    to: String,
 }
 
 pub fn list(
@@ -148,15 +166,36 @@ pub fn show(client: &ApiClient, restore_id: &str, format: OutputFormat) -> Resul
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create(
     client: &ApiClient,
     backup_id: &str,
     scope: &str,
+    drop_tables: bool,
+    disable_foreign_keys: bool,
+    search_replace_from: Option<String>,
+    search_replace_to: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
+    let search_replace = match (search_replace_from, search_replace_to) {
+        (Some(from), Some(to)) => Some(RestoreSearchReplace { from, to }),
+        _ => None,
+    };
+
+    let options = if drop_tables || disable_foreign_keys || search_replace.is_some() {
+        Some(RestoreOptions {
+            drop_tables,
+            disable_foreign_keys,
+            search_replace,
+        })
+    } else {
+        None
+    };
+
     let body = CreateRestoreRequest {
         backup_id: backup_id.to_string(),
         scope: scope.to_string(),
+        options,
     };
 
     let response: Value = client.post("/api/v1/vector/restores", &body)?;

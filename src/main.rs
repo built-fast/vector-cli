@@ -13,7 +13,7 @@ use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
     AuthCommands, BackupCommands, BackupDownloadCommands, Cli, Commands, DbCommands,
     DbExportCommands, DbImportSessionCommands, DeployCommands, EnvCommands, EnvDbCommands,
-    EnvDbImportSessionCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands,
+    EnvDomainChangeCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands,
     SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
     WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
     WebhookCommands,
@@ -231,26 +231,6 @@ fn run_env_db(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     match command {
-        EnvDbCommands::Import {
-            env_id,
-            file,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-        } => env::db_import(
-            client,
-            &env_id,
-            &file,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-            format,
-        ),
-        EnvDbCommands::ImportSession { command } => {
-            run_env_db_import_session(client, command, format)
-        }
         EnvDbCommands::Promote {
             env_id,
             drop_tables,
@@ -259,40 +239,23 @@ fn run_env_db(
         EnvDbCommands::PromoteStatus { env_id, promote_id } => {
             env::db_promote_status(client, &env_id, &promote_id, format)
         }
+        EnvDbCommands::DomainChange { command } => run_env_domain_change(client, command, format),
     }
 }
 
-fn run_env_db_import_session(
+fn run_env_domain_change(
     client: &ApiClient,
-    command: EnvDbImportSessionCommands,
+    command: EnvDomainChangeCommands,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     match command {
-        EnvDbImportSessionCommands::Create {
+        EnvDomainChangeCommands::Create { env_id } => {
+            env::domain_change_create(client, &env_id, format)
+        }
+        EnvDomainChangeCommands::Status {
             env_id,
-            filename,
-            content_length,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-        } => env::db_import_session_create(
-            client,
-            &env_id,
-            filename,
-            content_length,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-            format,
-        ),
-        EnvDbImportSessionCommands::Run { env_id, import_id } => {
-            env::db_import_session_run(client, &env_id, &import_id, format)
-        }
-        EnvDbImportSessionCommands::Status { env_id, import_id } => {
-            env::db_import_session_status(client, &env_id, &import_id, format)
-        }
+            domain_change_id,
+        } => env::domain_change_status(client, &env_id, &domain_change_id, format),
     }
 }
 
@@ -331,23 +294,6 @@ fn run_db(command: DbCommands, format: OutputFormat) -> Result<(), ApiError> {
     let client = get_client()?;
 
     match command {
-        DbCommands::Import {
-            site_id,
-            file,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-        } => db::import_direct(
-            &client,
-            &site_id,
-            &file,
-            drop_tables,
-            disable_foreign_keys,
-            search_replace_from,
-            search_replace_to,
-            format,
-        ),
         DbCommands::ImportSession { command } => run_db_import_session(&client, command, format),
         DbCommands::Export { command } => run_db_export(&client, command, format),
     }
@@ -694,9 +640,23 @@ fn run_restore(command: RestoreCommands, format: OutputFormat) -> Result<(), Api
             format,
         ),
         RestoreCommands::Show { restore_id } => restore::show(&client, &restore_id, format),
-        RestoreCommands::Create { backup_id, scope } => {
-            restore::create(&client, &backup_id, &scope, format)
-        }
+        RestoreCommands::Create {
+            backup_id,
+            scope,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+        } => restore::create(
+            &client,
+            &backup_id,
+            &scope,
+            drop_tables,
+            disable_foreign_keys,
+            search_replace_from,
+            search_replace_to,
+            format,
+        ),
     }
 }
 
