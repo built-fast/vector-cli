@@ -126,17 +126,13 @@ vector env secret delete <secret_id>
 ### Environment Database
 
 ```bash
-# Direct import (files under 50MB)
-vector env db import <env_id> <file.sql> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
-
-# Import session for large files
-vector env db import-session create <env_id> [--filename <name>] [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
-vector env db import-session run <env_id> <import_id>
-vector env db import-session status <env_id> <import_id>
-
 # Promote dev database to environment
 vector env db promote <env_id> [--drop-tables] [--disable-foreign-keys]
 vector env db promote-status <env_id> <promote_id>
+
+# Domain changes
+vector env db domain-change create <env_id>
+vector env db domain-change status <env_id> <domain_change_id>
 ```
 
 ### Deployments
@@ -158,9 +154,6 @@ vector ssl nudge <env_id> [--retry]
 ### Database
 
 ```bash
-# Direct import (files under 50MB)
-vector db import <site_id> <file.sql> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
-
 # Import session for large files
 vector db import-session create <site_id> [--filename <name>] [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
 vector db import-session run <site_id> <import_id>
@@ -169,6 +162,30 @@ vector db import-session status <site_id> <import_id>
 # Export
 vector db export create <site_id>
 vector db export status <site_id> <export_id>
+```
+
+### Archives
+
+```bash
+vector archive import <site_id> <file.tar.gz> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>] [--wait] [--poll-interval <seconds>]
+```
+
+### Backups
+
+```bash
+vector backup list [--site-id <id>] [--environment-id <id>] [--type site|environment]
+vector backup show <backup_id>
+vector backup create [--site-id <id>] [--environment-id <id>] [--scope full|database|files] [--description <desc>]
+vector backup download create <backup_id>
+vector backup download status <backup_id> <download_id>
+```
+
+### Restores
+
+```bash
+vector restore list [--site-id <id>] [--environment-id <id>] [--type site|environment] [--backup-id <id>]
+vector restore show <restore_id>
+vector restore create <backup_id> [--scope full|database|files] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
 ```
 
 ### WAF

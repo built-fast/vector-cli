@@ -1,4 +1,4 @@
-.TH VECTOR 1 "2026-02-15" "vector 0.2.2" "Vector Pro CLI"
+.TH VECTOR 1 "2026-03-09" "vector 0.2.3" "Vector Pro CLI"
 .SH NAME
 vector \- command-line interface for the Vector Pro API
 .SH SYNOPSIS
@@ -10,7 +10,7 @@ vector \- command-line interface for the Vector Pro API
 .B vector
 is the official CLI for the Vector Pro WordPress hosting platform by BuiltFast.
 It provides full access to the Vector Pro API for managing sites, environments,
-deployments, SSL certificates, WAF rules, and account settings.
+deployments, SSL certificates, WAF rules, backups, restores, and account settings.
 .PP
 Output is automatically formatted as tables when connected to a terminal, or as
 JSON when piped to another program. This can be overridden with the
@@ -149,40 +149,18 @@ Update a secret.
 Delete a secret.
 .SS env db \- Manage environment databases
 .TP
-.B env db import \fIENV_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
-Import a SQL file (under 50MB) into an environment database. Options:
-.B \-\-drop\-tables\fR,
-.B \-\-disable\-foreign\-keys\fR,
-.B \-\-search\-replace\-from
-.IR FROM ,
-.B \-\-search\-replace\-to
-.IR TO .
-.TP
 .B env db promote \fIENV_ID\fR \fR[\fB\-\-drop\-tables\fR] [\fB\-\-disable\-foreign\-keys\fR]
 Promote the dev database to an environment.
 .TP
 .B env db promote\-status \fIENV_ID\fR \fIPROMOTE_ID\fR
 Check the status of a database promotion.
-.SS env db import\-session \- Large file import sessions
+.SS env db domain\-change \- Manage domain changes
 .TP
-.B env db import\-session create \fIENV_ID\fR \fR[\fIOPTIONS\fR]
-Create an import session for large files. Options:
-.B \-\-filename
-.IR NAME ,
-.B \-\-content\-length
-.IR BYTES ,
-.B \-\-drop\-tables\fR,
-.B \-\-disable\-foreign\-keys\fR,
-.B \-\-search\-replace\-from
-.IR FROM ,
-.B \-\-search\-replace\-to
-.IR TO .
+.B env db domain\-change create \fIENV_ID\fR
+Create a domain change for an environment.
 .TP
-.B env db import\-session run \fIENV_ID\fR \fIIMPORT_ID\fR
-Run an import session.
-.TP
-.B env db import\-session status \fIENV_ID\fR \fIIMPORT_ID\fR
-Check the status of an import session.
+.B env db domain\-change status \fIENV_ID\fR \fIDOMAIN_CHANGE_ID\fR
+Check the status of a domain change.
 .SS deploy \- Manage deployments
 .TP
 .B deploy list \fIENV_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
@@ -206,16 +184,7 @@ Nudge SSL provisioning. Use
 .B \-\-retry
 to retry from a failed state.
 .SS db \- Manage site databases
-.TP
-.B db import \fISITE_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
-Import a SQL file (under 50MB) into a site database. Options:
-.B \-\-drop\-tables\fR,
-.B \-\-disable\-foreign\-keys\fR,
-.B \-\-search\-replace\-from
-.IR FROM ,
-.B \-\-search\-replace\-to
-.IR TO .
-.SS db import\-session \- Large file import sessions (site\-level)
+.SS db import\-session \- Large file import sessions
 .TP
 .B db import\-session create \fISITE_ID\fR \fR[\fIOPTIONS\fR]
 Create an import session. Options:
@@ -244,6 +213,58 @@ format is supported.
 .TP
 .B db export status \fISITE_ID\fR \fIEXPORT_ID\fR
 Check the status of a database export.
+.SS archive \- Manage archives
+.TP
+.B archive import \fISITE_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
+Import an archive (.tar.gz) to a site. The file is uploaded and processed
+on the server. Options:
+.B \-\-drop\-tables\fR,
+.B \-\-disable\-foreign\-keys\fR,
+.B \-\-search\-replace\-from
+.IR FROM ,
+.B \-\-search\-replace\-to
+.IR TO ,
+.B \-\-wait\fR,
+.B \-\-poll\-interval
+.IR SECONDS
+(default: 5).
+.SS backup \- Manage backups
+.TP
+.B backup list \fR[\fB\-\-site\-id\fR \fIID\fR] [\fB\-\-environment\-id\fR \fIID\fR] [\fB\-\-type\fR \fITYPE\fR] [\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List backups. Filter by site, environment, or type (site, environment).
+.TP
+.B backup show \fIBACKUP_ID\fR
+Show backup details.
+.TP
+.B backup create \fR[\fB\-\-site\-id\fR \fIID\fR] [\fB\-\-environment\-id\fR \fIID\fR] [\fB\-\-scope\fR \fISCOPE\fR] [\fB\-\-description\fR \fIDESC\fR]
+Create a manual backup. Scope can be
+.B full\fR,
+.B database\fR,
+or
+.B files
+(default: full).
+.SS backup download \- Manage backup downloads
+.TP
+.B backup download create \fIBACKUP_ID\fR
+Create a backup download request.
+.TP
+.B backup download status \fIBACKUP_ID\fR \fIDOWNLOAD_ID\fR
+Check the status of a backup download.
+.SS restore \- Manage restores
+.TP
+.B restore list \fR[\fB\-\-site\-id\fR \fIID\fR] [\fB\-\-environment\-id\fR \fIID\fR] [\fB\-\-type\fR \fITYPE\fR] [\fB\-\-backup\-id\fR \fIID\fR] [\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
+List restores. Filter by site, environment, type (site, environment), or backup.
+.TP
+.B restore show \fIRESTORE_ID\fR
+Show restore details.
+.TP
+.B restore create \fIBACKUP_ID\fR \fR[\fB\-\-scope\fR \fISCOPE\fR] [\fB\-\-drop\-tables\fR] [\fB\-\-disable\-foreign\-keys\fR] [\fB\-\-search\-replace\-from\fR \fIFROM\fR] [\fB\-\-search\-replace\-to\fR \fITO\fR]
+Restore from a backup. Scope can be
+.B full\fR,
+.B database\fR,
+or
+.B files
+(default: full).
 .SS waf \- Manage WAF rules and blocklists
 .SS waf rate\-limit \- Manage rate limit rules
 .TP
@@ -447,11 +468,20 @@ $ vector deploy trigger 15 \-\-include\-uploads \-\-include\-database
 .fi
 .RE
 .PP
-Import a database with search and replace:
+Import an archive with search and replace:
 .PP
 .RS
 .nf
-$ vector db import 42 dump.sql \-\-search\-replace\-from old.example.com \-\-search\-replace\-to new.example.com
+$ vector archive import 42 site.tar.gz \-\-search\-replace\-from old.example.com \-\-search\-replace\-to new.example.com \-\-wait
+.fi
+.RE
+.PP
+Create a backup and restore it:
+.PP
+.RS
+.nf
+$ vector backup create \-\-site\-id 42 \-\-scope full
+$ vector restore create <backup_id> \-\-scope database
 .fi
 .RE
 .PP
