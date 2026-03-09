@@ -49,6 +49,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: DbCommands,
     },
+    /// Manage archives
+    Archive {
+        #[command(subcommand)]
+        command: ArchiveCommands,
+    },
     /// Manage WAF rules and blocklists
     Waf {
         #[command(subcommand)]
@@ -488,6 +493,35 @@ pub enum SslCommands {
         /// Retry from failed state
         #[arg(long)]
         retry: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ArchiveCommands {
+    /// Import an archive to a site
+    Import {
+        /// Site ID
+        site_id: String,
+        /// Path to archive file (.tar.gz)
+        file: String,
+        /// Drop all existing tables before import
+        #[arg(long)]
+        drop_tables: bool,
+        /// Disable foreign key checks during import
+        #[arg(long)]
+        disable_foreign_keys: bool,
+        /// Search string for search-and-replace during import
+        #[arg(long)]
+        search_replace_from: Option<String>,
+        /// Replace string for search-and-replace during import
+        #[arg(long)]
+        search_replace_to: Option<String>,
+        /// Wait for import to complete
+        #[arg(long)]
+        wait: bool,
+        /// Seconds between status polls (default: 5)
+        #[arg(long, default_value = "5")]
+        poll_interval: u64,
     },
 }
 

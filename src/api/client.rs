@@ -1,5 +1,7 @@
 use reqwest::blocking::{Client, Response};
-use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
+use reqwest::header::{
+    ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderValue,
+};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -146,6 +148,33 @@ impl ApiClient {
             .map_err(ApiError::NetworkError)?;
 
         self.handle_response(response)
+    }
+
+    pub fn put_file(
+        &self,
+        url: &str,
+        file: std::fs::File,
+        content_length: u64,
+    ) -> Result<(), ApiError> {
+        let response = self
+            .client
+            .put(url)
+            .header(CONTENT_TYPE, "application/gzip")
+            .header(CONTENT_LENGTH, content_length)
+            .body(reqwest::blocking::Body::from(file))
+            .send()
+            .map_err(ApiError::NetworkError)?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let status = response.status();
+            let body = response.text().map_err(ApiError::NetworkError)?;
+            Err(ApiError::Other(format!(
+                "Upload failed ({}): {}",
+                status, body
+            )))
+        }
     }
 
     pub fn delete<T: DeserializeOwned>(&self, path: &str) -> Result<T, ApiError> {
