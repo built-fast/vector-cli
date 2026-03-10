@@ -36,9 +36,14 @@ struct UpdateEnvRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    custom_domain: Option<String>,
+    custom_domain: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize)]
+struct DomainChangeRequest {
+    custom_domain: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -219,7 +224,7 @@ pub fn update(
     client: &ApiClient,
     env_id: &str,
     name: Option<String>,
-    custom_domain: Option<String>,
+    custom_domain: Option<Option<String>>,
     tags: Option<Vec<String>>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
@@ -523,12 +528,15 @@ pub fn db_promote_status(
 pub fn domain_change_create(
     client: &ApiClient,
     env_id: &str,
+    custom_domain: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/environments/{}/domain-change",
-        env_id
-    ))?;
+    let body = DomainChangeRequest { custom_domain };
+
+    let response: Value = client.post(
+        &format!("/api/v1/vector/environments/{}/domain-change", env_id),
+        &body,
+    )?;
 
     if format == OutputFormat::Json {
         print_json(&response);
