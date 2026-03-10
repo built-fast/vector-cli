@@ -189,8 +189,16 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
             env_id,
             name,
             custom_domain,
+            clear_custom_domain,
             tags,
-        } => env::update(&client, &env_id, name, custom_domain, tags, format),
+        } => {
+            let custom_domain = if clear_custom_domain {
+                Some(None)
+            } else {
+                custom_domain.map(Some)
+            };
+            env::update(&client, &env_id, name, custom_domain, tags, format)
+        }
         EnvCommands::Delete { env_id } => env::delete(&client, &env_id, format),
         EnvCommands::ResetDbPassword { env_id } => env::reset_db_password(&client, &env_id, format),
         EnvCommands::Secret { command } => run_env_secret(&client, command, format),
@@ -250,8 +258,17 @@ fn run_env_domain_change(
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     match command {
-        EnvDomainChangeCommands::Create { env_id } => {
-            env::domain_change_create(client, &env_id, format)
+        EnvDomainChangeCommands::Create {
+            env_id,
+            custom_domain,
+            clear_custom_domain,
+        } => {
+            let custom_domain = if clear_custom_domain {
+                None
+            } else {
+                custom_domain
+            };
+            env::domain_change_create(client, &env_id, custom_domain, format)
         }
         EnvDomainChangeCommands::Status {
             env_id,

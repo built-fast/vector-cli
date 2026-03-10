@@ -316,8 +316,11 @@ pub enum EnvCommands {
         #[arg(long)]
         name: Option<String>,
         /// Custom domain
-        #[arg(long)]
+        #[arg(long, conflicts_with = "clear_custom_domain")]
         custom_domain: Option<String>,
+        /// Remove custom domain and revert to platform domain
+        #[arg(long, conflicts_with = "custom_domain")]
+        clear_custom_domain: bool,
         /// Tags
         #[arg(long)]
         tags: Option<Vec<String>>,
@@ -430,6 +433,12 @@ pub enum EnvDomainChangeCommands {
     Create {
         /// Environment ID
         env_id: String,
+        /// New custom domain
+        #[arg(long, required_unless_present = "clear_custom_domain", conflicts_with = "clear_custom_domain")]
+        custom_domain: Option<String>,
+        /// Remove custom domain and revert to platform domain
+        #[arg(long, conflicts_with = "custom_domain")]
+        clear_custom_domain: bool,
     },
     /// Check domain change status
     Status {
