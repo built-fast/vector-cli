@@ -434,7 +434,11 @@ pub enum EnvDomainChangeCommands {
         /// Environment ID
         env_id: String,
         /// New custom domain
-        #[arg(long, required_unless_present = "clear_custom_domain", conflicts_with = "clear_custom_domain")]
+        #[arg(
+            long,
+            required_unless_present = "clear_custom_domain",
+            conflicts_with = "clear_custom_domain"
+        )]
         custom_domain: Option<String>,
         /// Remove custom domain and revert to platform domain
         #[arg(long, conflicts_with = "custom_domain")]
