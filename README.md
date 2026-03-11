@@ -106,11 +106,14 @@ vector env show <env_id>
 
 # Create and manage environments
 vector env create <site_id> --name staging --custom-domain example.com --php-version 8.3 [--is-production]
-vector env update <env_id> [--name <name>] [--custom-domain <domain>]
+vector env update <env_id> [--custom-domain <domain>] [--clear-custom-domain] [--tags tag1,tag2]
 vector env delete <env_id>
 
 # Reset database password
 vector env reset-db-password <env_id>
+
+# Check domain change status
+vector env domain-change-status <env_id> <domain_change_id>
 ```
 
 ### Environment Secrets
@@ -129,10 +132,6 @@ vector env secret delete <secret_id>
 # Promote dev database to environment
 vector env db promote <env_id> [--drop-tables] [--disable-foreign-keys]
 vector env db promote-status <env_id> <promote_id>
-
-# Domain changes
-vector env db domain-change create <env_id>
-vector env db domain-change status <env_id> <domain_change_id>
 ```
 
 ### Deployments

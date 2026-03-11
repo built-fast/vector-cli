@@ -121,14 +121,18 @@ Show environment details.
 .B env create \fISITE_ID\fR \fB\-\-name\fR \fINAME\fR \fB\-\-custom\-domain\fR \fIDOMAIN\fR \fB\-\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-is\-production\fR] [\fB\-\-tags\fR \fITAGS\fR]
 Create a new environment.
 .TP
-.B env update \fIENV_ID\fR \fR[\fB\-\-name\fR \fINAME\fR] [\fB\-\-custom\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR]
-Update an environment.
+.B env update \fIENV_ID\fR \fR[\fB\-\-custom\-domain\fR \fIDOMAIN\fR] [\fB\-\-clear\-custom\-domain\fR] [\fB\-\-tags\fR \fITAGS\fR]
+Update an environment. If a custom domain change is initiated, the pending
+domain change ID and status will be displayed.
 .TP
 .B env delete \fIENV_ID\fR
 Delete an environment.
 .TP
 .B env reset\-db\-password \fIENV_ID\fR
 Reset the database password for an environment.
+.TP
+.B env domain\-change\-status \fIENV_ID\fR \fIDOMAIN_CHANGE_ID\fR
+Check the status of a domain change.
 .SS env secret \- Manage environment secrets
 .TP
 .B env secret list \fIENV_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
@@ -154,13 +158,6 @@ Promote the dev database to an environment.
 .TP
 .B env db promote\-status \fIENV_ID\fR \fIPROMOTE_ID\fR
 Check the status of a database promotion.
-.SS env db domain\-change \- Manage domain changes
-.TP
-.B env db domain\-change create \fIENV_ID\fR
-Create a domain change for an environment.
-.TP
-.B env db domain\-change status \fIENV_ID\fR \fIDOMAIN_CHANGE_ID\fR
-Check the status of a domain change.
 .SS deploy \- Manage deployments
 .TP
 .B deploy list \fIENV_ID\fR \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]
