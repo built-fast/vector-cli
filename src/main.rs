@@ -13,10 +13,9 @@ use cli::{
     AccountApiKeyCommands, AccountCommands, AccountSecretCommands, AccountSshKeyCommands,
     ArchiveCommands, AuthCommands, BackupCommands, BackupDownloadCommands, Cli, Commands,
     DbCommands, DbExportCommands, DbImportSessionCommands, DeployCommands, EnvCommands,
-    EnvDbCommands, EnvDomainChangeCommands, EnvSecretCommands, EventCommands, McpCommands,
-    RestoreCommands, SiteCommands, SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands,
-    WafBlockedIpCommands, WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands,
-    WebhookCommands,
+    EnvDbCommands, EnvSecretCommands, EventCommands, McpCommands, RestoreCommands, SiteCommands,
+    SiteSshKeyCommands, SslCommands, WafAllowedReferrerCommands, WafBlockedIpCommands,
+    WafBlockedReferrerCommands, WafCommands, WafRateLimitCommands, WebhookCommands,
 };
 use commands::{
     account, archive, auth, backup, db, deploy, env, event, mcp, restore, site, ssl, waf, webhook,
@@ -187,7 +186,6 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
         ),
         EnvCommands::Update {
             env_id,
-            name,
             custom_domain,
             clear_custom_domain,
             tags,
@@ -197,10 +195,14 @@ fn run_env(command: EnvCommands, format: OutputFormat) -> Result<(), ApiError> {
             } else {
                 custom_domain.map(Some)
             };
-            env::update(&client, &env_id, name, custom_domain, tags, format)
+            env::update(&client, &env_id, custom_domain, tags, format)
         }
         EnvCommands::Delete { env_id } => env::delete(&client, &env_id, format),
         EnvCommands::ResetDbPassword { env_id } => env::reset_db_password(&client, &env_id, format),
+        EnvCommands::DomainChangeStatus {
+            env_id,
+            domain_change_id,
+        } => env::domain_change_status(&client, &env_id, &domain_change_id, format),
         EnvCommands::Secret { command } => run_env_secret(&client, command, format),
         EnvCommands::Db { command } => run_env_db(&client, command, format),
     }
@@ -248,32 +250,6 @@ fn run_env_db(
         EnvDbCommands::PromoteStatus { env_id, promote_id } => {
             env::db_promote_status(client, &env_id, &promote_id, format)
         }
-        EnvDbCommands::DomainChange { command } => run_env_domain_change(client, command, format),
-    }
-}
-
-fn run_env_domain_change(
-    client: &ApiClient,
-    command: EnvDomainChangeCommands,
-    format: OutputFormat,
-) -> Result<(), ApiError> {
-    match command {
-        EnvDomainChangeCommands::Create {
-            env_id,
-            custom_domain,
-            clear_custom_domain,
-        } => {
-            let custom_domain = if clear_custom_domain {
-                None
-            } else {
-                custom_domain
-            };
-            env::domain_change_create(client, &env_id, custom_domain, format)
-        }
-        EnvDomainChangeCommands::Status {
-            env_id,
-            domain_change_id,
-        } => env::domain_change_status(client, &env_id, &domain_change_id, format),
     }
 }
 
