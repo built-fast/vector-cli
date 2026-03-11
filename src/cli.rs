@@ -312,9 +312,6 @@ pub enum EnvCommands {
     Update {
         /// Environment ID
         env_id: String,
-        /// New environment name
-        #[arg(long)]
-        name: Option<String>,
         /// Custom domain
         #[arg(long, conflicts_with = "clear_custom_domain")]
         custom_domain: Option<String>,
@@ -339,6 +336,13 @@ pub enum EnvCommands {
     Secret {
         #[command(subcommand)]
         command: EnvSecretCommands,
+    },
+    /// Check domain change status
+    DomainChangeStatus {
+        /// Environment ID
+        env_id: String,
+        /// Domain change ID
+        domain_change_id: String,
     },
     /// Manage environment database
     Db {
@@ -419,37 +423,6 @@ pub enum EnvDbCommands {
         env_id: String,
         /// Promote ID
         promote_id: String,
-    },
-    /// Manage domain changes
-    DomainChange {
-        #[command(subcommand)]
-        command: EnvDomainChangeCommands,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum EnvDomainChangeCommands {
-    /// Create a domain change
-    Create {
-        /// Environment ID
-        env_id: String,
-        /// New custom domain
-        #[arg(
-            long,
-            required_unless_present = "clear_custom_domain",
-            conflicts_with = "clear_custom_domain"
-        )]
-        custom_domain: Option<String>,
-        /// Remove custom domain and revert to platform domain
-        #[arg(long, conflicts_with = "custom_domain")]
-        clear_custom_domain: bool,
-    },
-    /// Check domain change status
-    Status {
-        /// Environment ID
-        env_id: String,
-        /// Domain change ID
-        domain_change_id: String,
     },
 }
 
