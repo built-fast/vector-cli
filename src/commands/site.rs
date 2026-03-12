@@ -3,8 +3,8 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    OutputFormat, extract_pagination, format_option, print_json, print_key_value, print_message,
-    print_pagination, print_table,
+    OutputFormat, extract_pagination, format_option, print_dns_records, print_json,
+    print_key_value, print_message, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
@@ -17,6 +17,10 @@ struct PaginationQuery {
 struct CreateSiteRequest {
     your_customer_id: String,
     dev_php_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    production_domain: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    staging_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tags: Option<Vec<String>>,
 }
@@ -159,6 +163,31 @@ pub fn show(client: &ApiClient, id: &str, format: OutputFormat) -> Result<(), Ap
         ),
     ]);
 
+    if let Some(envs) = site["environments"].as_array()
+        && !envs.is_empty()
+    {
+        println!();
+        println!("Environments:");
+
+        let rows: Vec<Vec<String>> = envs
+            .iter()
+            .map(|e| {
+                vec![
+                    e["id"].as_str().unwrap_or("-").to_string(),
+                    e["name"].as_str().unwrap_or("-").to_string(),
+                    e["status"].as_str().unwrap_or("-").to_string(),
+                    format_option(&e["platform_domain"].as_str().map(String::from)),
+                    format_option(&e["custom_domain"].as_str().map(String::from)),
+                ]
+            })
+            .collect();
+
+        print_table(
+            vec!["ID", "Name", "Status", "Platform Domain", "Custom Domain"],
+            rows,
+        );
+    }
+
     Ok(())
 }
 
@@ -166,12 +195,16 @@ pub fn create(
     client: &ApiClient,
     customer_id: &str,
     dev_php_version: &str,
+    production_domain: Option<String>,
+    staging_domain: Option<String>,
     tags: Option<Vec<String>>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = CreateSiteRequest {
         your_customer_id: customer_id.to_string(),
         dev_php_version: dev_php_version.to_string(),
+        production_domain,
+        staging_domain,
         tags,
     };
 
@@ -188,6 +221,12 @@ pub fn create(
         site["id"].as_str().unwrap_or("-"),
         site["status"].as_str().unwrap_or("-")
     ));
+
+    if let Some(envs) = site["environments"].as_array() {
+        for env in envs {
+            print_dns_records(env);
+        }
+    }
 
     Ok(())
 }

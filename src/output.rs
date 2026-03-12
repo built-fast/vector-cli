@@ -97,6 +97,53 @@ pub fn print_pagination(current_page: u64, last_page: u64, total: u64) {
     }
 }
 
+pub fn print_dns_records(env: &Value) {
+    let custom_domain = env["custom_domain"].as_str().unwrap_or("");
+    let dns_target = env["dns_target"].as_str().unwrap_or("");
+
+    if custom_domain.is_empty() {
+        return;
+    }
+
+    println!();
+    println!(
+        "DNS Setup for {}:",
+        env["name"].as_str().unwrap_or(custom_domain)
+    );
+
+    if !dns_target.is_empty() {
+        println!();
+        println!("  Point your domain to the CDN:");
+        println!("    CNAME  {}  ->  {}", custom_domain, dns_target);
+    }
+
+    if let Some(cert) = env.get("custom_domain_certificate") {
+        if let Some(status) = cert["status"].as_str() {
+            println!();
+            println!("  Certificate Status: {}", status);
+        }
+
+        if let Some(records) = cert["dns_validation_records"].as_array()
+            && !records.is_empty()
+        {
+            println!();
+            println!("  Certificate validation DNS records:");
+            let rows: Vec<Vec<String>> = records
+                .iter()
+                .map(|r| {
+                    vec![
+                        r["type"].as_str().unwrap_or("-").to_string(),
+                        r["name"].as_str().unwrap_or("-").to_string(),
+                        r["value"].as_str().unwrap_or("-").to_string(),
+                    ]
+                })
+                .collect();
+
+            print_table(vec!["Type", "Name", "Value"], rows);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

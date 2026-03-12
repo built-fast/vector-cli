@@ -88,8 +88,18 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
         SiteCommands::Create {
             customer_id,
             dev_php_version,
+            production_domain,
+            staging_domain,
             tags,
-        } => site::create(&client, &customer_id, &dev_php_version, tags, format),
+        } => site::create(
+            &client,
+            &customer_id,
+            &dev_php_version,
+            production_domain,
+            staging_domain,
+            tags,
+            format,
+        ),
         SiteCommands::Update {
             id,
             customer_id,

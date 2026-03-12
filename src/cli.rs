@@ -131,6 +131,12 @@ pub enum SiteCommands {
         /// PHP version for the dev environment
         #[arg(long)]
         dev_php_version: String,
+        /// Custom domain for the production environment
+        #[arg(long)]
+        production_domain: Option<String>,
+        /// Custom domain for the staging environment
+        #[arg(long)]
+        staging_domain: Option<String>,
         /// Tags for the site
         #[arg(long)]
         tags: Option<Vec<String>>,
