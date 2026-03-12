@@ -3,8 +3,8 @@ use serde_json::Value;
 
 use crate::api::{ApiClient, ApiError};
 use crate::output::{
-    OutputFormat, extract_pagination, format_bool, format_option, print_json, print_key_value,
-    print_message, print_pagination, print_table,
+    OutputFormat, extract_pagination, format_bool, format_option, print_dns_records, print_json,
+    print_key_value, print_message, print_pagination, print_table,
 };
 
 #[derive(Debug, Serialize)]
@@ -171,6 +171,8 @@ pub fn show(client: &ApiClient, env_id: &str, format: OutputFormat) -> Result<()
         ),
     ]);
 
+    print_dns_records(env);
+
     Ok(())
 }
 
@@ -210,6 +212,8 @@ pub fn create(
         env["id"].as_str().unwrap_or("-")
     ));
 
+    print_dns_records(env);
+
     Ok(())
 }
 
@@ -232,7 +236,8 @@ pub fn update(
         return Ok(());
     }
 
-    let pending = &response["data"]["pending_domain_change"];
+    let data = &response["data"];
+    let pending = &data["pending_domain_change"];
     if pending.is_object() {
         print_message(&format!(
             "Domain change started: {} ({})",
@@ -242,6 +247,9 @@ pub fn update(
     } else {
         print_message("Environment updated successfully.");
     }
+
+    print_dns_records(data);
+
     Ok(())
 }
 
