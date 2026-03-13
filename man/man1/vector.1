@@ -52,10 +52,20 @@ List all sites. Defaults to page 1 with 15 results per page.
 .B site show \fIID\fR
 Show details for a site.
 .TP
-.B site create \fB\-\-customer\-id\fR \fIID\fR \fB\-\-dev\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-production\-domain\fR \fIDOMAIN\fR] [\fB\-\-staging\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR]
+.B site create \fB\-\-customer\-id\fR \fIID\fR \fB\-\-dev\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-production\-domain\fR \fIDOMAIN\fR] [\fB\-\-staging\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR] [\fB\-\-wp\-admin\-email\fR \fIEMAIL\fR] [\fB\-\-wp\-admin\-user\fR \fIUSER\fR] [\fB\-\-wp\-site\-title\fR \fITITLE\fR]
 Create a new site. Optionally set custom domains for the production and staging
 environments. When custom domains are provided, DNS setup instructions and
 certificate validation records will be displayed.
+.IP
+When
+.B \-\-wp\-admin\-email
+is provided, WordPress will be automatically installed in the dev container on
+first boot. The generated admin password is only displayed in the creation
+response. Use
+.B \-\-wp\-admin\-user
+to set the admin username (default: "admin") and
+.B \-\-wp\-site\-title
+to set the site title (default: "WordPress").
 .TP
 .B site update \fIID\fR \fR[\fB\-\-customer\-id\fR \fIID\fR] [\fB\-\-tags\fR \fITAGS\fR]
 Update a site.

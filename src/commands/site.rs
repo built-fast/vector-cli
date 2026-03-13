@@ -23,6 +23,12 @@ struct CreateSiteRequest {
     staging_domain: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wp_admin_email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wp_admin_user: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    wp_site_title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -191,6 +197,7 @@ pub fn show(client: &ApiClient, id: &str, format: OutputFormat) -> Result<(), Ap
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn create(
     client: &ApiClient,
     customer_id: &str,
@@ -198,6 +205,9 @@ pub fn create(
     production_domain: Option<String>,
     staging_domain: Option<String>,
     tags: Option<Vec<String>>,
+    wp_admin_email: Option<String>,
+    wp_admin_user: Option<String>,
+    wp_site_title: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
     let body = CreateSiteRequest {
@@ -206,6 +216,9 @@ pub fn create(
         production_domain,
         staging_domain,
         tags,
+        wp_admin_email,
+        wp_admin_user,
+        wp_site_title,
     };
 
     let response: Value = client.post("/api/v1/vector/sites", &body)?;
@@ -221,6 +234,48 @@ pub fn create(
         site["id"].as_str().unwrap_or("-"),
         site["status"].as_str().unwrap_or("-")
     ));
+
+    if let Some(wp_admin) = site["wp_admin"].as_object() {
+        println!();
+        print_key_value(vec![
+            (
+                "WP User",
+                format_option(
+                    &wp_admin
+                        .get("user")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                ),
+            ),
+            (
+                "WP Email",
+                format_option(
+                    &wp_admin
+                        .get("email")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                ),
+            ),
+            (
+                "WP Password",
+                format_option(
+                    &wp_admin
+                        .get("password")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                ),
+            ),
+            (
+                "WP Site Title",
+                format_option(
+                    &wp_admin
+                        .get("site_title")
+                        .and_then(|v| v.as_str())
+                        .map(String::from),
+                ),
+            ),
+        ]);
+    }
 
     if let Some(envs) = site["environments"].as_array() {
         for env in envs {

@@ -74,7 +74,7 @@ vector site list
 vector site show <site_id>
 
 # Create and manage sites
-vector site create --customer-id <id> --dev-php-version 8.3 [--production-domain example.com] [--staging-domain staging.example.com] [--tags tag1,tag2]
+vector site create --customer-id <id> --dev-php-version 8.3 [--production-domain example.com] [--staging-domain staging.example.com] [--tags tag1,tag2] [--wp-admin-email admin@example.com] [--wp-admin-user myadmin] [--wp-site-title "My Blog"]
 vector site update <site_id> [--customer-id <id>] [--tags tag1,tag2]
 vector site delete <site_id>
 vector site clone <site_id> [--customer-id <id>] [--dev-php-version 8.3]

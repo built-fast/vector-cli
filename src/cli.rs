@@ -140,6 +140,15 @@ pub enum SiteCommands {
         /// Tags for the site
         #[arg(long)]
         tags: Option<Vec<String>>,
+        /// Email address for WordPress auto-install
+        #[arg(long)]
+        wp_admin_email: Option<String>,
+        /// WordPress admin username (default: "admin")
+        #[arg(long)]
+        wp_admin_user: Option<String>,
+        /// WordPress site title (default: "WordPress")
+        #[arg(long)]
+        wp_site_title: Option<String>,
     },
     /// Update a site
     Update {
