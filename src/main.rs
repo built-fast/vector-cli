@@ -91,6 +91,9 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
             production_domain,
             staging_domain,
             tags,
+            wp_admin_email,
+            wp_admin_user,
+            wp_site_title,
         } => site::create(
             &client,
             &customer_id,
@@ -98,6 +101,9 @@ fn run_site(command: SiteCommands, format: OutputFormat) -> Result<(), ApiError>
             production_domain,
             staging_domain,
             tags,
+            wp_admin_email,
+            wp_admin_user,
+            wp_site_title,
             format,
         ),
         SiteCommands::Update {
