@@ -20,6 +20,11 @@ and
 flags.
 .SH OPTIONS
 .TP
+.BI \-\-token " TOKEN"
+API token for this invocation. Overrides the
+.B VECTOR_API_KEY
+environment variable and stored credentials.
+.TP
 .B \-\-json
 Force JSON output.
 .TP
@@ -29,7 +34,7 @@ Force table output.
 .BR \-h ", " \-\-help
 Print help information.
 .TP
-.BR \-V ", " \-\-version
+.B \-\-version
 Print version information.
 .SH COMMANDS
 .SS auth \- Manage authentication
@@ -416,6 +421,19 @@ List all PHP versions available on the platform.
 Set up Claude Desktop with the Vector MCP server. Use
 .B \-\-force
 to overwrite existing configuration.
+.SH TOKEN RESOLUTION
+The API token is resolved in the following order (first match wins):
+.IP 1. 4
+.B \-\-token
+command\-line flag
+.IP 2.
+.B VECTOR_API_KEY
+environment variable
+.IP 3.
+Token stored in
+.I ~/.config/vector/credentials.json
+(set via
+.BR "vector auth login" )
 .SH ENVIRONMENT
 .TP
 .B VECTOR_API_KEY
@@ -510,6 +528,14 @@ Block an IP address:
 .RS
 .nf
 $ vector waf blocked\-ip add 42 203.0.113.50
+.fi
+.RE
+.PP
+Use a one\-off token without logging in:
+.PP
+.RS
+.nf
+$ vector \-\-token mytoken123 site list
 .fi
 .RE
 .PP
