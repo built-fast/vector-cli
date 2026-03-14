@@ -1,6 +1,3 @@
-# Rust (kept until Milestone 6 cleanup)
-/target
-
 # Go build artifacts
 bin/
 dist/

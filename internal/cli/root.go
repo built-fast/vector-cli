@@ -20,8 +20,8 @@ func NewRootCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "vector",
-		Short: "Vector CLI — manage your Vector.dev hosting",
-		Long:  "Vector CLI — manage your Vector.dev hosting\n\nA command-line tool for managing sites, deployments, and configurations on Vector.dev.",
+		Short: "Vector CLI — manage your Vector hosting",
+		Long:  "Vector CLI — manage your Vector hosting\n\nA command-line tool for managing sites, deployments, and configurations via the Vector Pro API by BuiltFast (builtfast.com).",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Load config (defaults if missing)
 			cfg, err := config.LoadConfig()
