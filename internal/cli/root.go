@@ -94,6 +94,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewAccountCmd())
 	cmd.AddCommand(commands.NewWebhookCmd())
 	cmd.AddCommand(commands.NewBackupCmd())
+	cmd.AddCommand(commands.NewRestoreCmd())
 
 	return cmd
 }
