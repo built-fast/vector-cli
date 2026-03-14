@@ -33,6 +33,7 @@ func NewAuthCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newAuthLoginCmd())
+	cmd.AddCommand(newAuthLogoutCmd())
 
 	return cmd
 }
@@ -111,6 +112,33 @@ func newAuthLoginCmd() *cobra.Command {
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "Successfully authenticated.")
+			return nil
+		},
+	}
+}
+
+func newAuthLogoutCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "logout",
+		Short: "Remove stored credentials",
+		Long:  "Log out by deleting stored API credentials from disk.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app := appctx.FromContext(cmd.Context())
+			if app == nil {
+				return fmt.Errorf("app not initialized")
+			}
+
+			if err := config.ClearCredentials(); err != nil {
+				return fmt.Errorf("clearing credentials: %w", err)
+			}
+
+			if app.Format == output.JSON {
+				return output.PrintJSON(cmd.OutOrStdout(), map[string]string{
+					"message": "Logged out successfully.",
+				})
+			}
+
+			output.PrintMessage(cmd.OutOrStdout(), "Logged out successfully.")
 			return nil
 		},
 	}

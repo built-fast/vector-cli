@@ -349,6 +349,109 @@ func TestAuthLogin_Integration_EnvToken(t *testing.T) {
 	assert.Equal(t, "env-integration-token", creds.ApiKey)
 }
 
+// --- Auth Logout Tests ---
+
+func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	root := &cobra.Command{
+		Use: "vector",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			client := api.NewClient("http://localhost", "", "test-agent")
+			app := appctx.NewApp(
+				config.DefaultConfig(),
+				&config.Credentials{},
+				client,
+				format,
+			)
+			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
+			return nil
+		},
+	}
+
+	authCmd := NewAuthCmd()
+	root.AddCommand(authCmd)
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root.SetOut(stdout)
+	root.SetErr(stderr)
+
+	return root, stdout, stderr
+}
+
+func TestAuthLogoutCmd_TableOutput(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Save credentials first
+	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
+
+	cmd, stdout, _ := buildAuthLogoutCmd(output.Table)
+	cmd.SetArgs([]string{"auth", "logout"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
+
+	// Verify credentials file was removed
+	_, err = os.Stat(filepath.Join(tmpDir, "credentials.json"))
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
+
+	cmd, stdout, _ := buildAuthLogoutCmd(output.JSON)
+	cmd.SetArgs([]string{"auth", "logout"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]string
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "Logged out successfully.", result["message"])
+}
+
+func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	// No credentials file exists — should succeed silently
+	cmd, stdout, _ := buildAuthLogoutCmd(output.Table)
+	cmd.SetArgs([]string{"auth", "logout"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
+}
+
+func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Save config and credentials
+	require.NoError(t, config.SaveConfig(&config.Config{ApiURL: "http://localhost"}))
+	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "test-token"}))
+
+	// Verify credentials exist
+	_, err := os.Stat(filepath.Join(tmpDir, "credentials.json"))
+	require.NoError(t, err)
+
+	root := buildRootWithAuth()
+	stdout := new(bytes.Buffer)
+	root.SetOut(stdout)
+	root.SetArgs([]string{"--no-json", "auth", "logout"})
+
+	err = root.Execute()
+	require.NoError(t, err)
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
+
+	// Credentials file should be gone
+	_, err = os.Stat(filepath.Join(tmpDir, "credentials.json"))
+	assert.True(t, os.IsNotExist(err))
+}
+
 // buildRootWithAuth creates a real root command (with PersistentPreRunE) + auth subcommand.
 func buildRootWithAuth() *cobra.Command {
 	root := &cobra.Command{
