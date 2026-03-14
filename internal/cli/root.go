@@ -85,6 +85,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().Bool("no-json", false, "Force table output")
 
 	cmd.AddCommand(commands.NewAuthCmd())
+	cmd.AddCommand(commands.NewSiteCmd())
 
 	return cmd
 }
