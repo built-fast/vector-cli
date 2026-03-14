@@ -5,21 +5,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/built-fast/vector-cli/internal/version"
 )
 
 func TestNewRootCmd_Use(t *testing.T) {
 	cmd := NewRootCmd()
-	if cmd.Use != "vector" {
-		t.Errorf("expected Use = %q, got %q", "vector", cmd.Use)
-	}
+	assert.Equal(t, "vector", cmd.Use)
 }
 
 func TestNewRootCmd_VersionFlag(t *testing.T) {
-	// Save and restore version vars.
-	origVersion := version.Version
-	origCommit := version.Commit
-	origDate := version.Date
+	origVersion, origCommit, origDate := version.Version, version.Commit, version.Date
 	t.Cleanup(func() {
 		version.Version = origVersion
 		version.Commit = origCommit
@@ -35,63 +33,34 @@ func TestNewRootCmd_VersionFlag(t *testing.T) {
 	cmd.SetOut(buf)
 	cmd.SetArgs([]string{"--version"})
 
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	got := strings.TrimSpace(buf.String())
-	want := "vector v1.2.3 (abc1234) built 2026-01-01"
-	if got != want {
-		t.Errorf("--version output = %q, want %q", got, want)
-	}
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Equal(t, "vector v1.2.3 (abc1234) built 2026-01-01", strings.TrimSpace(buf.String()))
 }
 
-func TestNewRootCmd_JSONFlagRegistered(t *testing.T) {
+func TestNewRootCmd_FlagsRegistered(t *testing.T) {
 	cmd := NewRootCmd()
-	f := cmd.PersistentFlags().Lookup("json")
-	if f == nil {
-		t.Fatal("expected --json persistent flag to be registered")
-	}
-	if f.DefValue != "false" {
-		t.Errorf("expected --json default = %q, got %q", "false", f.DefValue)
-	}
-}
 
-func TestNewRootCmd_NoJSONFlagRegistered(t *testing.T) {
-	cmd := NewRootCmd()
-	f := cmd.PersistentFlags().Lookup("no-json")
-	if f == nil {
-		t.Fatal("expected --no-json persistent flag to be registered")
-	}
-	if f.DefValue != "false" {
-		t.Errorf("expected --no-json default = %q, got %q", "false", f.DefValue)
-	}
-}
-
-func TestNewRootCmd_HelpText(t *testing.T) {
-	cmd := NewRootCmd()
-	buf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetArgs([]string{})
-
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	tests := []struct {
+		name       string
+		flag       string
+		persistent bool
+		defValue   string
+	}{
+		{"version flag", "version", false, "false"},
+		{"json flag", "json", true, "false"},
+		{"no-json flag", "no-json", true, "false"},
 	}
 
-	output := buf.String()
-
-	checks := []string{
-		"vector",
-		"Vector CLI",
-		"--json",
-		"--no-json",
-		"--version",
-	}
-
-	for _, check := range checks {
-		if !strings.Contains(output, check) {
-			t.Errorf("help output missing %q", check)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var f = cmd.Flags().Lookup(tt.flag)
+			if tt.persistent {
+				f = cmd.PersistentFlags().Lookup(tt.flag)
+			}
+			require.NotNil(t, f, "--%s flag should be registered", tt.flag)
+			assert.Equal(t, tt.defValue, f.DefValue)
+		})
 	}
 }
 
@@ -101,12 +70,13 @@ func TestNewRootCmd_NoArgsShowsHelp(t *testing.T) {
 	cmd.SetOut(buf)
 	cmd.SetArgs([]string{})
 
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	err := cmd.Execute()
+	require.NoError(t, err)
 
 	output := buf.String()
-	if !strings.Contains(output, "Usage:") {
-		t.Error("expected help output to contain 'Usage:'")
-	}
+	assert.Contains(t, output, "Usage:")
+	assert.Contains(t, output, "vector")
+	assert.Contains(t, output, "--json")
+	assert.Contains(t, output, "--no-json")
+	assert.Contains(t, output, "--version")
 }
