@@ -18,15 +18,17 @@ type App struct {
 	Credentials *config.Credentials
 	Client      *api.Client
 	Format      output.Format
+	TokenSource string // "--token flag", "VECTOR_API_KEY env", "stored credentials", or ""
 }
 
 // NewApp creates a new App with the given dependencies.
-func NewApp(cfg *config.Config, creds *config.Credentials, client *api.Client, format output.Format) *App {
+func NewApp(cfg *config.Config, creds *config.Credentials, client *api.Client, format output.Format, tokenSource string) *App {
 	return &App{
 		Config:      cfg,
 		Credentials: creds,
 		Client:      client,
 		Format:      format,
+		TokenSource: tokenSource,
 	}
 }
 

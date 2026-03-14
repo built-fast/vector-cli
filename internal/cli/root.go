@@ -36,12 +36,22 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// 3. Resolve token: --token flag > VECTOR_API_KEY env > stored credentials
+			var tokenSource string
 			token, _ := cmd.Flags().GetString("token")
+			if token != "" {
+				tokenSource = "--token flag"
+			}
 			if token == "" {
 				token = os.Getenv("VECTOR_API_KEY")
+				if token != "" {
+					tokenSource = "VECTOR_API_KEY env"
+				}
 			}
 			if token == "" {
 				token = creds.ApiKey
+				if token != "" {
+					tokenSource = "stored credentials"
+				}
 			}
 
 			// 4. Build API client
@@ -53,7 +63,7 @@ func NewRootCmd() *cobra.Command {
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
 
 			// 6. Create App and store in context
-			app := appctx.NewApp(cfg, creds, client, format)
+			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 			return nil

@@ -19,7 +19,7 @@ func TestNewApp(t *testing.T) {
 	client := api.NewClient("https://example.com", "test-key", "")
 	format := output.JSON
 
-	app := appctx.NewApp(cfg, creds, client, format)
+	app := appctx.NewApp(cfg, creds, client, format, "")
 
 	require.NotNil(t, app)
 	assert.Equal(t, cfg, app.Config)
@@ -32,7 +32,7 @@ func TestContextRoundTrip(t *testing.T) {
 	cfg := &config.Config{ApiURL: "https://example.com"}
 	creds := &config.Credentials{ApiKey: "test-key"}
 	client := api.NewClient("https://example.com", "test-key", "")
-	app := appctx.NewApp(cfg, creds, client, output.Table)
+	app := appctx.NewApp(cfg, creds, client, output.Table, "")
 
 	ctx := appctx.WithApp(context.Background(), app)
 	got := appctx.FromContext(ctx)

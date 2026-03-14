@@ -63,6 +63,7 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 				&config.Credentials{},
 				client,
 				format,
+				"",
 			)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
@@ -361,6 +362,7 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 				&config.Credentials{},
 				client,
 				format,
+				"",
 			)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
@@ -465,18 +467,28 @@ func buildRootWithAuth() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			var tokenSource string
 			token, _ := cmd.Flags().GetString("token")
+			if token != "" {
+				tokenSource = "--token flag"
+			}
 			if token == "" {
 				token = os.Getenv("VECTOR_API_KEY")
+				if token != "" {
+					tokenSource = "VECTOR_API_KEY env"
+				}
 			}
 			if token == "" {
 				token = creds.ApiKey
+				if token != "" {
+					tokenSource = "stored credentials"
+				}
 			}
 			client := api.NewClient(cfg.ApiURL, token, "")
 			jsonFlag, _ := cmd.Flags().GetBool("json")
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
-			app := appctx.NewApp(cfg, creds, client, format)
+			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -490,4 +502,163 @@ func buildRootWithAuth() *cobra.Command {
 
 	root.AddCommand(NewAuthCmd())
 	return root
+}
+
+// --- Auth Status Tests ---
+
+// buildAuthStatusCmd creates a root + auth + status command wired with an App context.
+func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	root := &cobra.Command{
+		Use: "vector",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.DefaultConfig()
+			cfg.ApiURL = baseURL
+			client := api.NewClient(baseURL, token, "test-agent")
+			app := appctx.NewApp(
+				cfg,
+				&config.Credentials{ApiKey: token},
+				client,
+				format,
+				tokenSource,
+			)
+			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
+			return nil
+		},
+	}
+
+	authCmd := NewAuthCmd()
+	root.AddCommand(authCmd)
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root.SetOut(stdout)
+	root.SetErr(stderr)
+
+	return root, stdout, stderr
+}
+
+func TestAuthStatusCmd_Authenticated_TableOutput(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	ts := newTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "stored credentials", output.Table)
+	cmd.SetArgs([]string{"auth", "status"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "stored credentials")
+	assert.Contains(t, out, "pong")
+	assert.Contains(t, out, ts.URL)
+}
+
+func TestAuthStatusCmd_Authenticated_JSONOutput(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	ts := newTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "--token flag", output.JSON)
+	cmd.SetArgs([]string{"auth", "status"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, true, result["authenticated"])
+	assert.Equal(t, "--token flag", result["token_source"])
+	assert.Equal(t, ts.URL, result["api_url"])
+	assert.Equal(t, "pong", result["ping"])
+	assert.NotEmpty(t, result["config_dir"])
+}
+
+func TestAuthStatusCmd_NotAuthenticated(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	cmd, _, stderr := buildAuthStatusCmd("http://localhost", "", "", output.Table)
+	cmd.SetArgs([]string{"auth", "status"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 2, apiErr.ExitCode)
+	assert.Contains(t, stderr.String(), "Not logged in.")
+}
+
+func TestAuthStatusCmd_InvalidToken(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	ts := newTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, stderr := buildAuthStatusCmd(ts.URL, "bad-token", "stored credentials", output.Table)
+	cmd.SetArgs([]string{"auth", "status"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 2, apiErr.ExitCode)
+	assert.Contains(t, stderr.String(), "Not logged in.")
+}
+
+// Integration test: login → status → logout → status
+func TestAuthStatus_Integration_FullFlow(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	ts := newTestServer("flow-token")
+	defer ts.Close()
+
+	// Save config with test server URL
+	cfg := &config.Config{ApiURL: ts.URL}
+	require.NoError(t, config.SaveConfig(cfg))
+
+	// Step 1: Login
+	root := buildRootWithAuth()
+	stdout := new(bytes.Buffer)
+	root.SetOut(stdout)
+	root.SetArgs([]string{"--no-json", "auth", "login", "--token", "flow-token"})
+	require.NoError(t, root.Execute())
+	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+
+	// Step 2: Status shows authenticated
+	root2 := buildRootWithAuth()
+	stdout2 := new(bytes.Buffer)
+	root2.SetOut(stdout2)
+	root2.SetArgs([]string{"--no-json", "auth", "status"})
+	require.NoError(t, root2.Execute())
+
+	out := stdout2.String()
+	assert.Contains(t, out, "stored credentials")
+	assert.Contains(t, out, "pong")
+	assert.Contains(t, out, ts.URL)
+
+	// Step 3: Logout
+	root3 := buildRootWithAuth()
+	stdout3 := new(bytes.Buffer)
+	root3.SetOut(stdout3)
+	root3.SetArgs([]string{"--no-json", "auth", "logout"})
+	require.NoError(t, root3.Execute())
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout3.String()))
+
+	// Step 4: Status shows not authenticated
+	root4 := buildRootWithAuth()
+	stderr4 := new(bytes.Buffer)
+	root4.SetErr(stderr4)
+	root4.SetArgs([]string{"--no-json", "auth", "status"})
+	err := root4.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 2, apiErr.ExitCode)
+	assert.Contains(t, stderr4.String(), "Not logged in.")
 }

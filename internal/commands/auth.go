@@ -34,6 +34,7 @@ func NewAuthCmd() *cobra.Command {
 
 	cmd.AddCommand(newAuthLoginCmd())
 	cmd.AddCommand(newAuthLogoutCmd())
+	cmd.AddCommand(newAuthStatusCmd())
 
 	return cmd
 }
@@ -139,6 +140,85 @@ func newAuthLogoutCmd() *cobra.Command {
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "Logged out successfully.")
+			return nil
+		},
+	}
+}
+
+func newAuthStatusCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "status",
+		Short: "Show authentication status",
+		Long:  "Check whether you are authenticated and display account details.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app := appctx.FromContext(cmd.Context())
+			if app == nil {
+				return fmt.Errorf("app not initialized")
+			}
+
+			// Not authenticated if no token
+			if app.Client.Token == "" {
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Not logged in.")
+				return &api.APIError{
+					Message:  "Not logged in.",
+					ExitCode: 2,
+				}
+			}
+
+			// Ping the API
+			resp, err := app.Client.Get(cmd.Context(), "/api/v1/ping", nil)
+			if err != nil {
+				var apiErr *api.APIError
+				if errors.As(err, &apiErr) {
+					if apiErr.HTTPStatus == 401 || apiErr.HTTPStatus == 403 {
+						_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Not logged in.")
+						return &api.APIError{
+							Message:  "Not logged in.",
+							ExitCode: 2,
+						}
+					}
+					return apiErr
+				}
+				return &api.APIError{
+					Message:  fmt.Sprintf("Network error: %s", err),
+					ExitCode: 5,
+				}
+			}
+			defer func() { _ = resp.Body.Close() }()
+
+			// Parse ping response to extract data.response
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("reading response: %w", err)
+			}
+
+			var parsed struct {
+				Data struct {
+					Response string `json:"response"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(body, &parsed); err != nil {
+				return fmt.Errorf("parsing response: %w", err)
+			}
+
+			configDir, _ := config.ConfigDir()
+
+			if app.Format == output.JSON {
+				return output.PrintJSON(cmd.OutOrStdout(), map[string]any{
+					"authenticated": true,
+					"token_source":  app.TokenSource,
+					"config_dir":    configDir,
+					"api_url":       app.Config.ApiURL,
+					"ping":          parsed.Data.Response,
+				})
+			}
+
+			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+				{Key: "Token source", Value: app.TokenSource},
+				{Key: "Config directory", Value: configDir},
+				{Key: "API URL", Value: app.Config.ApiURL},
+				{Key: "Ping", Value: parsed.Data.Response},
+			})
 			return nil
 		},
 	}
