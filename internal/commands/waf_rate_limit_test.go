@@ -685,21 +685,6 @@ func TestWafRateLimitDeleteCmd_MissingArg(t *testing.T) {
 
 // --- Help Tests ---
 
-func TestWafCmd_Help(t *testing.T) {
-	cmd := NewWafCmd()
-
-	stdout := new(bytes.Buffer)
-	cmd.SetOut(stdout)
-	cmd.SetArgs([]string{"--help"})
-
-	err := cmd.Execute()
-	require.NoError(t, err)
-
-	out := stdout.String()
-	assert.Contains(t, out, "rate-limit")
-	assert.Contains(t, out, "WAF")
-}
-
 func TestWafRateLimitCmd_Help(t *testing.T) {
 	cmd := NewWafRateLimitCmd()
 

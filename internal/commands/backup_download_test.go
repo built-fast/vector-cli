@@ -310,6 +310,18 @@ func TestBackupDownloadStatusCmd_AuthError(t *testing.T) {
 	assert.Equal(t, 2, apiErr.ExitCode)
 }
 
+func TestBackupDownloadStatusCmd_NoAuth(t *testing.T) {
+	cmd, _, _ := buildBackupCmdNoAuth(output.Table)
+	cmd.SetArgs([]string{"backup", "download", "status", "bk-001", "dl-001"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 2, apiErr.ExitCode)
+}
+
 // --- Help Tests ---
 
 func TestBackupDownloadCmd_Help(t *testing.T) {

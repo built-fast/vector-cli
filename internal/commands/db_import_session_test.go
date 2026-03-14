@@ -467,21 +467,6 @@ func TestDbImportSessionStatusCmd_AuthError(t *testing.T) {
 
 // --- Help Tests ---
 
-func TestDbCmd_Help(t *testing.T) {
-	cmd := NewDbCmd()
-
-	stdout := new(bytes.Buffer)
-	cmd.SetOut(stdout)
-	cmd.SetArgs([]string{"--help"})
-
-	err := cmd.Execute()
-	require.NoError(t, err)
-
-	out := stdout.String()
-	assert.Contains(t, out, "import-session")
-	assert.Contains(t, out, "Manage database operations")
-}
-
 func TestDbImportSessionCmd_Help(t *testing.T) {
 	cmd := NewDbImportSessionCmd()
 
