@@ -88,6 +88,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewSiteCmd())
 	cmd.AddCommand(commands.NewEnvCmd())
 	cmd.AddCommand(commands.NewDeployCmd())
+	cmd.AddCommand(commands.NewSSLCmd())
 
 	return cmd
 }
