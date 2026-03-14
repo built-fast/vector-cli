@@ -1,0 +1,54 @@
+version: 2
+
+project_name: vector
+
+builds:
+  - main: ./cmd/vector
+    binary: vector
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/built-fast/vector-cli/internal/version.Version={{.Version}}
+      - -X github.com/built-fast/vector-cli/internal/version.Commit={{.Commit}}
+      - -X github.com/built-fast/vector-cli/internal/version.Date={{.Date}}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+homebrew_casks:
+  - repository:
+      owner: built-fast
+      name: homebrew-tap
+    name: vector
+    homepage: "https://github.com/built-fast/vector-cli"
+    description: "Vector CLI - a command-line tool"
+    license: "MIT"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
