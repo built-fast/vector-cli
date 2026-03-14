@@ -93,6 +93,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewEventCmd())
 	cmd.AddCommand(commands.NewAccountCmd())
 	cmd.AddCommand(commands.NewWebhookCmd())
+	cmd.AddCommand(commands.NewBackupCmd())
 
 	return cmd
 }
