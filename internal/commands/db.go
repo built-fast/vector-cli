@@ -13,6 +13,7 @@ func NewDbCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewDbImportSessionCmd())
+	cmd.AddCommand(NewDbExportCmd())
 
 	return cmd
 }
