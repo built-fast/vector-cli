@@ -97,6 +97,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewRestoreCmd())
 	cmd.AddCommand(commands.NewWafCmd())
 	cmd.AddCommand(commands.NewDbCmd())
+	cmd.AddCommand(commands.NewArchiveCmd())
 
 	return cmd
 }
