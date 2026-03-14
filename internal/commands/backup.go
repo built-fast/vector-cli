@@ -24,6 +24,7 @@ func NewBackupCmd() *cobra.Command {
 	cmd.AddCommand(newBackupListCmd())
 	cmd.AddCommand(newBackupShowCmd())
 	cmd.AddCommand(newBackupCreateCmd())
+	cmd.AddCommand(NewBackupDownloadCmd())
 
 	return cmd
 }
