@@ -13,6 +13,9 @@ func NewWafCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewWafRateLimitCmd())
+	cmd.AddCommand(NewWafBlockedIPCmd())
+	cmd.AddCommand(NewWafBlockedReferrerCmd())
+	cmd.AddCommand(NewWafAllowedReferrerCmd())
 
 	return cmd
 }
