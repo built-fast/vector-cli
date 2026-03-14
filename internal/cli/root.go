@@ -92,6 +92,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewPHPVersionsCmd())
 	cmd.AddCommand(commands.NewEventCmd())
 	cmd.AddCommand(commands.NewAccountCmd())
+	cmd.AddCommand(commands.NewWebhookCmd())
 
 	return cmd
 }
