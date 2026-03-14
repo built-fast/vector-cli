@@ -6,7 +6,7 @@ LDFLAGS := -X github.com/built-fast/vector-cli/internal/version.Version=$(VERSIO
            -X github.com/built-fast/vector-cli/internal/version.Commit=$(COMMIT) \
            -X github.com/built-fast/vector-cli/internal/version.Date=$(DATE)
 
-.PHONY: build test lint clean check
+.PHONY: build test lint clean check test-e2e
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/vector ./cmd/vector
@@ -20,4 +20,7 @@ lint:
 clean:
 	rm -rf bin/
 
-check: lint test
+test-e2e:
+	./e2e/run.sh
+
+check: lint test test-e2e
