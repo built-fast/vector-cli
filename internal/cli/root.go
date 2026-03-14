@@ -89,6 +89,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewEnvCmd())
 	cmd.AddCommand(commands.NewDeployCmd())
 	cmd.AddCommand(commands.NewSSLCmd())
+	cmd.AddCommand(commands.NewPHPVersionsCmd())
 
 	return cmd
 }
