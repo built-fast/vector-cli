@@ -86,6 +86,7 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.AddCommand(commands.NewAuthCmd())
 	cmd.AddCommand(commands.NewSiteCmd())
+	cmd.AddCommand(commands.NewEnvCmd())
 
 	return cmd
 }
