@@ -23,6 +23,7 @@ func NewAccountCmd() *cobra.Command {
 	cmd.AddCommand(newAccountShowCmd())
 	cmd.AddCommand(NewAccountSSHKeyCmd())
 	cmd.AddCommand(NewAccountAPIKeyCmd())
+	cmd.AddCommand(NewAccountSecretCmd())
 
 	return cmd
 }
