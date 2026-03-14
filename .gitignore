@@ -1,4 +1,18 @@
+# Rust (kept until Milestone 6 cleanup)
 /target
+
+# Go build artifacts
+bin/
+dist/
+
+# Go binary artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# OS / Editor
 .DS_Store
 .envrc
 /.idea
