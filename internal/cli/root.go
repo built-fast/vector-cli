@@ -22,7 +22,7 @@ func NewRootCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if showVersion {
-				fmt.Fprintln(cmd.OutOrStdout(), version.FullVersion())
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), version.FullVersion())
 				return nil
 			}
 			return cmd.Help()
