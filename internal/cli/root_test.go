@@ -2,12 +2,19 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/built-fast/vector-cli/internal/appctx"
+	"github.com/built-fast/vector-cli/internal/config"
+	"github.com/built-fast/vector-cli/internal/output"
 	"github.com/built-fast/vector-cli/internal/version"
 )
 
@@ -27,6 +34,8 @@ func TestNewRootCmd_VersionFlag(t *testing.T) {
 	version.Version = "1.2.3"
 	version.Commit = "abc1234"
 	version.Date = "2026-01-01"
+
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
 	buf := new(bytes.Buffer)
@@ -48,6 +57,7 @@ func TestNewRootCmd_FlagsRegistered(t *testing.T) {
 		defValue   string
 	}{
 		{"version flag", "version", false, "false"},
+		{"token flag", "token", true, ""},
 		{"json flag", "json", true, "false"},
 		{"no-json flag", "no-json", true, "false"},
 	}
@@ -65,6 +75,8 @@ func TestNewRootCmd_FlagsRegistered(t *testing.T) {
 }
 
 func TestNewRootCmd_NoArgsShowsHelp(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
 	cmd := NewRootCmd()
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
@@ -73,10 +85,240 @@ func TestNewRootCmd_NoArgsShowsHelp(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 
-	output := buf.String()
-	assert.Contains(t, output, "Usage:")
-	assert.Contains(t, output, "vector")
-	assert.Contains(t, output, "--json")
-	assert.Contains(t, output, "--no-json")
-	assert.Contains(t, output, "--version")
+	out := buf.String()
+	assert.Contains(t, out, "Usage:")
+	assert.Contains(t, out, "vector")
+	assert.Contains(t, out, "--json")
+	assert.Contains(t, out, "--no-json")
+	assert.Contains(t, out, "--version")
+	assert.Contains(t, out, "--token")
+}
+
+func TestPersistentPreRunE_LoadsDefaultConfig(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "https://api.builtfast.com", captured.Config.ApiURL)
+}
+
+func TestPersistentPreRunE_TokenFromFlag(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{"--token", "flag-token"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "flag-token", captured.Client.Token)
+}
+
+func TestPersistentPreRunE_TokenFromEnv(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_API_KEY", "env-token")
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "env-token", captured.Client.Token)
+}
+
+func TestPersistentPreRunE_TokenFromCredentials(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Write credentials file
+	creds := config.Credentials{ApiKey: "stored-token"}
+	data, err := json.MarshalIndent(creds, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), data, 0o600))
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err = cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "stored-token", captured.Client.Token)
+}
+
+func TestPersistentPreRunE_TokenPrecedence(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_API_KEY", "env-token")
+
+	// Write credentials file
+	creds := config.Credentials{ApiKey: "stored-token"}
+	data, err := json.MarshalIndent(creds, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), data, 0o600))
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	// --token flag takes precedence over env and stored credentials
+	cmd.SetArgs([]string{"--token", "flag-token"})
+
+	err = cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "flag-token", captured.Client.Token)
+}
+
+func TestPersistentPreRunE_NoTokenIsOK(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Empty(t, captured.Client.Token)
+}
+
+func TestPersistentPreRunE_DetectsOutputFormat(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	tests := []struct {
+		name     string
+		args     []string
+		expected output.Format
+	}{
+		{"json flag", []string{"--json"}, output.JSON},
+		{"no-json flag", []string{"--no-json"}, output.Table},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var captured *appctx.App
+			cmd := NewRootCmd()
+			cmd.RunE = func(cmd *cobra.Command, args []string) error {
+				captured = appctx.FromContext(cmd.Context())
+				return nil
+			}
+			cmd.SetArgs(tt.args)
+
+			err := cmd.Execute()
+			require.NoError(t, err)
+			require.NotNil(t, captured)
+			assert.Equal(t, tt.expected, captured.Format)
+		})
+	}
+}
+
+func TestPersistentPreRunE_InvalidConfigJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Write invalid JSON to config file
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "config.json"), []byte("{invalid"), 0o644))
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid JSON")
+}
+
+func TestPersistentPreRunE_InvalidCredentialsJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Write invalid JSON to credentials file
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), []byte("{invalid"), 0o600))
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid JSON")
+}
+
+func TestPersistentPreRunE_CustomAPIURL(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+
+	// Write custom config
+	cfg := config.Config{ApiURL: "https://custom.api.com"}
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "config.json"), data, 0o644))
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err = cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "https://custom.api.com", captured.Client.BaseURL)
+}
+
+func TestPersistentPreRunE_HelpWorksWithoutCredentials(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	cmd := NewRootCmd()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"--help"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "Usage:")
+}
+
+func TestPersistentPreRunE_VersionWorksWithoutCredentials(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	cmd := NewRootCmd()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"--version"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "vector v")
 }
