@@ -1,7 +1,11 @@
 package cli
 
 // Execute creates the root command and runs it.
-func Execute() error {
+// It returns 0 on success or 1 on error.
+func Execute() int {
 	cmd := NewRootCmd()
-	return cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		return 1
+	}
+	return 0
 }
