@@ -8,6 +8,7 @@ import (
 
 	"github.com/built-fast/vector-cli/internal/api"
 	"github.com/built-fast/vector-cli/internal/appctx"
+	"github.com/built-fast/vector-cli/internal/commands"
 	"github.com/built-fast/vector-cli/internal/config"
 	"github.com/built-fast/vector-cli/internal/output"
 	"github.com/built-fast/vector-cli/internal/version"
@@ -72,6 +73,8 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().String("token", "", "API token (overrides VECTOR_API_KEY and stored credentials)")
 	cmd.PersistentFlags().Bool("json", false, "Force JSON output")
 	cmd.PersistentFlags().Bool("no-json", false, "Force table output")
+
+	cmd.AddCommand(commands.NewAuthCmd())
 
 	return cmd
 }
