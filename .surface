@@ -166,6 +166,9 @@ CMD vector site suspend
 CMD vector site unsuspend
 CMD vector site update
 CMD vector site wp-reconfig
+CMD vector skill
+CMD vector skill install
+CMD vector skill uninstall
 CMD vector ssl
 CMD vector ssl nudge
 CMD vector ssl status

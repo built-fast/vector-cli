@@ -128,6 +128,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewDbCmd())
 	cmd.AddCommand(commands.NewArchiveCmd())
 	cmd.AddCommand(commands.NewMcpCmd())
+	cmd.AddCommand(commands.NewSkillCmd())
 
 	return cmd
 }

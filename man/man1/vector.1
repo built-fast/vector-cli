@@ -427,6 +427,14 @@ List all PHP versions available on the platform.
 Set up Claude Desktop with the Vector MCP server. Use
 .B \-\-force
 to overwrite existing configuration.
+.SS skill \- Manage agent skill
+.TP
+.B skill install
+Install the SKILL.md agent reference document to ~/.agents/skills/vector/ and
+create a symlink at ~/.claude/skills/vector/.
+.TP
+.B skill uninstall
+Remove the installed skill files and symlink.
 .SS completion \- Generate shell completions
 .TP
 .B completion bash
