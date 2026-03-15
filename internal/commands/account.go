@@ -56,8 +56,8 @@ func newAccountShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get account: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -70,7 +70,7 @@ func newAccountShowCmd() *cobra.Command {
 			sites := getMap(item, "sites")
 			envs := getMap(item, "environments")
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Owner Name", Value: getString(owner, "name")},
 				{Key: "Owner Email", Value: getString(owner, "email")},
 				{Key: "Account Name", Value: getString(account, "name")},

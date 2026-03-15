@@ -94,6 +94,8 @@ func newAccountTestServer(validToken string) *httptest.Server {
 }
 
 func buildAccountCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -105,6 +107,7 @@ func buildAccountCmd(baseURL, token string, format output.Format) (*cobra.Comman
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -115,7 +118,6 @@ func buildAccountCmd(baseURL, token string, format output.Format) (*cobra.Comman
 	accountCmd := NewAccountCmd()
 	root.AddCommand(accountCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -124,6 +126,8 @@ func buildAccountCmd(baseURL, token string, format output.Format) (*cobra.Comman
 }
 
 func buildAccountCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -135,6 +139,7 @@ func buildAccountCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -145,7 +150,6 @@ func buildAccountCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 	accountCmd := NewAccountCmd()
 	root.AddCommand(accountCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
