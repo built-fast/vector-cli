@@ -347,14 +347,14 @@ Supported format strings: `@csv`, `@tsv`, `@html`, `@uri`, `@base64`.
 
 Configuration is stored in `~/.config/vector/` (XDG-compliant):
 
-- `credentials.json` - API token (0600 permissions)
 - `config.json` - Optional settings
+- API token is stored in the system keyring (macOS Keychain, Windows Credential Manager, Linux Secret Service)
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `VECTOR_API_KEY` | API token (overrides stored credentials) |
+| `VECTOR_API_KEY` | API token (overrides keyring) |
 | `VECTOR_API_URL` | API base URL (default: `https://api.builtfast.com`) |
 | `VECTOR_CONFIG_DIR` | Config directory (default: `~/.config/vector`) |
 

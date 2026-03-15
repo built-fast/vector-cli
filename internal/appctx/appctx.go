@@ -15,17 +15,15 @@ type contextKey struct{}
 // App holds shared application state accessible to all commands.
 type App struct {
 	Config      *config.Config
-	Credentials *config.Credentials
 	Client      *api.Client
 	Output      *output.Writer
 	TokenSource string // "flag", "env", "keyring", or ""
 }
 
 // NewApp creates a new App with the given dependencies.
-func NewApp(cfg *config.Config, creds *config.Credentials, client *api.Client, tokenSource string) *App {
+func NewApp(cfg *config.Config, client *api.Client, tokenSource string) *App {
 	return &App{
 		Config:      cfg,
-		Credentials: creds,
 		Client:      client,
 		TokenSource: tokenSource,
 	}

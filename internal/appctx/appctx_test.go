@@ -14,22 +14,19 @@ import (
 
 func TestNewApp(t *testing.T) {
 	cfg := &config.Config{ApiURL: "https://example.com"}
-	creds := &config.Credentials{ApiKey: "test-key"}
 	client := api.NewClient("https://example.com", "test-key", "")
 
-	app := appctx.NewApp(cfg, creds, client, "")
+	app := appctx.NewApp(cfg, client, "")
 
 	require.NotNil(t, app)
 	assert.Equal(t, cfg, app.Config)
-	assert.Equal(t, creds, app.Credentials)
 	assert.Equal(t, client, app.Client)
 }
 
 func TestContextRoundTrip(t *testing.T) {
 	cfg := &config.Config{ApiURL: "https://example.com"}
-	creds := &config.Credentials{ApiKey: "test-key"}
 	client := api.NewClient("https://example.com", "test-key", "")
-	app := appctx.NewApp(cfg, creds, client, "")
+	app := appctx.NewApp(cfg, client, "")
 
 	ctx := appctx.WithApp(context.Background(), app)
 	got := appctx.FromContext(ctx)

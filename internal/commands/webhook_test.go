@@ -183,7 +183,6 @@ func buildWebhookCmd(baseURL, token string, format output.Format) (*cobra.Comman
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{ApiKey: token},
 				client,
 				"",
 			)
@@ -213,7 +212,6 @@ func buildWebhookCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 			client := api.NewClient("http://localhost", "", "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)

@@ -181,7 +181,6 @@ func buildWafCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{ApiKey: token},
 				client,
 				"",
 			)
@@ -211,7 +210,6 @@ func buildWafCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 			client := api.NewClient("http://localhost", "", "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)

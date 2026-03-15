@@ -77,7 +77,6 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)
@@ -112,10 +111,10 @@ func TestAuthLoginCmd_ValidToken_TableOutput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
-	// Verify credentials were saved
-	creds, err := config.LoadCredentials()
+	// Verify token was saved
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "valid-token", creds.ApiKey)
+	assert.Equal(t, "valid-token", token)
 }
 
 func TestAuthLoginCmd_ValidToken_JSONOutput(t *testing.T) {
@@ -179,15 +178,14 @@ func TestAuthLoginCmd_NetworkError(t *testing.T) {
 	assert.Equal(t, 5, apiErr.ExitCode)
 }
 
-func TestAuthLoginCmd_OverwritesExistingCredentials(t *testing.T) {
+func TestAuthLoginCmd_OverwritesExistingToken(t *testing.T) {
 	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// Pre-existing credentials
-	oldCreds := &config.Credentials{ApiKey: "old-token"}
-	require.NoError(t, config.SaveCredentials(oldCreds))
+	// Pre-existing token
+	require.NoError(t, config.Save("old-token"))
 
 	ts := newTestServer("new-token")
 	defer ts.Close()
@@ -198,9 +196,9 @@ func TestAuthLoginCmd_OverwritesExistingCredentials(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 
-	creds, err := config.LoadCredentials()
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "new-token", creds.ApiKey)
+	assert.Equal(t, "new-token", token)
 }
 
 func TestAuthLoginCmd_KeyringDisabled(t *testing.T) {
@@ -237,9 +235,9 @@ func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
-	creds, err := config.LoadCredentials()
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "env-token", creds.ApiKey)
+	assert.Equal(t, "env-token", token)
 }
 
 func TestAuthLoginCmd_PipedInput(t *testing.T) {
@@ -281,9 +279,9 @@ func TestAuthLoginCmd_PipedInput(t *testing.T) {
 	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 	assert.Contains(t, stderr.String(), "Enter API token: ")
 
-	creds, loadErr := config.LoadCredentials()
+	token, loadErr := config.Load()
 	require.NoError(t, loadErr)
-	assert.Equal(t, "piped-token", creds.ApiKey)
+	assert.Equal(t, "piped-token", token)
 }
 
 func TestAuthLoginCmd_NoTokenProvided(t *testing.T) {
@@ -338,10 +336,10 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
-	// Verify credentials stored in keyring
-	creds, err := config.LoadCredentials()
+	// Verify token stored in keyring
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "integration-token", creds.ApiKey)
+	assert.Equal(t, "integration-token", token)
 }
 
 func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
@@ -367,10 +365,9 @@ func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
 	assert.Equal(t, 2, apiErr.ExitCode)
 	assert.Equal(t, "Invalid API token.", apiErr.Message)
 
-	// Credentials should NOT be saved
-	creds, err := config.LoadCredentials()
-	require.NoError(t, err)
-	assert.Empty(t, creds.ApiKey)
+	// Token should NOT be saved
+	_, err = config.Load()
+	assert.ErrorIs(t, err, keyring.ErrNotFound)
 }
 
 func TestAuthLogin_Integration_EnvToken(t *testing.T) {
@@ -392,9 +389,9 @@ func TestAuthLogin_Integration_EnvToken(t *testing.T) {
 	err := root.Execute()
 	require.NoError(t, err)
 
-	creds, err := config.LoadCredentials()
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "env-integration-token", creds.ApiKey)
+	assert.Equal(t, "env-integration-token", token)
 }
 
 // --- Auth Logout Tests ---
@@ -407,7 +404,6 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 			client := api.NewClient("http://localhost", "", "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)
@@ -432,8 +428,8 @@ func TestAuthLogoutCmd_TableOutput(t *testing.T) {
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// Save credentials first
-	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
+	// Save token first
+	require.NoError(t, config.Save("some-token"))
 
 	cmd, stdout, _ := buildAuthLogoutCmd(output.Table)
 	cmd.SetArgs([]string{"auth", "logout"})
@@ -442,10 +438,9 @@ func TestAuthLogoutCmd_TableOutput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout.String()))
 
-	// Verify credentials were removed from keyring
-	creds, err := config.LoadCredentials()
-	require.NoError(t, err)
-	assert.Empty(t, creds.ApiKey)
+	// Verify token was removed from keyring
+	_, err = config.Load()
+	assert.ErrorIs(t, err, keyring.ErrNotFound)
 }
 
 func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
@@ -453,7 +448,7 @@ func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
+	require.NoError(t, config.Save("some-token"))
 
 	cmd, stdout, _ := buildAuthLogoutCmd(output.JSON)
 	cmd.SetArgs([]string{"auth", "logout"})
@@ -471,7 +466,7 @@ func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// No credentials stored — should succeed silently
+	// No token stored — should succeed silently
 	cmd, stdout, _ := buildAuthLogoutCmd(output.Table)
 	cmd.SetArgs([]string{"auth", "logout"})
 
@@ -509,20 +504,20 @@ func TestAuthLogoutCmd_KeyringDisabled_JSONOutput(t *testing.T) {
 	assert.Equal(t, "Keyring is disabled. No stored credentials to remove.", result["message"])
 }
 
-func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
+func TestAuthLogout_Integration_RemovesToken(t *testing.T) {
 	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// Save config and credentials
+	// Save config and token
 	require.NoError(t, config.SaveConfig(&config.Config{ApiURL: "http://localhost"}))
-	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "test-token"}))
+	require.NoError(t, config.Save("test-token"))
 
-	// Verify credentials exist in keyring
-	creds, err := config.LoadCredentials()
+	// Verify token exists in keyring
+	token, err := config.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "test-token", creds.ApiKey)
+	assert.Equal(t, "test-token", token)
 
 	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "logout"})
@@ -531,10 +526,9 @@ func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout.String()))
 
-	// Credentials should be gone from keyring
-	creds, err = config.LoadCredentials()
-	require.NoError(t, err)
-	assert.Empty(t, creds.ApiKey)
+	// Token should be gone from keyring
+	_, err = config.Load()
+	assert.ErrorIs(t, err, keyring.ErrNotFound)
 }
 
 // buildRootWithAuth creates a real root command (with PersistentPreRunE) + auth subcommand.
@@ -564,12 +558,11 @@ func buildRootWithAuth() (*cobra.Command, *bytes.Buffer) {
 					tokenSource = "keyring"
 				}
 			}
-			creds := &config.Credentials{ApiKey: token}
 			client := api.NewClient(cfg.ApiURL, token, "")
 			jsonFlag, _ := cmd.Flags().GetBool("json")
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
-			app := appctx.NewApp(cfg, creds, client, tokenSource)
+			app := appctx.NewApp(cfg, client, tokenSource)
 			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
@@ -600,7 +593,6 @@ func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				cfg,
-				&config.Credentials{ApiKey: token},
 				client,
 				tokenSource,
 			)

@@ -436,14 +436,12 @@ command\-line flag
 .B VECTOR_API_KEY
 environment variable
 .IP 3.
-Token stored in
-.I ~/.config/vector/credentials.json
-(set via
+Token stored in the system keyring (set via
 .BR "vector auth login" )
 .SH ENVIRONMENT
 .TP
 .B VECTOR_API_KEY
-API token for authentication. Overrides stored credentials.
+API token for authentication. Overrides keyring.
 .TP
 .B VECTOR_API_URL
 API base URL. Defaults to
@@ -453,9 +451,6 @@ API base URL. Defaults to
 Configuration directory. Defaults to
 .IR ~/.config/vector .
 .SH FILES
-.TP
-.I ~/.config/vector/credentials.json
-Stored API token (file permissions 0600).
 .TP
 .I ~/.config/vector/config.json
 Optional configuration settings.

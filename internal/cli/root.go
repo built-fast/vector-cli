@@ -49,9 +49,6 @@ func NewRootCmd() *cobra.Command {
 				}
 			}
 
-			// Build credentials for backward compatibility
-			creds := &config.Credentials{ApiKey: token}
-
 			// 3. Build API client
 			client := api.NewClient(cfg.ApiURL, token, "")
 
@@ -85,7 +82,7 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// 6. Create App and store in context
-			app := appctx.NewApp(cfg, creds, client, tokenSource)
+			app := appctx.NewApp(cfg, client, tokenSource)
 			app.Output = output.NewWriter(os.Stdout, format, writerOpts...)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 

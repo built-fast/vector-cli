@@ -6,17 +6,9 @@ load test_helper
 
 # --- auth login --token ---
 
-@test "auth login --token stores credentials" {
+@test "auth login --token succeeds with valid token" {
   run vector auth login --token test-token-12345
   assert_success
-
-  # Verify credentials file was created
-  [[ -f "$TEST_CONFIG_DIR/credentials.json" ]]
-
-  # Verify stored token
-  local stored_key
-  stored_key=$(jq -r '.api_key' "$TEST_CONFIG_DIR/credentials.json")
-  [[ "$stored_key" == "test-token-12345" ]]
 }
 
 @test "auth login --token with --no-json shows success message" {
@@ -25,27 +17,12 @@ load test_helper
   assert_output_contains "Authenticated as"
 }
 
-@test "auth login --token overwrites existing credentials" {
-  create_credentials "old-token"
+@test "auth login --token overwrites existing token" {
+  run vector auth login --token old-token
+  assert_success
+
   run vector auth login --token new-token-67890
   assert_success
-
-  local stored_key
-  stored_key=$(jq -r '.api_key' "$TEST_CONFIG_DIR/credentials.json")
-  [[ "$stored_key" == "new-token-67890" ]]
-}
-
-@test "auth login --token sets file permissions to 0600" {
-  run vector auth login --token secret-token
-  assert_success
-
-  local perms
-  if [[ "$(uname)" == "Darwin" ]]; then
-    perms=$(stat -f '%Lp' "$TEST_CONFIG_DIR/credentials.json")
-  else
-    perms=$(stat -c '%a' "$TEST_CONFIG_DIR/credentials.json")
-  fi
-  [[ "$perms" == "600" ]]
 }
 
 
@@ -62,46 +39,30 @@ load test_helper
 
 # --- auth status ---
 
-@test "auth status with stored credentials shows logged-in state" {
-  create_credentials "valid-token"
-  run vector auth status
-  assert_success
-  assert_output_contains "keyring"
-}
-
-@test "auth status without credentials fails with exit code 2" {
-  # No credentials created — config dir is empty (except config.json)
-  run vector auth status
-  assert_failure
-  assert_exit_code 2
-  assert_output_contains "Not logged in"
-}
-
 @test "auth status with --token flag shows token source" {
   run vector auth status --token some-token
   assert_success
   assert_output_contains "flag"
 }
 
+@test "auth status without credentials fails with exit code 2" {
+  # No credentials — config dir is empty (except config.json)
+  run vector auth status
+  assert_failure
+  assert_exit_code 2
+  assert_output_contains "Not logged in"
+}
+
 
 # --- auth logout ---
 
-@test "auth logout removes credentials file" {
-  create_credentials "token-to-remove"
-  [[ -f "$TEST_CONFIG_DIR/credentials.json" ]]
-
+@test "auth logout succeeds" {
   run vector auth logout
   assert_success
   assert_output_contains "Logged out successfully"
-
-  # Credentials file should be gone
-  [[ ! -f "$TEST_CONFIG_DIR/credentials.json" ]]
 }
 
 @test "auth logout without credentials succeeds (idempotent)" {
-  # No credentials file exists
-  [[ ! -f "$TEST_CONFIG_DIR/credentials.json" ]]
-
   run vector auth logout
   assert_success
   assert_output_contains "Logged out successfully"

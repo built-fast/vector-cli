@@ -107,7 +107,7 @@ func buildArchiveCmd(baseURL, token string, format output.Format) (*cobra.Comman
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient(baseURL, token, "")
-		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, "test")
+		app := appctx.NewApp(&config.Config{}, client, "test")
 		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil
@@ -128,7 +128,7 @@ func buildArchiveCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient("", "", "")
-		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, "")
+		app := appctx.NewApp(&config.Config{}, client, "")
 		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil

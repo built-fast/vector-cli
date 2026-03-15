@@ -28,7 +28,7 @@ func newTestCmd() *cobra.Command {
 func TestRequireApp_WithToken(t *testing.T) {
 	cmd := newTestCmd()
 	client := api.NewClient("http://localhost", "valid-token", "test")
-	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, "")
+	app := appctx.NewApp(config.DefaultConfig(), client, "")
 	cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 	got, err := requireApp(cmd)
@@ -39,7 +39,7 @@ func TestRequireApp_WithToken(t *testing.T) {
 func TestRequireApp_NoToken(t *testing.T) {
 	cmd := newTestCmd()
 	client := api.NewClient("http://localhost", "", "test")
-	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, "")
+	app := appctx.NewApp(config.DefaultConfig(), client, "")
 	cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 	_, err := requireApp(cmd)

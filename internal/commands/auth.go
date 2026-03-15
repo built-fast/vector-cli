@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/zalando/go-keyring"
 	"golang.org/x/term"
 
 	"github.com/built-fast/vector-cli/internal/api"
@@ -129,13 +130,12 @@ func newAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("parsing response: %w", err)
 			}
 
-			// Save credentials to system keyring
-			creds := &config.Credentials{ApiKey: token}
-			if err := config.SaveCredentials(creds); err != nil {
+			// Save token to system keyring
+			if err := config.Save(token); err != nil {
 				if errors.Is(err, config.ErrKeyringDisabled) {
 					return fmt.Errorf("cannot store token: keyring is disabled. Use --token flag or VECTOR_API_KEY environment variable instead")
 				}
-				return fmt.Errorf("saving credentials: %w", err)
+				return fmt.Errorf("saving token: %w", err)
 			}
 
 			// Output
@@ -164,7 +164,7 @@ func newAuthLogoutCmd() *cobra.Command {
 				return fmt.Errorf("app not initialized")
 			}
 
-			if err := config.ClearCredentials(); err != nil {
+			if err := config.Delete(); err != nil {
 				if errors.Is(err, config.ErrKeyringDisabled) {
 					msg := "Keyring is disabled. No stored credentials to remove."
 					if app.Output.Format() == output.JSON {
@@ -175,7 +175,9 @@ func newAuthLogoutCmd() *cobra.Command {
 					output.PrintMessage(cmd.OutOrStdout(), msg)
 					return nil
 				}
-				return fmt.Errorf("clearing credentials: %w", err)
+				if !errors.Is(err, keyring.ErrNotFound) {
+					return fmt.Errorf("clearing token: %w", err)
+				}
 			}
 
 			msg := "Logged out successfully. Token removed from system keyring."

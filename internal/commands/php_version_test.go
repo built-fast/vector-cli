@@ -64,7 +64,6 @@ func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Co
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{ApiKey: token},
 				client,
 				"",
 			)
@@ -94,7 +93,6 @@ func buildPHPVersionsCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buf
 			client := api.NewClient("http://localhost", "", "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)

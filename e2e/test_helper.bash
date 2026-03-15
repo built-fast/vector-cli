@@ -34,18 +34,6 @@ teardown() {
 
 # --- Fixture helpers ---
 
-# create_credentials TOKEN
-# Writes credentials.json with the given API key.
-create_credentials() {
-  local token="${1:-test-token}"
-  cat > "$TEST_CONFIG_DIR/credentials.json" <<EOF
-{
-  "api_key": "$token"
-}
-EOF
-  chmod 600 "$TEST_CONFIG_DIR/credentials.json"
-}
-
 # create_config API_URL
 # Writes config.json with the given API URL.
 create_config() {

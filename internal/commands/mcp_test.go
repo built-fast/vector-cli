@@ -24,7 +24,6 @@ func buildMcpCmd(token string, format output.Format) (*cobra.Command, *bytes.Buf
 			client := api.NewClient("http://localhost", token, "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{ApiKey: token},
 				client,
 				"",
 			)
@@ -53,7 +52,6 @@ func buildMcpCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 			client := api.NewClient("http://localhost", "", "test-agent")
 			app := appctx.NewApp(
 				config.DefaultConfig(),
-				&config.Credentials{},
 				client,
 				"",
 			)
