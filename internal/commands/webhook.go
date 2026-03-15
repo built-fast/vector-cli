@@ -56,12 +56,12 @@ func newWebhookListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list webhooks: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list webhooks: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -85,8 +85,10 @@ func newWebhookListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -122,8 +124,8 @@ func newWebhookShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get webhook: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -131,7 +133,7 @@ func newWebhookShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get webhook: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Type", Value: getString(item, "type")},
 				{Key: "URL", Value: getString(item, "url")},
@@ -185,8 +187,8 @@ func newWebhookCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create webhook: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -209,7 +211,7 @@ func newWebhookCreateCmd() *cobra.Command {
 				kvs = append(kvs, output.KeyValue{Key: "Secret", Value: secret})
 			}
 
-			output.PrintKeyValue(w, kvs)
+			app.Output.KeyValue(kvs)
 
 			if secret != "" {
 				output.PrintMessage(w, "")
@@ -274,8 +276,8 @@ func newWebhookUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update webhook: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -283,7 +285,7 @@ func newWebhookUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update webhook: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Type", Value: getString(item, "type")},
 				{Key: "URL", Value: getString(item, "url")},
@@ -331,8 +333,8 @@ func newWebhookDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete webhook: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "Webhook deleted successfully.")

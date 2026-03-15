@@ -174,6 +174,9 @@ func newWebhookTestServer(validToken string) *httptest.Server {
 }
 
 func buildWebhookCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -185,6 +188,7 @@ func buildWebhookCmd(baseURL, token string, format output.Format) (*cobra.Comman
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -194,8 +198,6 @@ func buildWebhookCmd(baseURL, token string, format output.Format) (*cobra.Comman
 
 	root.AddCommand(NewWebhookCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
@@ -203,6 +205,9 @@ func buildWebhookCmd(baseURL, token string, format output.Format) (*cobra.Comman
 }
 
 func buildWebhookCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -214,6 +219,7 @@ func buildWebhookCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -223,8 +229,6 @@ func buildWebhookCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer,
 
 	root.AddCommand(NewWebhookCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
