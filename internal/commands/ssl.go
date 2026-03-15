@@ -53,8 +53,8 @@ func newSSLStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get SSL status: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -62,7 +62,7 @@ func newSSLStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get SSL status: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Status", Value: getString(item, "status")},
 				{Key: "Provisioning Step", Value: formatString(getString(item, "provisioning_step"))},
 				{Key: "Failure Reason", Value: formatString(getString(item, "failure_reason"))},
@@ -111,8 +111,8 @@ func newSSLNudgeCmd() *cobra.Command {
 				return fmt.Errorf("failed to nudge SSL: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			// Extract message from response
@@ -120,7 +120,7 @@ func newSSLNudgeCmd() *cobra.Command {
 				Message string `json:"message"`
 			}
 			if err := json.Unmarshal(body, &envelope); err == nil && envelope.Message != "" {
-				output.PrintMessage(cmd.OutOrStdout(), envelope.Message)
+				app.Output.Message(envelope.Message)
 			}
 
 			var item map[string]any
@@ -128,7 +128,7 @@ func newSSLNudgeCmd() *cobra.Command {
 				return fmt.Errorf("failed to nudge SSL: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Status", Value: getString(item, "status")},
 				{Key: "Provisioning Step", Value: formatString(getString(item, "provisioning_step"))},
 				{Key: "Failure Reason", Value: formatString(getString(item, "failure_reason"))},
