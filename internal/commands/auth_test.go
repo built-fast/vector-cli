@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zalando/go-keyring"
 
 	"github.com/built-fast/vector-cli/internal/api"
 	"github.com/built-fast/vector-cli/internal/appctx"
@@ -98,7 +98,9 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 }
 
 func TestAuthLoginCmd_ValidToken_TableOutput(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("valid-token")
 	defer ts.Close()
@@ -117,7 +119,9 @@ func TestAuthLoginCmd_ValidToken_TableOutput(t *testing.T) {
 }
 
 func TestAuthLoginCmd_ValidToken_JSONOutput(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("valid-token")
 	defer ts.Close()
@@ -138,7 +142,9 @@ func TestAuthLoginCmd_ValidToken_JSONOutput(t *testing.T) {
 }
 
 func TestAuthLoginCmd_InvalidToken(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("valid-token")
 	defer ts.Close()
@@ -174,8 +180,10 @@ func TestAuthLoginCmd_NetworkError(t *testing.T) {
 }
 
 func TestAuthLoginCmd_OverwritesExistingCredentials(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	// Pre-existing credentials
 	oldCreds := &config.Credentials{ApiKey: "old-token"}
@@ -196,8 +204,10 @@ func TestAuthLoginCmd_OverwritesExistingCredentials(t *testing.T) {
 }
 
 func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("env-token")
 	defer ts.Close()
@@ -216,8 +226,10 @@ func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
 }
 
 func TestAuthLoginCmd_PipedInput(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("piped-token")
 	defer ts.Close()
@@ -290,8 +302,10 @@ func TestAuthLoginCmd_NoTokenProvided(t *testing.T) {
 
 // Integration test: full flow with root command
 func TestAuthLogin_Integration_ValidToken(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("integration-token")
 	defer ts.Close()
@@ -307,18 +321,17 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 
-	// Verify credentials file
-	data, err := os.ReadFile(filepath.Join(tmpDir, "credentials.json"))
+	// Verify credentials stored in keyring
+	creds, err := config.LoadCredentials()
 	require.NoError(t, err)
-
-	var creds config.Credentials
-	require.NoError(t, json.Unmarshal(data, &creds))
 	assert.Equal(t, "integration-token", creds.ApiKey)
 }
 
 func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("valid-token")
 	defer ts.Close()
@@ -338,14 +351,17 @@ func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
 	assert.Equal(t, "Invalid API token.", apiErr.Message)
 
 	// Credentials should NOT be saved
-	_, err = os.Stat(filepath.Join(tmpDir, "credentials.json"))
-	assert.True(t, os.IsNotExist(err))
+	creds, err := config.LoadCredentials()
+	require.NoError(t, err)
+	assert.Empty(t, creds.ApiKey)
 }
 
 func TestAuthLogin_Integration_EnvToken(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 	t.Setenv("VECTOR_API_KEY", "env-integration-token")
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("env-integration-token")
 	defer ts.Close()
@@ -395,8 +411,9 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 }
 
 func TestAuthLogoutCmd_TableOutput(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	// Save credentials first
 	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
@@ -408,14 +425,16 @@ func TestAuthLogoutCmd_TableOutput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 
-	// Verify credentials file was removed
-	_, err = os.Stat(filepath.Join(tmpDir, "credentials.json"))
-	assert.True(t, os.IsNotExist(err))
+	// Verify credentials were removed from keyring
+	creds, err := config.LoadCredentials()
+	require.NoError(t, err)
+	assert.Empty(t, creds.ApiKey)
 }
 
 func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "some-token"}))
 
@@ -431,7 +450,9 @@ func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
 }
 
 func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	// No credentials file exists — should succeed silently
 	cmd, stdout, _ := buildAuthLogoutCmd(output.Table)
@@ -443,16 +464,19 @@ func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
 }
 
 func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	// Save config and credentials
 	require.NoError(t, config.SaveConfig(&config.Config{ApiURL: "http://localhost"}))
 	require.NoError(t, config.SaveCredentials(&config.Credentials{ApiKey: "test-token"}))
 
-	// Verify credentials exist
-	_, err := os.Stat(filepath.Join(tmpDir, "credentials.json"))
+	// Verify credentials exist in keyring
+	creds, err := config.LoadCredentials()
 	require.NoError(t, err)
+	assert.Equal(t, "test-token", creds.ApiKey)
 
 	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "logout"})
@@ -461,9 +485,10 @@ func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 
-	// Credentials file should be gone
-	_, err = os.Stat(filepath.Join(tmpDir, "credentials.json"))
-	assert.True(t, os.IsNotExist(err))
+	// Credentials should be gone from keyring
+	creds, err = config.LoadCredentials()
+	require.NoError(t, err)
+	assert.Empty(t, creds.ApiKey)
 }
 
 // buildRootWithAuth creates a real root command (with PersistentPreRunE) + auth subcommand.
@@ -637,8 +662,10 @@ func TestAuthStatusCmd_InvalidToken(t *testing.T) {
 
 // Integration test: login → status → logout → status
 func TestAuthStatus_Integration_FullFlow(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	ts := newTestServer("flow-token")
 	defer ts.Close()

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zalando/go-keyring"
 
 	"github.com/built-fast/vector-cli/internal/appctx"
 	"github.com/built-fast/vector-cli/internal/config"
@@ -18,12 +19,18 @@ import (
 	"github.com/built-fast/vector-cli/internal/version"
 )
 
+func TestMain(m *testing.M) {
+	keyring.MockInit()
+	os.Exit(m.Run())
+}
+
 func TestNewRootCmd_Use(t *testing.T) {
 	cmd := NewRootCmd()
 	assert.Equal(t, "vector", cmd.Use)
 }
 
 func TestNewRootCmd_VersionFlag(t *testing.T) {
+	keyring.MockInit()
 	origVersion, origCommit, origDate := version.Version, version.Commit, version.Date
 	t.Cleanup(func() {
 		version.Version = origVersion
@@ -76,6 +83,7 @@ func TestNewRootCmd_FlagsRegistered(t *testing.T) {
 }
 
 func TestNewRootCmd_NoArgsShowsHelp(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
@@ -96,6 +104,7 @@ func TestNewRootCmd_NoArgsShowsHelp(t *testing.T) {
 }
 
 func TestPersistentPreRunE_LoadsDefaultConfig(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -113,6 +122,7 @@ func TestPersistentPreRunE_LoadsDefaultConfig(t *testing.T) {
 }
 
 func TestPersistentPreRunE_TokenFromFlag(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -130,6 +140,7 @@ func TestPersistentPreRunE_TokenFromFlag(t *testing.T) {
 }
 
 func TestPersistentPreRunE_TokenFromEnv(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_API_KEY", "env-token")
 
@@ -148,14 +159,12 @@ func TestPersistentPreRunE_TokenFromEnv(t *testing.T) {
 }
 
 func TestPersistentPreRunE_TokenFromCredentials(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// Write credentials file
-	creds := config.Credentials{ApiKey: "stored-token"}
-	data, err := json.MarshalIndent(creds, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), data, 0o600))
+	// Store token in keyring
+	require.NoError(t, config.Save("stored-token"))
 
 	var captured *appctx.App
 	cmd := NewRootCmd()
@@ -165,22 +174,20 @@ func TestPersistentPreRunE_TokenFromCredentials(t *testing.T) {
 	}
 	cmd.SetArgs([]string{})
 
-	err = cmd.Execute()
+	err := cmd.Execute()
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "stored-token", captured.Client.Token)
 }
 
 func TestPersistentPreRunE_TokenPrecedence(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_API_KEY", "env-token")
+	t.Setenv("VECTOR_NO_KEYRING", "")
 
-	// Write credentials file
-	creds := config.Credentials{ApiKey: "stored-token"}
-	data, err := json.MarshalIndent(creds, "", "  ")
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), data, 0o600))
+	// Store token in keyring
+	require.NoError(t, config.Save("stored-token"))
 
 	var captured *appctx.App
 	cmd := NewRootCmd()
@@ -191,13 +198,14 @@ func TestPersistentPreRunE_TokenPrecedence(t *testing.T) {
 	// --token flag takes precedence over env and stored credentials
 	cmd.SetArgs([]string{"--token", "flag-token"})
 
-	err = cmd.Execute()
+	err := cmd.Execute()
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "flag-token", captured.Client.Token)
 }
 
 func TestPersistentPreRunE_NoTokenIsOK(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -215,6 +223,7 @@ func TestPersistentPreRunE_NoTokenIsOK(t *testing.T) {
 }
 
 func TestPersistentPreRunE_DetectsOutputFormat(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	tests := []struct {
@@ -245,6 +254,7 @@ func TestPersistentPreRunE_DetectsOutputFormat(t *testing.T) {
 }
 
 func TestPersistentPreRunE_InvalidConfigJSON(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 
@@ -259,22 +269,8 @@ func TestPersistentPreRunE_InvalidConfigJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
 
-func TestPersistentPreRunE_InvalidCredentialsJSON(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
-
-	// Write invalid JSON to credentials file
-	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "credentials.json"), []byte("{invalid"), 0o600))
-
-	cmd := NewRootCmd()
-	cmd.SetArgs([]string{})
-
-	err := cmd.Execute()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid JSON")
-}
-
 func TestPersistentPreRunE_CustomAPIURL(t *testing.T) {
+	keyring.MockInit()
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 
@@ -299,6 +295,7 @@ func TestPersistentPreRunE_CustomAPIURL(t *testing.T) {
 }
 
 func TestPersistentPreRunE_HelpWorksWithoutCredentials(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
@@ -312,6 +309,7 @@ func TestPersistentPreRunE_HelpWorksWithoutCredentials(t *testing.T) {
 }
 
 func TestPersistentPreRunE_VersionWorksWithoutCredentials(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
@@ -325,6 +323,7 @@ func TestPersistentPreRunE_VersionWorksWithoutCredentials(t *testing.T) {
 }
 
 func TestPersistentPreRunE_JQCompilesWithoutError(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -343,6 +342,7 @@ func TestPersistentPreRunE_JQCompilesWithoutError(t *testing.T) {
 }
 
 func TestPersistentPreRunE_JQForcesJSON(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -360,6 +360,7 @@ func TestPersistentPreRunE_JQForcesJSON(t *testing.T) {
 }
 
 func TestPersistentPreRunE_JQAndNoJSONError(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
@@ -374,6 +375,7 @@ func TestPersistentPreRunE_JQAndNoJSONError(t *testing.T) {
 }
 
 func TestPersistentPreRunE_JQInvalidExpression(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	cmd := NewRootCmd()
@@ -388,6 +390,7 @@ func TestPersistentPreRunE_JQInvalidExpression(t *testing.T) {
 }
 
 func TestPersistentPreRunE_JQIdentityFilter(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App
@@ -407,6 +410,7 @@ func TestPersistentPreRunE_JQIdentityFilter(t *testing.T) {
 }
 
 func TestPersistentPreRunE_OutputSetWithoutJQ(t *testing.T) {
+	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 
 	var captured *appctx.App

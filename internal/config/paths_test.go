@@ -96,9 +96,3 @@ func TestConfigFilePath(t *testing.T) {
 	assert.Equal(t, filepath.Join("/test/config", "config.json"), path)
 }
 
-func TestCredentialsFilePath(t *testing.T) {
-	t.Setenv("VECTOR_CONFIG_DIR", "/test/config")
-
-	path := CredentialsFilePath()
-	assert.Equal(t, filepath.Join("/test/config", "credentials.json"), path)
-}

@@ -57,11 +57,3 @@ func ConfigFilePath() string {
 	return filepath.Join(dir, "config.json")
 }
 
-// CredentialsFilePath returns the path to credentials.json within the config directory.
-func CredentialsFilePath() string {
-	dir, err := ConfigDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(dir, "credentials.json")
-}
