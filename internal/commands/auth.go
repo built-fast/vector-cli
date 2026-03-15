@@ -157,7 +157,7 @@ func newAuthLogoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
 		Short: "Remove stored credentials",
-		Long:  "Log out by deleting stored API credentials from disk.",
+		Long:  "Log out by deleting stored API credentials from the system keyring.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app := appctx.FromContext(cmd.Context())
 			if app == nil {
@@ -165,16 +165,27 @@ func newAuthLogoutCmd() *cobra.Command {
 			}
 
 			if err := config.ClearCredentials(); err != nil {
+				if errors.Is(err, config.ErrKeyringDisabled) {
+					msg := "Keyring is disabled. No stored credentials to remove."
+					if app.Output.Format() == output.JSON {
+						return app.Output.JSON(map[string]string{
+							"message": msg,
+						})
+					}
+					output.PrintMessage(cmd.OutOrStdout(), msg)
+					return nil
+				}
 				return fmt.Errorf("clearing credentials: %w", err)
 			}
 
+			msg := "Logged out successfully. Token removed from system keyring."
 			if app.Output.Format() == output.JSON {
 				return app.Output.JSON(map[string]string{
-					"message": "Logged out successfully.",
+					"message": msg,
 				})
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), "Logged out successfully.")
+			output.PrintMessage(cmd.OutOrStdout(), msg)
 			return nil
 		},
 	}
