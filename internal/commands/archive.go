@@ -151,8 +151,8 @@ func newArchiveImportCmd() *cobra.Command {
 
 			_, _ = fmt.Fprintln(w, "Import started.")
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(runData))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(runData))
 			}
 
 			var runItem map[string]any
@@ -160,7 +160,7 @@ func newArchiveImportCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse import result: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Import ID", Value: getString(runItem, "id")},
 				{Key: "Status", Value: getString(runItem, "status")},
 			})

@@ -100,17 +100,19 @@ func newArchiveImportTestServer(validToken string) *httptest.Server {
 }
 
 func buildArchiveCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{Use: "vector"}
 	root.AddCommand(NewArchiveCmd())
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient(baseURL, token, "")
 		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, format, "test")
+		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil
 	}
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -119,17 +121,19 @@ func buildArchiveCmd(baseURL, token string, format output.Format) (*cobra.Comman
 }
 
 func buildArchiveCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{Use: "vector"}
 	root.AddCommand(NewArchiveCmd())
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient("", "", "")
 		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, format, "")
+		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil
 	}
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
