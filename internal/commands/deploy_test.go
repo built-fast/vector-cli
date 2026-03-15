@@ -175,6 +175,9 @@ func newDeployTestServer(validToken string) *httptest.Server {
 }
 
 func buildDeployCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -186,6 +189,7 @@ func buildDeployCmd(baseURL, token string, format output.Format) (*cobra.Command
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -196,8 +200,6 @@ func buildDeployCmd(baseURL, token string, format output.Format) (*cobra.Command
 	deployCmd := NewDeployCmd()
 	root.AddCommand(deployCmd)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
@@ -205,6 +207,9 @@ func buildDeployCmd(baseURL, token string, format output.Format) (*cobra.Command
 }
 
 func buildDeployCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -216,6 +221,7 @@ func buildDeployCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, 
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -226,8 +232,6 @@ func buildDeployCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, 
 	deployCmd := NewDeployCmd()
 	root.AddCommand(deployCmd)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 

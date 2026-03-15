@@ -55,12 +55,12 @@ func newDeployListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list deployments: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list deployments: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -84,8 +84,10 @@ func newDeployListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -121,8 +123,8 @@ func newDeployShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to show deployment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -131,7 +133,7 @@ func newDeployShowCmd() *cobra.Command {
 			}
 
 			w := cmd.OutOrStdout()
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
 				{Key: "Status", Value: getString(item, "status")},
@@ -199,8 +201,8 @@ func newDeployTriggerCmd() *cobra.Command {
 				return fmt.Errorf("failed to trigger deployment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -208,7 +210,7 @@ func newDeployTriggerCmd() *cobra.Command {
 				return fmt.Errorf("failed to trigger deployment: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
 				{Key: "Status", Value: getString(item, "status")},
@@ -261,8 +263,8 @@ func newDeployRollbackCmd() *cobra.Command {
 				return fmt.Errorf("failed to rollback deployment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -270,7 +272,7 @@ func newDeployRollbackCmd() *cobra.Command {
 				return fmt.Errorf("failed to rollback deployment: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
 				{Key: "Status", Value: getString(item, "status")},
