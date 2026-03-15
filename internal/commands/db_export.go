@@ -60,8 +60,8 @@ func newDbExportCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create database export: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -117,8 +117,8 @@ func newDbExportStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get database export status: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -147,7 +147,7 @@ func newDbExportStatusCmd() *cobra.Command {
 				output.KeyValue{Key: "Completed", Value: formatString(getString(item, "completed_at"))},
 			)
 
-			output.PrintKeyValue(cmd.OutOrStdout(), kvs)
+			app.Output.KeyValue(kvs)
 			return nil
 		},
 	}
