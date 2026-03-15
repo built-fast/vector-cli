@@ -17,7 +17,8 @@ type App struct {
 	Config      *config.Config
 	Credentials *config.Credentials
 	Client      *api.Client
-	Format      output.Format
+	Format      output.Format    // Deprecated: use Output.Format() instead; kept for backward compat during migration.
+	Output      *output.Writer
 	TokenSource string // "--token flag", "VECTOR_API_KEY env", "stored credentials", or ""
 }
 

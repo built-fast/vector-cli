@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/itchyny/gojq"
 	"github.com/spf13/cobra"
 
 	"github.com/built-fast/vector-cli/internal/api"
@@ -62,8 +63,33 @@ func NewRootCmd() *cobra.Command {
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
 
-			// 6. Create App and store in context
+			// 6. Handle --jq flag
+			jqExpr, _ := cmd.Flags().GetString("jq")
+			var writerOpts []output.WriterOption
+
+			if jqExpr != "" {
+				if noJsonFlag {
+					return fmt.Errorf("--jq and --no-json cannot be used together")
+				}
+
+				query, err := gojq.Parse(jqExpr)
+				if err != nil {
+					return fmt.Errorf("invalid jq expression: %w", err)
+				}
+
+				code, err := gojq.Compile(query)
+				if err != nil {
+					return fmt.Errorf("failed to compile jq expression: %w", err)
+				}
+
+				// jq implies JSON output
+				format = output.JSON
+				writerOpts = append(writerOpts, output.WithJQ(jqExpr, code))
+			}
+
+			// 7. Create App and store in context
 			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
+			app.Output = output.NewWriter(os.Stdout, format, writerOpts...)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 			return nil
@@ -83,6 +109,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().String("token", "", "API token (overrides VECTOR_API_KEY and stored credentials)")
 	cmd.PersistentFlags().Bool("json", false, "Force JSON output")
 	cmd.PersistentFlags().Bool("no-json", false, "Force table output")
+	cmd.PersistentFlags().String("jq", "", `Filter JSON output with a jq expression (built-in, no external jq required)`)
 
 	cmd.AddCommand(commands.NewAuthCmd())
 	cmd.AddCommand(commands.NewSiteCmd())

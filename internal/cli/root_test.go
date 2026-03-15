@@ -60,6 +60,7 @@ func TestNewRootCmd_FlagsRegistered(t *testing.T) {
 		{"token flag", "token", true, ""},
 		{"json flag", "json", true, "false"},
 		{"no-json flag", "no-json", true, "false"},
+		{"jq flag", "jq", true, ""},
 	}
 
 	for _, tt := range tests {
@@ -321,4 +322,105 @@ func TestPersistentPreRunE_VersionWorksWithoutCredentials(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 	assert.Contains(t, buf.String(), "vector v")
+}
+
+func TestPersistentPreRunE_JQCompilesWithoutError(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{"--jq", ".name"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	require.NotNil(t, captured.Output)
+	assert.True(t, captured.Output.HasJQ())
+}
+
+func TestPersistentPreRunE_JQForcesJSON(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{"--jq", ".name"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, output.JSON, captured.Format)
+	assert.Equal(t, output.JSON, captured.Output.Format())
+}
+
+func TestPersistentPreRunE_JQAndNoJSONError(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return nil
+	}
+	cmd.SetArgs([]string{"--jq", ".name", "--no-json"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Equal(t, "--jq and --no-json cannot be used together", err.Error())
+}
+
+func TestPersistentPreRunE_JQInvalidExpression(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return nil
+	}
+	cmd.SetArgs([]string{"--jq", ".[["})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid jq expression")
+}
+
+func TestPersistentPreRunE_JQIdentityFilter(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{"--jq", "."})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	require.NotNil(t, captured.Output)
+	assert.True(t, captured.Output.HasJQ())
+	assert.Equal(t, output.JSON, captured.Output.Format())
+}
+
+func TestPersistentPreRunE_OutputSetWithoutJQ(t *testing.T) {
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	require.NotNil(t, captured.Output)
+	assert.False(t, captured.Output.HasJQ())
 }
