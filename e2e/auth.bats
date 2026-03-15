@@ -22,7 +22,7 @@ load test_helper
 @test "auth login --token with --no-json shows success message" {
   run vector auth login --token test-token --no-json
   assert_success
-  assert_output_contains "Successfully authenticated"
+  assert_output_contains "Authenticated as"
 }
 
 @test "auth login --token overwrites existing credentials" {

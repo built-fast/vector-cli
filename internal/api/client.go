@@ -88,16 +88,28 @@ func (c *Client) PutFile(ctx context.Context, url string, file *os.File) (*http.
 }
 
 // jsonRequest is a helper that JSON-encodes a body and sends a request.
+// When body is nil, the request is sent with no body and no Content-Type header.
 func (c *Client) jsonRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(body); err != nil {
-		return nil, fmt.Errorf("encoding request body: %w", err)
+	hasBody := body != nil
+	if hasBody {
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			return nil, fmt.Errorf("encoding request body: %w", err)
+		}
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, &buf)
+	var req *http.Request
+	var err error
+	if hasBody {
+		req, err = http.NewRequestWithContext(ctx, method, c.BaseURL+path, &buf)
+	} else {
+		req, err = http.NewRequestWithContext(ctx, method, c.BaseURL+path, nil)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("creating %s request: %w", method, err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	if hasBody {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	return c.do(req)
 }
 

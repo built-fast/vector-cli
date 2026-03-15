@@ -194,7 +194,7 @@ func newRestoreCreateCmd() *cobra.Command {
 			}
 
 			reqBody := map[string]any{
-				"vector_backup_id": args[0],
+				"backup_id": args[0],
 			}
 
 			dropTables, _ := cmd.Flags().GetBool("drop-tables")

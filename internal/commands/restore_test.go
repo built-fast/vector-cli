@@ -471,7 +471,7 @@ func TestRestoreCreateCmd_RequestBody(t *testing.T) {
 
 	assert.Equal(t, "POST", receivedMethod)
 	assert.Equal(t, "/api/v1/vector/restores", receivedPath)
-	assert.Equal(t, "bk-005", receivedBody["vector_backup_id"])
+	assert.Equal(t, "bk-005", receivedBody["backup_id"])
 }
 
 func TestRestoreCreateCmd_WithFlags(t *testing.T) {
@@ -491,7 +491,7 @@ func TestRestoreCreateCmd_WithFlags(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 
-	assert.Equal(t, "bk-005", receivedBody["vector_backup_id"])
+	assert.Equal(t, "bk-005", receivedBody["backup_id"])
 	assert.Equal(t, true, receivedBody["drop_tables"])
 	assert.Equal(t, true, receivedBody["disable_foreign_keys"])
 

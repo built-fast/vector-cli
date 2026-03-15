@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -15,6 +16,29 @@ import (
 	"github.com/built-fast/vector-cli/internal/config"
 	"github.com/built-fast/vector-cli/internal/output"
 )
+
+// whoamiResponse represents the parsed response from GET /api/v1/auth/whoami.
+type whoamiResponse struct {
+	Data struct {
+		User struct {
+			ID    int    `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		} `json:"user"`
+		Token struct {
+			Name       string   `json:"name"`
+			Abilities  []string `json:"abilities"`
+			ExpiresAt  *string  `json:"expires_at"`
+			LastUsedAt *string  `json:"last_used_at"`
+		} `json:"token"`
+		Account struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"account"`
+	} `json:"data"`
+	Message    string `json:"message"`
+	HTTPStatus int    `json:"http_status"`
+}
 
 // stdinFd is the file descriptor used for reading terminal input.
 // Override in tests to use a pipe instead.
@@ -43,7 +67,7 @@ func newAuthLoginCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate with the Vector API",
-		Long:  "Validate an API token via the ping endpoint and save it to credentials.",
+		Long:  "Validate an API token and save it to credentials.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app := appctx.FromContext(cmd.Context())
 			if app == nil {
@@ -72,8 +96,8 @@ func newAuthLoginCmd() *cobra.Command {
 			// Build a client with the provided token
 			client := api.NewClient(app.Client.BaseURL, token, app.Client.UserAgent)
 
-			// Validate via GET /api/v1/ping
-			resp, err := client.Get(cmd.Context(), "/api/v1/ping", nil)
+			// Validate via GET /api/v1/auth/whoami
+			resp, err := client.Get(cmd.Context(), "/api/v1/auth/whoami", nil)
 			if err != nil {
 				var apiErr *api.APIError
 				if errors.As(err, &apiErr) {
@@ -100,6 +124,11 @@ func newAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("reading response: %w", err)
 			}
 
+			var whoami whoamiResponse
+			if err := json.Unmarshal(body, &whoami); err != nil {
+				return fmt.Errorf("parsing response: %w", err)
+			}
+
 			// Save credentials
 			creds := &config.Credentials{ApiKey: token}
 			if err := config.SaveCredentials(creds); err != nil {
@@ -112,7 +141,10 @@ func newAuthLoginCmd() *cobra.Command {
 				return app.Output.JSON(raw)
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), "Successfully authenticated.")
+			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf(
+				"Authenticated as %s (%s).",
+				whoami.Data.User.Email, whoami.Data.Account.Name,
+			))
 			return nil
 		},
 	}
@@ -165,8 +197,8 @@ func newAuthStatusCmd() *cobra.Command {
 				}
 			}
 
-			// Ping the API
-			resp, err := app.Client.Get(cmd.Context(), "/api/v1/ping", nil)
+			// Validate via GET /api/v1/auth/whoami
+			resp, err := app.Client.Get(cmd.Context(), "/api/v1/auth/whoami", nil)
 			if err != nil {
 				var apiErr *api.APIError
 				if errors.As(err, &apiErr) {
@@ -186,38 +218,44 @@ func newAuthStatusCmd() *cobra.Command {
 			}
 			defer func() { _ = resp.Body.Close() }()
 
-			// Parse ping response to extract data.response
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return fmt.Errorf("reading response: %w", err)
 			}
 
-			var parsed struct {
-				Data struct {
-					Response string `json:"response"`
-				} `json:"data"`
-			}
-			if err := json.Unmarshal(body, &parsed); err != nil {
+			var whoami whoamiResponse
+			if err := json.Unmarshal(body, &whoami); err != nil {
 				return fmt.Errorf("parsing response: %w", err)
 			}
 
 			configDir, _ := config.ConfigDir()
 
+			expires := "Never"
+			if whoami.Data.Token.ExpiresAt != nil {
+				expires = *whoami.Data.Token.ExpiresAt
+			}
+
 			if app.Output.Format() == output.JSON {
 				return app.Output.JSON(map[string]any{
 					"authenticated": true,
+					"user":          whoami.Data.User,
+					"token":         whoami.Data.Token,
+					"account":       whoami.Data.Account,
 					"token_source":  app.TokenSource,
 					"config_dir":    configDir,
 					"api_url":       app.Config.ApiURL,
-					"ping":          parsed.Data.Response,
 				})
 			}
 
 			app.Output.KeyValue([]output.KeyValue{
+				{Key: "User", Value: fmt.Sprintf("%s (%s)", whoami.Data.User.Name, whoami.Data.User.Email)},
+				{Key: "Account", Value: whoami.Data.Account.Name},
+				{Key: "Token", Value: whoami.Data.Token.Name},
+				{Key: "Abilities", Value: strings.Join(whoami.Data.Token.Abilities, ", ")},
+				{Key: "Expires", Value: expires},
 				{Key: "Token source", Value: app.TokenSource},
-				{Key: "Config directory", Value: configDir},
 				{Key: "API URL", Value: app.Config.ApiURL},
-				{Key: "Ping", Value: parsed.Data.Response},
+				{Key: "Config directory", Value: configDir},
 			})
 			return nil
 		},

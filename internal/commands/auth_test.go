@@ -20,18 +20,34 @@ import (
 	"github.com/built-fast/vector-cli/internal/output"
 )
 
-// pingResponse is the standard response from GET /api/v1/ping.
-var pingResponse = map[string]any{
-	"data":        map[string]any{"response": "pong"},
-	"message":     "API health check successful",
+// whoamiTestResponse is the standard response from GET /api/v1/auth/whoami.
+var whoamiTestResponse = map[string]any{
+	"data": map[string]any{
+		"user": map[string]any{
+			"id":    1,
+			"name":  "John Doe",
+			"email": "john@example.com",
+		},
+		"token": map[string]any{
+			"name":         "vector-cli",
+			"abilities":    []string{"*"},
+			"expires_at":   nil,
+			"last_used_at": "2026-03-14T12:00:00.000000Z",
+		},
+		"account": map[string]any{
+			"id":   1,
+			"name": "Acme Inc",
+		},
+	},
+	"message":     "Success",
 	"http_status": 200,
 }
 
-// newTestServer creates an httptest server that responds to /api/v1/ping.
+// newTestServer creates an httptest server that responds to /api/v1/auth/whoami.
 // validToken is the token that triggers a 200; anything else gets 401.
 func newTestServer(validToken string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/ping" {
+		if r.URL.Path != "/api/v1/auth/whoami" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -48,7 +64,7 @@ func newTestServer(validToken string) *httptest.Server {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(pingResponse)
+		_ = json.NewEncoder(w).Encode(whoamiTestResponse)
 	}))
 }
 
@@ -92,7 +108,7 @@ func TestAuthLoginCmd_ValidToken_TableOutput(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 
 	// Verify credentials were saved
 	creds, err := config.LoadCredentials()
@@ -114,9 +130,11 @@ func TestAuthLoginCmd_ValidToken_JSONOutput(t *testing.T) {
 
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
-	assert.Equal(t, "pong", result["data"].(map[string]any)["response"])
-	assert.Equal(t, "API health check successful", result["message"])
-	assert.Equal(t, float64(200), result["http_status"])
+	data := result["data"].(map[string]any)
+	user := data["user"].(map[string]any)
+	assert.Equal(t, "john@example.com", user["email"])
+	assert.Equal(t, "Acme Inc", data["account"].(map[string]any)["name"])
+	assert.Equal(t, "Success", result["message"])
 }
 
 func TestAuthLoginCmd_InvalidToken(t *testing.T) {
@@ -190,7 +208,7 @@ func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 
 	creds, err := config.LoadCredentials()
 	require.NoError(t, err)
@@ -231,7 +249,7 @@ func TestAuthLoginCmd_PipedInput(t *testing.T) {
 
 	err = cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 	assert.Contains(t, stderr.String(), "Enter API token: ")
 
 	creds, loadErr := config.LoadCredentials()
@@ -287,7 +305,7 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 
 	err := root.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 
 	// Verify credentials file
 	data, err := os.ReadFile(filepath.Join(tmpDir, "credentials.json"))
@@ -547,8 +565,10 @@ func TestAuthStatusCmd_Authenticated_TableOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	out := stdout.String()
+	assert.Contains(t, out, "John Doe (john@example.com)")
+	assert.Contains(t, out, "Acme Inc")
+	assert.Contains(t, out, "vector-cli")
 	assert.Contains(t, out, "stored credentials")
-	assert.Contains(t, out, "pong")
 	assert.Contains(t, out, ts.URL)
 }
 
@@ -569,8 +589,17 @@ func TestAuthStatusCmd_Authenticated_JSONOutput(t *testing.T) {
 	assert.Equal(t, true, result["authenticated"])
 	assert.Equal(t, "--token flag", result["token_source"])
 	assert.Equal(t, ts.URL, result["api_url"])
-	assert.Equal(t, "pong", result["ping"])
 	assert.NotEmpty(t, result["config_dir"])
+
+	user := result["user"].(map[string]any)
+	assert.Equal(t, "john@example.com", user["email"])
+	assert.Equal(t, "John Doe", user["name"])
+
+	account := result["account"].(map[string]any)
+	assert.Equal(t, "Acme Inc", account["name"])
+
+	token := result["token"].(map[string]any)
+	assert.Equal(t, "vector-cli", token["name"])
 }
 
 func TestAuthStatusCmd_NotAuthenticated(t *testing.T) {
@@ -622,7 +651,7 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "login", "--token", "flow-token"})
 	require.NoError(t, root.Execute())
-	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
 
 	// Step 2: Status shows authenticated
 	root2, stdout2 := buildRootWithAuth()
@@ -630,8 +659,9 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	require.NoError(t, root2.Execute())
 
 	out := stdout2.String()
+	assert.Contains(t, out, "John Doe (john@example.com)")
+	assert.Contains(t, out, "Acme Inc")
 	assert.Contains(t, out, "stored credentials")
-	assert.Contains(t, out, "pong")
 	assert.Contains(t, out, ts.URL)
 
 	// Step 3: Logout
