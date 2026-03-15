@@ -55,8 +55,8 @@ func newBackupDownloadCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create backup download: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -64,14 +64,14 @@ func newBackupDownloadCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create backup download: %w", err)
 			}
 
-			w := cmd.OutOrStdout()
 			downloadID := getString(item, "id")
 
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: downloadID},
 				{Key: "Status", Value: getString(item, "status")},
 			})
 
+			w := cmd.OutOrStdout()
 			output.PrintMessage(w, "")
 			output.PrintMessage(w, fmt.Sprintf("Check download status with: vector backup download status %s %s", backupID, downloadID))
 
@@ -112,8 +112,8 @@ func newBackupDownloadStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get backup download status: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -142,7 +142,7 @@ func newBackupDownloadStatusCmd() *cobra.Command {
 				output.KeyValue{Key: "Created At", Value: getString(item, "created_at")},
 			)
 
-			output.PrintKeyValue(cmd.OutOrStdout(), kvs)
+			app.Output.KeyValue(kvs)
 			return nil
 		},
 	}
