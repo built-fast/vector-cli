@@ -17,3 +17,6 @@ e2e/openapi.yaml
 .envrc
 /.idea
 /.vscode
+
+# AI
+/.claude/settings.local.json
