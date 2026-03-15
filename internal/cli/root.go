@@ -23,6 +23,14 @@ func NewRootCmd() *cobra.Command {
 		Use:   "vector",
 		Short: "Vector CLI — manage your Vector hosting",
 		Long:  "Vector CLI — manage your Vector hosting\n\nA command-line tool for managing sites, deployments, and configurations via the Vector Pro API by BuiltFast (builtfast.com).",
+		Example: `  # Force JSON output for any command
+  vector --json site list
+
+  # Use a one-off token without logging in
+  vector --token mytoken123 site list
+
+  # Filter JSON output with built-in jq
+  vector site list --jq '.[].id'`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// 1. Load config (defaults if missing)
 			cfg, err := config.LoadConfig()

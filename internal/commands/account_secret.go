@@ -33,8 +33,10 @@ func newAccountSecretListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List global secrets",
-		Long:  "Retrieve a paginated list of account-level secrets and environment variables.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of account-level secrets and environment variables.",
+		Example: `  # List global secrets
+  vector account secret list`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -105,8 +107,10 @@ func newAccountSecretShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a secret",
-		Long:  "Display details of an account-level secret or environment variable.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Display details of an account-level secret or environment variable.",
+		Example: `  # Show secret details
+  vector account secret show secret-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -161,8 +165,13 @@ func newAccountSecretCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a secret",
-		Long:  "Create a new account-level secret or environment variable.",
-		Args:  cobra.NoArgs,
+		Long: "Create a new account-level secret or environment variable.",
+		Example: `  # Create a global secret
+  vector account secret create --key STRIPE_KEY --value sk_live_xxx
+
+  # Create as a plain environment variable
+  vector account secret create --key APP_ENV --value production --no-secret`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -234,8 +243,10 @@ func newAccountSecretUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a secret",
-		Long:  "Update an account-level secret or environment variable.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Update an account-level secret or environment variable.",
+		Example: `  # Update a secret value
+  vector account secret update secret-456 --value new-value`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -307,8 +318,10 @@ func newAccountSecretDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a secret",
-		Long:  "Delete an account-level secret or environment variable.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Delete an account-level secret or environment variable.",
+		Example: `  # Delete a global secret
+  vector account secret delete secret-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

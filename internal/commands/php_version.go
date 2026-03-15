@@ -17,8 +17,10 @@ func NewPHPVersionsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "php-versions",
 		Short: "List available PHP versions",
-		Long:  "Retrieve a list of all available PHP versions for Vector environments.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a list of all available PHP versions for Vector environments.",
+		Example: `  # List available PHP versions
+  vector php-versions`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

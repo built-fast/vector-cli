@@ -40,7 +40,15 @@ func newMcpSetupCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setup",
 		Short: "Configure Vector MCP server",
-		Long:  "Configure the Vector MCP server in Claude Desktop or Claude Code for AI-assisted site management.",
+		Long: "Configure the Vector MCP server in Claude Desktop or Claude Code for AI-assisted site management.",
+		Example: `  # Set up for Claude Desktop
+  vector mcp setup
+
+  # Set up for Claude Code
+  vector mcp setup --target code
+
+  # Overwrite existing configuration
+  vector mcp setup --force`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

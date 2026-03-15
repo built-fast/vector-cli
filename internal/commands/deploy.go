@@ -32,8 +32,10 @@ func newDeployListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <env-id>",
 		Short: "List deployments for an environment",
-		Long:  "Retrieve a paginated list of deployments for an environment.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve a paginated list of deployments for an environment.",
+		Example: `  # List deployments for an environment
+  vector deploy list env-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -99,8 +101,10 @@ func newDeployShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <deploy-id>",
 		Short: "Show deployment details",
-		Long:  "Retrieve details of a specific deployment, including stdout and stderr output.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve details of a specific deployment, including stdout and stderr output.",
+		Example: `  # Show deployment details
+  vector deploy show deploy-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -165,8 +169,13 @@ func newDeployTriggerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "trigger <env-id>",
 		Short: "Trigger a deployment",
-		Long:  "Initiate a new deployment for an environment.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Initiate a new deployment for an environment.",
+		Example: `  # Trigger a deployment
+  vector deploy trigger env-abc123
+
+  # Include uploads
+  vector deploy trigger env-abc123 --include-uploads`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -231,8 +240,13 @@ func newDeployRollbackCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollback <env-id>",
 		Short: "Rollback a deployment",
-		Long:  "Initiate a rollback for an environment. Rolls back to the last successful deployment unless a target is specified.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Initiate a rollback for an environment. Rolls back to the last successful deployment unless a target is specified.",
+		Example: `  # Rollback to the last successful deployment
+  vector deploy rollback env-abc123
+
+  # Rollback to a specific deployment
+  vector deploy rollback env-abc123 --target deploy-789`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

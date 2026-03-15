@@ -34,8 +34,10 @@ func newWebhookListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List webhooks",
-		Long:  "Retrieve a paginated list of webhooks for your account.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of webhooks for your account.",
+		Example: `  # List webhooks
+  vector webhook list`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -100,8 +102,10 @@ func newWebhookShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a webhook",
-		Long:  "Display details of a specific webhook.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Display details of a specific webhook.",
+		Example: `  # Show webhook details
+  vector webhook show webhook-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -151,8 +155,13 @@ func newWebhookCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a webhook",
-		Long:  "Create a new webhook for receiving notifications about account events.",
-		Args:  cobra.NoArgs,
+		Long: "Create a new webhook for receiving notifications about account events.",
+		Example: `  # Create a webhook
+  vector webhook create --url https://example.com/hooks/vector --events "site.created,deploy.completed"
+
+  # Create a Slack webhook
+  vector webhook create --url https://hooks.slack.com/services/xxx --events "deploy.completed" --type slack`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -234,8 +243,13 @@ func newWebhookUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a webhook",
-		Long:  "Update an existing webhook configuration.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Update an existing webhook configuration.",
+		Example: `  # Update webhook URL
+  vector webhook update webhook-456 --url https://example.com/hooks/new
+
+  # Disable a webhook
+  vector webhook update webhook-456 --enabled`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -309,8 +323,10 @@ func newWebhookDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a webhook",
-		Long:  "Delete a webhook. All associated delivery logs will also be deleted.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Delete a webhook. All associated delivery logs will also be deleted.",
+		Example: `  # Delete a webhook
+  vector webhook delete webhook-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

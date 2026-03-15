@@ -29,7 +29,15 @@ func newEventListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List events",
-		Long:  "Retrieve a paginated list of account event logs in reverse chronological order.",
+		Long: "Retrieve a paginated list of account event logs in reverse chronological order.",
+		Example: `  # List recent events
+  vector event list
+
+  # Filter by date range
+  vector event list --from 2024-01-01T00:00:00Z --to 2024-01-31T23:59:59Z
+
+  # Filter by event type
+  vector event list --event site.created`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

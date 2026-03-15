@@ -32,8 +32,10 @@ func newAccountShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Show account summary",
-		Long:  "Display account details including owner information and resource usage.",
-		Args:  cobra.NoArgs,
+		Long: "Display account details including owner information and resource usage.",
+		Example: `  # Show account summary
+  vector account show`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

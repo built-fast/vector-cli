@@ -46,7 +46,12 @@ func newSiteListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all sites",
-		Long:  "Retrieve a paginated list of all sites for the authenticated account.",
+		Long: "Retrieve a paginated list of all sites for the authenticated account.",
+		Example: `  # List all sites
+  vector site list
+
+  # List with pagination
+  vector site list --page 2 --per-page 50`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -113,8 +118,10 @@ func newSiteShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <site-id>",
 		Short: "Show site details",
-		Long:  "Retrieve details of a specific site including its environments.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve details of a specific site including its environments.",
+		Example: `  # Show site details
+  vector site show site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -195,7 +202,12 @@ func newSiteCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a new site",
-		Long:  "Create a new site with a development container. Returns credentials that are only shown once.",
+		Long: "Create a new site with a development container. Returns credentials that are only shown once.",
+		Example: `  # Create a site
+  vector site create --customer-id cust-001 --php-version 8.2
+
+  # Create with WordPress auto-install
+  vector site create --customer-id cust-001 --php-version 8.2 --wp-admin-email admin@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -336,8 +348,10 @@ func newSiteUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <site-id>",
 		Short: "Update a site",
-		Long:  "Update a site's metadata such as customer ID and tags.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Update a site's metadata such as customer ID and tags.",
+		Example: `  # Update tags
+  vector site update site-abc123 --tags production,primary`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -406,8 +420,13 @@ func newSiteDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <site-id>",
 		Short: "Delete a site",
-		Long:  "Initiate deletion of a site. All environments must be terminated first. This operation is irreversible.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Initiate deletion of a site. All environments must be terminated first. This operation is irreversible.",
+		Example: `  # Delete a site (prompts for confirmation)
+  vector site delete site-abc123
+
+  # Delete without confirmation
+  vector site delete site-abc123 --force`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -461,8 +480,13 @@ func newSiteCloneCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clone <site-id>",
 		Short: "Clone a site",
-		Long:  "Create a new site by cloning an existing site's development container including files and database.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Create a new site by cloning an existing site's development container including files and database.",
+		Example: `  # Clone a site
+  vector site clone site-abc123
+
+  # Clone with a different customer ID
+  vector site clone site-abc123 --customer-id cust-002`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -545,8 +569,10 @@ func newSiteSuspendCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "suspend <site-id>",
 		Short: "Suspend a site",
-		Long:  "Suspend a site's development container. The site must be active.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Suspend a site's development container. The site must be active.",
+		Example: `  # Suspend a site
+  vector site suspend site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE:  siteActionRunE("suspend", "PUT"),
 	}
 }
@@ -555,8 +581,10 @@ func newSiteUnsuspendCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "unsuspend <site-id>",
 		Short: "Unsuspend a site",
-		Long:  "Resume a previously suspended site's development container.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Resume a previously suspended site's development container.",
+		Example: `  # Unsuspend a site
+  vector site unsuspend site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE:  siteActionRunE("unsuspend", "PUT"),
 	}
 }
@@ -565,8 +593,10 @@ func newSiteResetSFTPPasswordCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "reset-sftp-password <site-id>",
 		Short: "Reset SFTP password",
-		Long:  "Generate a new SFTP password for the site's development container. The new password is only shown once.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Generate a new SFTP password for the site's development container. The new password is only shown once.",
+		Example: `  # Reset SFTP password
+  vector site reset-sftp-password site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -619,8 +649,10 @@ func newSiteResetDBPasswordCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "reset-db-password <site-id>",
 		Short: "Reset database password",
-		Long:  "Generate a new database password for the site's development container. The new password is only shown once.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Generate a new database password for the site's development container. The new password is only shown once.",
+		Example: `  # Reset database password
+  vector site reset-db-password site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -665,8 +697,13 @@ func newSitePurgeCacheCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "purge-cache <site-id>",
 		Short: "Purge CDN cache",
-		Long:  "Purge the CDN cache for a site. Can purge the entire cache, by cache tag, or a specific URL.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Purge the CDN cache for a site. Can purge the entire cache, by cache tag, or a specific URL.",
+		Example: `  # Purge entire cache
+  vector site purge-cache site-abc123
+
+  # Purge a specific URL
+  vector site purge-cache site-abc123 --url https://example.com/page`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -725,8 +762,13 @@ func newSiteLogsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logs <site-id>",
 		Short: "View site logs",
-		Long:  "Retrieve logs for a site. Logs are returned in reverse chronological order.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve logs for a site. Logs are returned in reverse chronological order.",
+		Example: `  # View recent logs
+  vector site logs site-abc123
+
+  # View error logs with a limit
+  vector site logs site-abc123 --level error --limit 100`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -780,8 +822,10 @@ func newSiteWPReconfigCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "wp-reconfig <site-id>",
 		Short: "Regenerate wp-config.php",
-		Long:  "Regenerate the wp-config.php file for the site's development container.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Regenerate the wp-config.php file for the site's development container.",
+		Example: `  # Regenerate wp-config.php
+  vector site wp-reconfig site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE:  sitePostActionRunE("wp/reconfig", "wp-config regenerated"),
 	}
 }

@@ -31,8 +31,13 @@ func newRestoreListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List restores",
-		Long:  "Retrieve a paginated list of restores, optionally filtered by type, site, environment, or backup.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of restores, optionally filtered by type, site, environment, or backup.",
+		Example: `  # List all restores
+  vector restore list
+
+  # Filter by site
+  vector restore list --site-id site-abc123`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -128,8 +133,10 @@ func newRestoreShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a restore",
-		Long:  "Display details of a specific restore.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Display details of a specific restore.",
+		Example: `  # Show restore details
+  vector restore show restore-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -185,8 +192,13 @@ func newRestoreCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <backup-id>",
 		Short: "Create a restore",
-		Long:  "Create a new restore from a backup.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Create a new restore from a backup.",
+		Example: `  # Restore from a backup
+  vector restore create backup-456
+
+  # Restore database only with search-replace
+  vector restore create backup-456 --scope database --search-replace-from old.example.com --search-replace-to new.example.com`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

@@ -36,8 +36,10 @@ func newWafRateLimitListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List WAF rate limiting rules",
-		Long:  "Retrieve all rate limit rules configured for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve all rate limit rules configured for a site.",
+		Example: `  # List rate limit rules
+  vector waf rate-limit list site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -95,8 +97,10 @@ func newWafRateLimitShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <site-id> <rule-id>",
 		Short: "Show a WAF rate limiting rule",
-		Long:  "Display details of a specific rate limit rule.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Display details of a specific rate limit rule.",
+		Example: `  # Show rule details
+  vector waf rate-limit show site-abc123 rule-42`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -151,8 +155,10 @@ func newWafRateLimitCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create a WAF rate limiting rule",
-		Long:  "Create a new rate limit rule for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Create a new rate limit rule for a site.",
+		Example: `  # Create a rate limit rule
+  vector waf rate-limit create site-abc123 --name "login-limit" --request-count 100 --timeframe 10 --block-time 60`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -260,8 +266,10 @@ func newWafRateLimitUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <site-id> <rule-id>",
 		Short: "Update a WAF rate limiting rule",
-		Long:  "Update an existing rate limit rule. Only sends changed fields.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Update an existing rate limit rule. Only sends changed fields.",
+		Example: `  # Update block time
+  vector waf rate-limit update site-abc123 rule-42 --block-time 300`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -375,8 +383,10 @@ func newWafRateLimitDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <site-id> <rule-id>",
 		Short: "Delete a WAF rate limiting rule",
-		Long:  "Permanently delete a rate limit rule. This action cannot be undone.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Permanently delete a rate limit rule. This action cannot be undone.",
+		Example: `  # Delete a rule
+  vector waf rate-limit delete site-abc123 rule-42`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

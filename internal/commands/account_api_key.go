@@ -32,8 +32,10 @@ func newAccountAPIKeyListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List API keys",
-		Long:  "Retrieve a paginated list of API keys for your account.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of API keys for your account.",
+		Example: `  # List API keys
+  vector account api-key list`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -99,8 +101,13 @@ func newAccountAPIKeyCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create an API key",
-		Long:  "Create a new API key for programmatic access to your account.",
-		Args:  cobra.NoArgs,
+		Long: "Create a new API key for programmatic access to your account.",
+		Example: `  # Create an API key
+  vector account api-key create --name "ci-deploy"
+
+  # Create with abilities and expiration
+  vector account api-key create --name "readonly" --abilities "site:read,env:read" --expires-at 2025-12-31T23:59:59Z`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -176,8 +183,10 @@ func newAccountAPIKeyDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <key-id>",
 		Short: "Delete an API key",
-		Long:  "Delete an API key. You cannot delete the token currently being used for authentication.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Delete an API key. You cannot delete the token currently being used for authentication.",
+		Example: `  # Delete an API key
+  vector account api-key delete token-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

@@ -44,8 +44,13 @@ func newBackupListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List backups",
-		Long:  "Retrieve a paginated list of backups, optionally filtered by type, site, or environment.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of backups, optionally filtered by type, site, or environment.",
+		Example: `  # List all backups
+  vector backup list
+
+  # List backups for a site
+  vector backup list --site-id site-abc123`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -135,8 +140,10 @@ func newBackupShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a backup",
-		Long:  "Display details of a specific backup.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Display details of a specific backup.",
+		Example: `  # Show backup details
+  vector backup show backup-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -192,8 +199,13 @@ func newBackupCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a backup",
-		Long:  "Create a new backup for a site or environment.",
-		Args:  cobra.NoArgs,
+		Long: "Create a new backup for a site or environment.",
+		Example: `  # Create a full backup
+  vector backup create --site-id site-abc123
+
+  # Create a database-only backup
+  vector backup create --environment-id env-abc123 --scope database`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

@@ -33,8 +33,10 @@ func newWafBlockedIPListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List blocked IPs",
-		Long:  "List all blocked IP addresses for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "List all blocked IP addresses for a site.",
+		Example: `  # List blocked IPs
+  vector waf blocked-ip list site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -84,8 +86,10 @@ func newWafBlockedIPAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <site-id> <ip>",
 		Short: "Add a blocked IP",
-		Long:  "Add an IP address to the blocklist for a site.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Add an IP address to the blocklist for a site.",
+		Example: `  # Block an IP address
+  vector waf blocked-ip add site-abc123 203.0.113.50`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -126,8 +130,10 @@ func newWafBlockedIPRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <site-id> <ip>",
 		Short: "Remove a blocked IP",
-		Long:  "Remove an IP address from the blocklist for a site.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Remove an IP address from the blocklist for a site.",
+		Example: `  # Unblock an IP address
+  vector waf blocked-ip remove site-abc123 203.0.113.50`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

@@ -33,8 +33,10 @@ func newWafAllowedReferrerListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List allowed referrers",
-		Long:  "List all allowed referrer hostnames for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "List all allowed referrer hostnames for a site.",
+		Example: `  # List allowed referrers
+  vector waf allowed-referrer list site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -84,8 +86,10 @@ func newWafAllowedReferrerAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <site-id> <hostname>",
 		Short: "Add an allowed referrer",
-		Long:  "Add a hostname to the allowed referrers list for a site.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Add a hostname to the allowed referrers list for a site.",
+		Example: `  # Allow a referrer
+  vector waf allowed-referrer add site-abc123 trusted.example.com`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -126,8 +130,10 @@ func newWafAllowedReferrerRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <site-id> <hostname>",
 		Short: "Remove an allowed referrer",
-		Long:  "Remove a hostname from the allowed referrers list for a site.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Remove a hostname from the allowed referrers list for a site.",
+		Example: `  # Remove an allowed referrer
+  vector waf allowed-referrer remove site-abc123 trusted.example.com`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

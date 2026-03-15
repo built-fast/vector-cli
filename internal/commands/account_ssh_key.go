@@ -32,8 +32,10 @@ func newAccountSSHKeyListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List account SSH keys",
-		Long:  "Retrieve a paginated list of account-level SSH keys.",
-		Args:  cobra.NoArgs,
+		Long: "Retrieve a paginated list of account-level SSH keys.",
+		Example: `  # List account SSH keys
+  vector account ssh-key list`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -98,8 +100,10 @@ func newAccountSSHKeyShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <key-id>",
 		Short: "Show SSH key details",
-		Long:  "Retrieve details of a specific account-level SSH key.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve details of a specific account-level SSH key.",
+		Example: `  # Show SSH key details
+  vector account ssh-key show key-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -148,8 +152,10 @@ func newAccountSSHKeyCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create an SSH key",
-		Long:  "Create a new account-level SSH key.",
-		Args:  cobra.NoArgs,
+		Long: "Create a new account-level SSH key.",
+		Example: `  # Create an SSH key
+  vector account ssh-key create --name "deploy-key" --public-key "ssh-ed25519 AAAA..."`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -213,8 +219,10 @@ func newAccountSSHKeyDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <key-id>",
 		Short: "Delete an SSH key",
-		Long:  "Delete an account-level SSH key.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Delete an account-level SSH key.",
+		Example: `  # Delete an SSH key
+  vector account ssh-key delete key-456`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

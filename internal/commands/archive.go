@@ -29,8 +29,13 @@ func newArchiveImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import <site-id> <file>",
 		Short: "Import a site archive from a local file",
-		Long:  "Import a site archive from a local file. Creates an import session, uploads the file to a presigned URL, and triggers the import.",
-		Args:  cobra.ExactArgs(2),
+		Long: "Import a site archive from a local file. Creates an import session, uploads the file to a presigned URL, and triggers the import.",
+		Example: `  # Import an archive
+  vector archive import site-abc123 site-backup.tar.gz
+
+  # Import with search and replace
+  vector archive import site-abc123 site.tar.gz --search-replace-from old.example.com --search-replace-to new.example.com`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {

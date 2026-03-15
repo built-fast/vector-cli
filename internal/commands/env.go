@@ -38,8 +38,10 @@ func newEnvListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List environments for a site",
-		Long:  "Retrieve a paginated list of environments for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve a paginated list of environments for a site.",
+		Example: `  # List environments for a site
+  vector env list site-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -108,8 +110,10 @@ func newEnvShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <env-id>",
 		Short: "Show environment details",
-		Long:  "Retrieve details of a specific environment.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Retrieve details of a specific environment.",
+		Example: `  # Show environment details
+  vector env show env-abc123`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -174,8 +178,13 @@ func newEnvCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create an environment",
-		Long:  "Create a new environment for a site.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Create a new environment for a site.",
+		Example: `  # Create a staging environment
+  vector env create site-abc123 --name staging --php-version 8.2
+
+  # Create a production environment with a custom domain
+  vector env create site-abc123 --name production --php-version 8.2 --custom-domain example.com --production`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -281,8 +290,13 @@ func newEnvUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <env-id>",
 		Short: "Update an environment",
-		Long:  "Update an environment's custom domain or tags. Domain changes trigger async infrastructure updates.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Update an environment's custom domain or tags. Domain changes trigger async infrastructure updates.",
+		Example: `  # Set a custom domain
+  vector env update env-abc123 --custom-domain example.com
+
+  # Remove a custom domain
+  vector env update env-abc123 --clear-custom-domain`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
@@ -380,8 +394,13 @@ func newEnvDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <env-id>",
 		Short: "Delete an environment",
-		Long:  "Initiate deletion of an environment. This operation is irreversible.",
-		Args:  cobra.ExactArgs(1),
+		Long: "Initiate deletion of an environment. This operation is irreversible.",
+		Example: `  # Delete an environment
+  vector env delete env-abc123
+
+  # Delete without confirmation
+  vector env delete env-abc123 --force`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
 			if err != nil {
