@@ -78,12 +78,12 @@ func newRestoreListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list restores: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list restores: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -109,8 +109,10 @@ func newRestoreListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -150,8 +152,8 @@ func newRestoreShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get restore: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -159,7 +161,7 @@ func newRestoreShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get restore: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
 				{Key: "Model ID", Value: getString(item, "archivable_id")},
@@ -229,8 +231,8 @@ func newRestoreCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create restore: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -238,11 +240,10 @@ func newRestoreCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create restore: %w", err)
 			}
 
-			w := cmd.OutOrStdout()
-			output.PrintMessage(w, fmt.Sprintf("Restore initiated. Use 'vector restore show %s' to check progress.", getString(item, "id")))
-			output.PrintMessage(w, "")
+			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Restore initiated. Use 'vector restore show %s' to check progress.", getString(item, "id")))
+			output.PrintMessage(cmd.OutOrStdout(), "")
 
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
 				{Key: "Model ID", Value: getString(item, "archivable_id")},
