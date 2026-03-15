@@ -332,6 +332,8 @@ func newSiteTestServer(validToken string) *httptest.Server {
 
 // buildSiteCmd creates a root + site command wired with an App context.
 func buildSiteCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -343,6 +345,7 @@ func buildSiteCmd(baseURL, token string, format output.Format) (*cobra.Command, 
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -353,7 +356,6 @@ func buildSiteCmd(baseURL, token string, format output.Format) (*cobra.Command, 
 	siteCmd := NewSiteCmd()
 	root.AddCommand(siteCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -363,6 +365,8 @@ func buildSiteCmd(baseURL, token string, format output.Format) (*cobra.Command, 
 
 // buildSiteCmdNoAuth creates a root + site command with no auth token.
 func buildSiteCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -374,6 +378,7 @@ func buildSiteCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -384,7 +389,6 @@ func buildSiteCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 	siteCmd := NewSiteCmd()
 	root.AddCommand(siteCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)

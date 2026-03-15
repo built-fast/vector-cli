@@ -67,12 +67,12 @@ func newSiteListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list sites: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list sites: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -98,8 +98,10 @@ func newSiteListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil && meta.LastPage > 1 {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -135,8 +137,8 @@ func newSiteShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to show site: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -157,7 +159,7 @@ func newSiteShowCmd() *cobra.Command {
 				{Key: "Created", Value: getString(item, "created_at")},
 				{Key: "Updated", Value: getString(item, "updated_at")},
 			}
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 
 			// Print environments table if present
 			envs := getSlice(item, "environments")
@@ -181,7 +183,7 @@ func newSiteShowCmd() *cobra.Command {
 						formatString(getString(env, "custom_domain")),
 					})
 				}
-				output.PrintTable(cmd.OutOrStdout(), headers, rows)
+				app.Output.Table(headers, rows)
 			}
 
 			return nil
@@ -263,8 +265,8 @@ func newSiteCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create site: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -313,7 +315,7 @@ func newSiteCreateCmd() *cobra.Command {
 				)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 			return nil
 		},
 	}
@@ -373,8 +375,8 @@ func newSiteUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update site: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -383,7 +385,7 @@ func newSiteUpdateCmd() *cobra.Command {
 			}
 
 			tags := tagsFromItem(item)
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Customer ID", Value: formatString(getString(item, "your_customer_id"))},
 				{Key: "Status", Value: getString(item, "status")},
@@ -415,7 +417,7 @@ func newSiteDeleteCmd() *cobra.Command {
 			force, _ := cmd.Flags().GetBool("force")
 			if !force {
 				if !confirmAction(cmd, fmt.Sprintf("Are you sure you want to delete site %s?", args[0])) {
-					output.PrintMessage(cmd.OutOrStdout(), "Aborted.")
+					app.Output.Message("Aborted.")
 					return nil
 				}
 			}
@@ -436,8 +438,8 @@ func newSiteDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete site: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -445,7 +447,7 @@ func newSiteDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete site: %w", err)
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Site %s deletion initiated.", getString(item, "id")))
+			app.Output.Message(fmt.Sprintf("Site %s deletion initiated.", getString(item, "id")))
 			return nil
 		},
 	}
@@ -502,8 +504,8 @@ func newSiteCloneCmd() *cobra.Command {
 				return fmt.Errorf("failed to clone site: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -527,7 +529,7 @@ func newSiteCloneCmd() *cobra.Command {
 				pairs = append(pairs, output.KeyValue{Key: "DB Password", Value: dbPass})
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 			return nil
 		},
 	}
@@ -587,8 +589,8 @@ func newSiteResetSFTPPasswordCmd() *cobra.Command {
 				return fmt.Errorf("failed to reset SFTP password: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -598,11 +600,11 @@ func newSiteResetSFTPPasswordCmd() *cobra.Command {
 
 			sftp := getMap(item, "dev_sftp")
 			if sftp == nil {
-				output.PrintMessage(cmd.OutOrStdout(), "SFTP password reset successfully.")
+				app.Output.Message("SFTP password reset successfully.")
 				return nil
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Hostname", Value: getString(sftp, "hostname")},
 				{Key: "Port", Value: fmt.Sprintf("%.0f", getFloat(sftp, "port"))},
 				{Key: "Username", Value: getString(sftp, "username")},
@@ -641,8 +643,8 @@ func newSiteResetDBPasswordCmd() *cobra.Command {
 				return fmt.Errorf("failed to reset database password: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -650,7 +652,7 @@ func newSiteResetDBPasswordCmd() *cobra.Command {
 				return fmt.Errorf("failed to reset database password: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "DB Username", Value: getString(item, "dev_db_username")},
 				{Key: "DB Password", Value: getString(item, "dev_db_password")},
 			})
@@ -692,12 +694,12 @@ func newSitePurgeCacheCmd() *cobra.Command {
 				return fmt.Errorf("failed to purge cache: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to purge cache: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			// Extract message from response
@@ -705,9 +707,9 @@ func newSitePurgeCacheCmd() *cobra.Command {
 				Message string `json:"message"`
 			}
 			if err := json.Unmarshal(body, &envelope); err == nil && envelope.Message != "" {
-				output.PrintMessage(cmd.OutOrStdout(), envelope.Message)
+				app.Output.Message(envelope.Message)
 			} else {
-				output.PrintMessage(cmd.OutOrStdout(), "Cache purged successfully.")
+				app.Output.Message("Cache purged successfully.")
 			}
 			return nil
 		},
@@ -749,8 +751,8 @@ func newSiteLogsCmd() *cobra.Command {
 				return fmt.Errorf("failed to get logs: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var logData map[string]any
@@ -819,8 +821,8 @@ func siteActionRunE(action, method string) func(*cobra.Command, []string) error 
 			return fmt.Errorf("failed to %s site: %w", action, parseErr)
 		}
 
-		if app.Format == output.JSON {
-			return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+		if app.Output.Format() == output.JSON {
+			return app.Output.JSON(json.RawMessage(data))
 		}
 
 		var item map[string]any
@@ -828,7 +830,7 @@ func siteActionRunE(action, method string) func(*cobra.Command, []string) error 
 			return fmt.Errorf("failed to %s site: %w", action, err)
 		}
 
-		output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Site %s %s initiated.", getString(item, "id"), action))
+		app.Output.Message(fmt.Sprintf("Site %s %s initiated.", getString(item, "id"), action))
 		return nil
 	}
 }
@@ -861,8 +863,8 @@ func sitePostActionRunE(subPath, successMsg string) func(*cobra.Command, []strin
 			return fmt.Errorf("parsing response: %w", parseErr)
 		}
 
-		if app.Format == output.JSON {
-			return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+		if app.Output.Format() == output.JSON {
+			return app.Output.JSON(json.RawMessage(data))
 		}
 
 		// Extract message from full response
@@ -870,9 +872,9 @@ func sitePostActionRunE(subPath, successMsg string) func(*cobra.Command, []strin
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(body, &envelope); err == nil && envelope.Message != "" {
-			output.PrintMessage(cmd.OutOrStdout(), envelope.Message)
+			app.Output.Message(envelope.Message)
 		} else {
-			output.PrintMessage(cmd.OutOrStdout(), "Operation completed successfully.")
+			app.Output.Message("Operation completed successfully.")
 		}
 		return nil
 	}
