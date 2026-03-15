@@ -55,12 +55,12 @@ func newAccountSecretListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list secrets: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list secrets: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -90,8 +90,10 @@ func newAccountSecretListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -127,8 +129,8 @@ func newAccountSecretShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -142,7 +144,7 @@ func newAccountSecretShowCmd() *cobra.Command {
 				value = "-"
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Key", Value: getString(item, "key")},
 				{Key: "Secret", Value: formatBool(isSecret)},
@@ -193,8 +195,8 @@ func newAccountSecretCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -208,7 +210,7 @@ func newAccountSecretCreateCmd() *cobra.Command {
 				displayValue = "-"
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Key", Value: getString(item, "key")},
 				{Key: "Secret", Value: formatBool(isSecret)},
@@ -268,8 +270,8 @@ func newAccountSecretUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -283,7 +285,7 @@ func newAccountSecretUpdateCmd() *cobra.Command {
 				displayValue = "-"
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Key", Value: getString(item, "key")},
 				{Key: "Secret", Value: formatBool(isSecret)},
@@ -329,11 +331,11 @@ func newAccountSecretDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), "Secret deleted successfully.")
+			app.Output.Message("Secret deleted successfully.")
 			return nil
 		},
 	}
