@@ -31,6 +31,12 @@ Force JSON output.
 .B \-\-no\-json
 Force table output.
 .TP
+.BI \-\-jq " EXPRESSION"
+Filter JSON output with a jq expression (built-in, no external
+.B jq
+required). Automatically forces JSON output. Cannot be used with
+.BR \-\-no\-json .
+.TP
 .BR \-h ", " \-\-help
 Print help information.
 .TP
@@ -472,6 +478,75 @@ Resource not found (HTTP 404).
 .TP
 .B 5
 Network or server error (HTTP 5xx).
+.SH JQ FILTERING
+The
+.B \-\-jq
+flag filters JSON output through a built\-in jq processor powered by gojq.
+No external
+.B jq
+binary is required. When
+.B \-\-jq
+is used, output is automatically set to JSON format.
+.PP
+Extract specific fields:
+.PP
+.RS
+.nf
+$ vector site list \-\-jq '.[].id'
+$ vector site show 456 \-\-jq '.dev_domain'
+.fi
+.RE
+.PP
+Filter with select:
+.PP
+.RS
+.nf
+$ vector env list \-\-site\-id 123 \-\-jq '[.[] | select(.status == "active")]'
+.fi
+.RE
+.PP
+Count items:
+.PP
+.RS
+.nf
+$ vector webhook list \-\-jq 'length'
+.fi
+.RE
+.SS Format Strings
+The following jq format strings are supported for converting values:
+.BR @csv ", " @tsv ", " @html ", " @uri ", " @base64 .
+.PP
+CSV output:
+.PP
+.RS
+.nf
+$ vector site list \-\-jq '[.[] | [.id, .name]] | .[] | @csv'
+.fi
+.RE
+.PP
+TSV output:
+.PP
+.RS
+.nf
+$ vector site list \-\-jq '[.[] | [.id, .name]] | .[] | @tsv'
+.fi
+.RE
+.PP
+URL\-encode a value:
+.PP
+.RS
+.nf
+$ vector site show 456 \-\-jq '.name | @uri'
+.fi
+.RE
+.PP
+Base64\-encode a value:
+.PP
+.RS
+.nf
+$ vector site show 456 \-\-jq '.name | @base64'
+.fi
+.RE
 .SH EXAMPLES
 Authenticate with the API:
 .PP
@@ -544,6 +619,15 @@ Use in a pipeline (auto\-JSON output):
 .RS
 .nf
 $ vector site list | jq '.[].id'
+.fi
+.RE
+.PP
+Use built\-in jq filtering:
+.PP
+.RS
+.nf
+$ vector site list \-\-jq '.[].id'
+$ vector site list \-\-jq '[.[] | [.id, .name]] | .[] | @csv'
 .fi
 .RE
 .SH AUTHORS

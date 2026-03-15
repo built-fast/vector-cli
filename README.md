@@ -59,6 +59,7 @@ make build
 vector --token YOUR_TOKEN <command>  # Use a specific API token for this invocation
 vector --json <command>              # Force JSON output
 vector --no-json <command>           # Force table output
+vector --jq <expr> <command>         # Filter JSON output with a jq expression
 vector --version                     # Print version
 ```
 
@@ -305,6 +306,42 @@ vector site list --json          # Force JSON
 vector site list --no-json       # Force table
 vector site list | jq '.data'    # Auto JSON when piped
 ```
+
+### JQ Filtering
+
+The `--jq` flag filters JSON output using a built-in jq processor (no external `jq` binary required). It automatically forces JSON output.
+
+```bash
+# Extract specific fields
+vector site list --jq '.[].id'
+vector site show 456 --jq '.dev_domain'
+
+# Filter with select
+vector env list --site-id 123 --jq '[.[] | select(.status == "active")]'
+
+# Count items
+vector webhook list --jq 'length'
+```
+
+#### Format Strings
+
+The `--jq` flag supports jq format strings for converting values:
+
+```bash
+# CSV output
+vector site list --jq '[.[] | [.id, .name]] | .[] | @csv'
+
+# TSV output
+vector site list --jq '[.[] | [.id, .name]] | .[] | @tsv'
+
+# URL-encode a value
+vector site show 456 --jq '.name | @uri'
+
+# Base64-encode a value
+vector site show 456 --jq '.name | @base64'
+```
+
+Supported format strings: `@csv`, `@tsv`, `@html`, `@uri`, `@base64`.
 
 ## Configuration
 
