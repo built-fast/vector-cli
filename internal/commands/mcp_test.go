@@ -26,7 +26,6 @@ func buildMcpCmd(token string, format output.Format) (*cobra.Command, *bytes.Buf
 				config.DefaultConfig(),
 				&config.Credentials{ApiKey: token},
 				client,
-				format,
 				"",
 			)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
@@ -56,7 +55,6 @@ func buildMcpCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))

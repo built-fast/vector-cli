@@ -14,7 +14,6 @@ import (
 	"github.com/built-fast/vector-cli/internal/api"
 	"github.com/built-fast/vector-cli/internal/appctx"
 	"github.com/built-fast/vector-cli/internal/config"
-	"github.com/built-fast/vector-cli/internal/output"
 )
 
 // newTestCmd creates a cobra.Command with a background context set.
@@ -29,7 +28,7 @@ func newTestCmd() *cobra.Command {
 func TestRequireApp_WithToken(t *testing.T) {
 	cmd := newTestCmd()
 	client := api.NewClient("http://localhost", "valid-token", "test")
-	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, output.Table, "")
+	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, "")
 	cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 	got, err := requireApp(cmd)
@@ -40,7 +39,7 @@ func TestRequireApp_WithToken(t *testing.T) {
 func TestRequireApp_NoToken(t *testing.T) {
 	cmd := newTestCmd()
 	client := api.NewClient("http://localhost", "", "test")
-	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, output.Table, "")
+	app := appctx.NewApp(config.DefaultConfig(), &config.Credentials{}, client, "")
 	cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 
 	_, err := requireApp(cmd)

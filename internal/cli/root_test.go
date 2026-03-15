@@ -239,7 +239,7 @@ func TestPersistentPreRunE_DetectsOutputFormat(t *testing.T) {
 			err := cmd.Execute()
 			require.NoError(t, err)
 			require.NotNil(t, captured)
-			assert.Equal(t, tt.expected, captured.Format)
+			assert.Equal(t, tt.expected, captured.Output.Format())
 		})
 	}
 }
@@ -356,7 +356,6 @@ func TestPersistentPreRunE_JQForcesJSON(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 	require.NotNil(t, captured)
-	assert.Equal(t, output.JSON, captured.Format)
 	assert.Equal(t, output.JSON, captured.Output.Format())
 }
 

@@ -109,7 +109,6 @@ func buildEventCmd(baseURL, token string, format output.Format) (*cobra.Command,
 				config.DefaultConfig(),
 				&config.Credentials{ApiKey: token},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)
@@ -140,7 +139,6 @@ func buildEventCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)

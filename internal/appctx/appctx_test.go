@@ -10,29 +10,26 @@ import (
 	"github.com/built-fast/vector-cli/internal/api"
 	"github.com/built-fast/vector-cli/internal/appctx"
 	"github.com/built-fast/vector-cli/internal/config"
-	"github.com/built-fast/vector-cli/internal/output"
 )
 
 func TestNewApp(t *testing.T) {
 	cfg := &config.Config{ApiURL: "https://example.com"}
 	creds := &config.Credentials{ApiKey: "test-key"}
 	client := api.NewClient("https://example.com", "test-key", "")
-	format := output.JSON
 
-	app := appctx.NewApp(cfg, creds, client, format, "")
+	app := appctx.NewApp(cfg, creds, client, "")
 
 	require.NotNil(t, app)
 	assert.Equal(t, cfg, app.Config)
 	assert.Equal(t, creds, app.Credentials)
 	assert.Equal(t, client, app.Client)
-	assert.Equal(t, format, app.Format)
 }
 
 func TestContextRoundTrip(t *testing.T) {
 	cfg := &config.Config{ApiURL: "https://example.com"}
 	creds := &config.Credentials{ApiKey: "test-key"}
 	client := api.NewClient("https://example.com", "test-key", "")
-	app := appctx.NewApp(cfg, creds, client, output.Table, "")
+	app := appctx.NewApp(cfg, creds, client, "")
 
 	ctx := appctx.WithApp(context.Background(), app)
 	got := appctx.FromContext(ctx)

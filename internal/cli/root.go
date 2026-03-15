@@ -88,7 +88,7 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// 7. Create App and store in context
-			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
+			app := appctx.NewApp(cfg, creds, client, tokenSource)
 			app.Output = output.NewWriter(os.Stdout, format, writerOpts...)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 

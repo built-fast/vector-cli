@@ -63,7 +63,6 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)
@@ -359,7 +358,6 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)
@@ -485,7 +483,7 @@ func buildRootWithAuth() (*cobra.Command, *bytes.Buffer) {
 			jsonFlag, _ := cmd.Flags().GetBool("json")
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
-			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
+			app := appctx.NewApp(cfg, creds, client, tokenSource)
 			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
@@ -518,7 +516,6 @@ func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format
 				cfg,
 				&config.Credentials{ApiKey: token},
 				client,
-				format,
 				tokenSource,
 			)
 			app.Output = output.NewWriter(stdout, format)

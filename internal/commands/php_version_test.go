@@ -66,7 +66,6 @@ func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Co
 				config.DefaultConfig(),
 				&config.Credentials{ApiKey: token},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)
@@ -97,7 +96,6 @@ func buildPHPVersionsCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buf
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)

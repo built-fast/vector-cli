@@ -342,7 +342,6 @@ func buildSiteCmd(baseURL, token string, format output.Format) (*cobra.Command, 
 				config.DefaultConfig(),
 				&config.Credentials{ApiKey: token},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)
@@ -375,7 +374,6 @@ func buildSiteCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 				config.DefaultConfig(),
 				&config.Credentials{},
 				client,
-				format,
 				"",
 			)
 			app.Output = output.NewWriter(stdout, format)

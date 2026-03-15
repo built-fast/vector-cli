@@ -122,7 +122,7 @@ func buildDbCmd(baseURL, token string, format output.Format) (*cobra.Command, *b
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient(baseURL, token, "")
-		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, format, "test")
+		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, "test")
 		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil
@@ -143,7 +143,7 @@ func buildDbCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *byt
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient("", "", "")
-		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, format, "")
+		app := appctx.NewApp(&config.Config{}, &config.Credentials{}, client, "")
 		app.Output = output.NewWriter(stdout, format)
 		cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 		return nil

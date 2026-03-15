@@ -17,18 +17,16 @@ type App struct {
 	Config      *config.Config
 	Credentials *config.Credentials
 	Client      *api.Client
-	Format      output.Format    // Deprecated: use Output.Format() instead; kept for backward compat during migration.
 	Output      *output.Writer
 	TokenSource string // "--token flag", "VECTOR_API_KEY env", "stored credentials", or ""
 }
 
 // NewApp creates a new App with the given dependencies.
-func NewApp(cfg *config.Config, creds *config.Credentials, client *api.Client, format output.Format, tokenSource string) *App {
+func NewApp(cfg *config.Config, creds *config.Credentials, client *api.Client, tokenSource string) *App {
 	return &App{
 		Config:      cfg,
 		Credentials: creds,
 		Client:      client,
-		Format:      format,
 		TokenSource: tokenSource,
 	}
 }
