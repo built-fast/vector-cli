@@ -57,8 +57,8 @@ func newWafAllowedReferrerListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list allowed referrers: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var items []map[string]any
@@ -74,7 +74,7 @@ func newWafAllowedReferrerListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
+			app.Output.Table(headers, rows)
 			return nil
 		},
 	}
@@ -112,11 +112,11 @@ func newWafAllowedReferrerAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add allowed referrer: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Hostname %s added to allowed referrers.", args[1]))
+			app.Output.Message(fmt.Sprintf("Hostname %s added to allowed referrers.", args[1]))
 			return nil
 		},
 	}
@@ -150,11 +150,11 @@ func newWafAllowedReferrerRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to remove allowed referrer: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Hostname %s removed from allowed referrers.", args[1]))
+			app.Output.Message(fmt.Sprintf("Hostname %s removed from allowed referrers.", args[1]))
 			return nil
 		},
 	}
