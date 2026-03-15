@@ -99,6 +99,8 @@ func newEventTestServer(validToken string) *httptest.Server {
 }
 
 func buildEventCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -110,6 +112,7 @@ func buildEventCmd(baseURL, token string, format output.Format) (*cobra.Command,
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -119,7 +122,6 @@ func buildEventCmd(baseURL, token string, format output.Format) (*cobra.Command,
 
 	root.AddCommand(NewEventCmd())
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -128,6 +130,8 @@ func buildEventCmd(baseURL, token string, format output.Format) (*cobra.Command,
 }
 
 func buildEventCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -139,6 +143,7 @@ func buildEventCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -148,7 +153,6 @@ func buildEventCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *
 
 	root.AddCommand(NewEventCmd())
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)

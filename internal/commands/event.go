@@ -70,12 +70,12 @@ func newEventListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list events: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list events: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -100,8 +100,10 @@ func newEventListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil && meta.LastPage > 1 {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
