@@ -41,8 +41,8 @@ func NewPHPVersionsCmd() *cobra.Command {
 				return fmt.Errorf("failed to list PHP versions: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var items []map[string]any
@@ -55,7 +55,7 @@ func NewPHPVersionsCmd() *cobra.Command {
 				rows = append(rows, []string{getString(item, "value")})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), []string{"VERSION"}, rows)
+			app.Output.Table([]string{"VERSION"}, rows)
 			return nil
 		},
 	}

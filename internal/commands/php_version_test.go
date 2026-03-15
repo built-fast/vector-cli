@@ -56,6 +56,8 @@ func newPHPVersionsTestServer(validToken string) *httptest.Server {
 }
 
 func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -67,6 +69,7 @@ func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Co
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -76,7 +79,6 @@ func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Co
 
 	root.AddCommand(NewPHPVersionsCmd())
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -85,6 +87,8 @@ func buildPHPVersionsCmd(baseURL, token string, format output.Format) (*cobra.Co
 }
 
 func buildPHPVersionsCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -96,6 +100,7 @@ func buildPHPVersionsCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buf
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -105,7 +110,6 @@ func buildPHPVersionsCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buf
 
 	root.AddCommand(NewPHPVersionsCmd())
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
