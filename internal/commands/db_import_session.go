@@ -102,8 +102,8 @@ func newDbImportSessionCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create import session: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -111,18 +111,17 @@ func newDbImportSessionCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create import session: %w", err)
 			}
 
-			w := cmd.OutOrStdout()
 			importID := getString(item, "id")
 
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Import ID", Value: importID},
 				{Key: "Status", Value: getString(item, "status")},
 				{Key: "Upload URL", Value: getString(item, "upload_url")},
 				{Key: "Expires", Value: formatString(getString(item, "upload_expires_at"))},
 			})
 
-			output.PrintMessage(w, "")
-			output.PrintMessage(w, fmt.Sprintf("Upload your SQL file to the URL above, then run: vector db import-session run %s %s", siteID, importID))
+			app.Output.Message("")
+			app.Output.Message(fmt.Sprintf("Upload your SQL file to the URL above, then run: vector db import-session run %s %s", siteID, importID))
 
 			return nil
 		},
@@ -170,8 +169,8 @@ func newDbImportSessionRunCmd() *cobra.Command {
 				return fmt.Errorf("failed to run import: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -179,7 +178,7 @@ func newDbImportSessionRunCmd() *cobra.Command {
 				return fmt.Errorf("failed to run import: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Import ID", Value: getString(item, "id")},
 				{Key: "Status", Value: getString(item, "status")},
 			})
@@ -221,8 +220,8 @@ func newDbImportSessionStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get import status: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -230,7 +229,7 @@ func newDbImportSessionStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get import status: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Import ID", Value: getString(item, "id")},
 				{Key: "Status", Value: getString(item, "status")},
 				{Key: "Filename", Value: formatString(getString(item, "filename"))},
