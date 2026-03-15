@@ -54,12 +54,12 @@ func newAccountAPIKeyListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list API keys: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list API keys: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -84,8 +84,10 @@ func newAccountAPIKeyListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -138,8 +140,8 @@ func newAccountAPIKeyCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create API key: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -147,8 +149,7 @@ func newAccountAPIKeyCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create API key: %w", err)
 			}
 
-			w := cmd.OutOrStdout()
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Name", Value: getString(item, "name")},
 				{Key: "Token", Value: getString(item, "token")},
@@ -156,6 +157,7 @@ func newAccountAPIKeyCreateCmd() *cobra.Command {
 				{Key: "Expires", Value: formatString(getString(item, "expires_at"))},
 				{Key: "Created", Value: getString(item, "created_at")},
 			})
+			w := cmd.OutOrStdout()
 			output.PrintMessage(w, "")
 			output.PrintMessage(w, "Save this token — it won't be shown again!")
 			return nil
@@ -198,8 +200,8 @@ func newAccountAPIKeyDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete API key: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "API key deleted successfully.")
