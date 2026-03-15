@@ -26,6 +26,16 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+# --- Download OpenAPI spec if missing ---
+
+if [[ ! -f "$SPEC_FILE" ]]; then
+  echo "Downloading OpenAPI spec..."
+  if ! curl -fsSL -o "$SPEC_FILE" "https://builtfast.dev/api/openapi.yaml"; then
+    echo "Error: failed to download OpenAPI spec from https://builtfast.dev/api/openapi.yaml" >&2
+    exit 1
+  fi
+fi
+
 # --- Build ---
 
 if [[ "${VECTOR_E2E_SKIP_BUILD:-}" != "1" ]]; then

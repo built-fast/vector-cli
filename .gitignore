@@ -9,6 +9,9 @@ dist/
 *.so
 *.dylib
 
+# Downloaded specs
+e2e/openapi.yaml
+
 # OS / Editor
 .DS_Store
 .envrc
