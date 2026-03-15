@@ -57,8 +57,8 @@ func newWafBlockedIPListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list blocked IPs: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var items []map[string]any
@@ -74,7 +74,7 @@ func newWafBlockedIPListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
+			app.Output.Table(headers, rows)
 			return nil
 		},
 	}
@@ -112,11 +112,11 @@ func newWafBlockedIPAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add blocked IP: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("IP %s added to blocklist.", args[1]))
+			app.Output.Message(fmt.Sprintf("IP %s added to blocklist.", args[1]))
 			return nil
 		},
 	}
@@ -150,11 +150,11 @@ func newWafBlockedIPRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to remove blocked IP: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("IP %s removed from blocklist.", args[1]))
+			app.Output.Message(fmt.Sprintf("IP %s removed from blocklist.", args[1]))
 			return nil
 		},
 	}
