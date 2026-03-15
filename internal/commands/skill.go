@@ -183,6 +183,47 @@ func runSkillUninstall(cmd *cobra.Command) error {
 	return nil
 }
 
+// RefreshSkillsIfVersionChanged silently re-installs skill files when the
+// installed version stamp differs from the current CLI version. It does nothing
+// if the skill has never been installed, if the version matches, or if this is
+// a dev build. Best-effort: no output on success, no error output on failure.
+func RefreshSkillsIfVersionChanged() {
+	// Skip dev builds.
+	if version.Version == "dev" || version.Version == "" {
+		return
+	}
+
+	installDir, err := getSkillInstallDir()
+	if err != nil {
+		return
+	}
+
+	versionPath := filepath.Join(installDir, "vector", ".version")
+	stamp, err := os.ReadFile(versionPath)
+	if err != nil {
+		// Sentinel missing — skill has never been installed.
+		return
+	}
+
+	if string(stamp) == version.Version {
+		// Version matches — nothing to do.
+		return
+	}
+
+	// Version mismatch — re-install silently.
+	installedPath, err := installSkillFiles(installDir)
+	if err != nil {
+		return
+	}
+
+	claudeDir, err := getClaudeSkillsDir()
+	if err != nil {
+		return
+	}
+
+	_ = linkClaudeSkill(claudeDir, installedPath)
+}
+
 // runSkillInstall performs the full install sequence.
 func runSkillInstall(cmd *cobra.Command) error {
 	installDir, err := getSkillInstallDir()

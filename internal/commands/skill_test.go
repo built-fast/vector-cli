@@ -189,6 +189,116 @@ func TestSkillUninstallNoOpWhenNotInstalled(t *testing.T) {
 	assert.Contains(t, stdout.String(), "Skill uninstalled successfully.")
 }
 
+func TestRefreshSkillsIfVersionChanged_SentinelMissing(t *testing.T) {
+	installDir, claudeDir := setSkillTestDirs(t)
+
+	oldVersion := version.Version
+	version.Version = "1.0.0"
+	t.Cleanup(func() { version.Version = oldVersion })
+
+	// No sentinel file exists — RefreshSkillsIfVersionChanged should be a no-op.
+	RefreshSkillsIfVersionChanged()
+
+	// Verify nothing was installed.
+	assert.NoDirExists(t, filepath.Join(installDir, "vector"))
+	assert.NoDirExists(t, filepath.Join(claudeDir, "vector"))
+}
+
+func TestRefreshSkillsIfVersionChanged_VersionMatches(t *testing.T) {
+	installDir, _ := setSkillTestDirs(t)
+
+	oldVersion := version.Version
+	version.Version = "1.0.0"
+	t.Cleanup(func() { version.Version = oldVersion })
+
+	// Install skill first to create the sentinel.
+	cmd, _ := buildSkillCmd()
+	cmd.SetArgs([]string{"skill", "install"})
+	require.NoError(t, cmd.Execute())
+
+	// Record file modification time.
+	skillPath := filepath.Join(installDir, "vector", "SKILL.md")
+	infoBefore, err := os.Stat(skillPath)
+	require.NoError(t, err)
+
+	// Refresh — version matches, so nothing should change.
+	RefreshSkillsIfVersionChanged()
+
+	infoAfter, err := os.Stat(skillPath)
+	require.NoError(t, err)
+	assert.Equal(t, infoBefore.ModTime(), infoAfter.ModTime())
+}
+
+func TestRefreshSkillsIfVersionChanged_VersionMismatch(t *testing.T) {
+	installDir, claudeDir := setSkillTestDirs(t)
+
+	oldVersion := version.Version
+	version.Version = "1.0.0"
+	t.Cleanup(func() { version.Version = oldVersion })
+
+	// Install skill at version 1.0.0.
+	cmd, _ := buildSkillCmd()
+	cmd.SetArgs([]string{"skill", "install"})
+	require.NoError(t, cmd.Execute())
+
+	// Verify version stamp is 1.0.0.
+	stamp, err := os.ReadFile(filepath.Join(installDir, "vector", ".version"))
+	require.NoError(t, err)
+	assert.Equal(t, "1.0.0", string(stamp))
+
+	// Simulate upgrade to 2.0.0.
+	version.Version = "2.0.0"
+
+	RefreshSkillsIfVersionChanged()
+
+	// Verify version stamp was updated.
+	stamp, err = os.ReadFile(filepath.Join(installDir, "vector", ".version"))
+	require.NoError(t, err)
+	assert.Equal(t, "2.0.0", string(stamp))
+
+	// Verify SKILL.md still exists and is valid in both locations.
+	expected, err := skills.Content.ReadFile("vector/SKILL.md")
+	require.NoError(t, err)
+
+	installed, err := os.ReadFile(filepath.Join(installDir, "vector", "SKILL.md"))
+	require.NoError(t, err)
+	assert.Equal(t, string(expected), string(installed))
+
+	linked, err := os.ReadFile(filepath.Join(claudeDir, "vector", "SKILL.md"))
+	require.NoError(t, err)
+	assert.Equal(t, string(expected), string(linked))
+}
+
+func TestRefreshSkillsIfVersionChanged_DevVersionSkip(t *testing.T) {
+	installDir, _ := setSkillTestDirs(t)
+
+	oldVersion := version.Version
+	t.Cleanup(func() { version.Version = oldVersion })
+
+	// Install at version 1.0.0 first.
+	version.Version = "1.0.0"
+	cmd, _ := buildSkillCmd()
+	cmd.SetArgs([]string{"skill", "install"})
+	require.NoError(t, cmd.Execute())
+
+	// Now set version to "dev" — refresh should skip.
+	version.Version = "dev"
+	RefreshSkillsIfVersionChanged()
+
+	// Version stamp should still be 1.0.0 (not overwritten with "dev").
+	stamp, err := os.ReadFile(filepath.Join(installDir, "vector", ".version"))
+	require.NoError(t, err)
+	assert.Equal(t, "1.0.0", string(stamp))
+
+	// Same for empty version.
+	version.Version = ""
+	RefreshSkillsIfVersionChanged()
+
+	stamp, err = os.ReadFile(filepath.Join(installDir, "vector", ".version"))
+	require.NoError(t, err)
+	assert.Equal(t, "1.0.0", string(stamp))
+}
+
 func TestSkillInstallVersionStamp(t *testing.T) {
 	installDir, _ := setSkillTestDirs(t)
 
