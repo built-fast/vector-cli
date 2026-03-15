@@ -31,19 +31,26 @@ archives:
         formats:
           - zip
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src: man/man1/vector.1
+        dst: man/man1/
 
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
-homebrew_casks:
+brews:
   - repository:
       owner: built-fast
-      name: homebrew-tap
+      name: homebrew-devtools
     name: vector
     homepage: "https://github.com/built-fast/vector-cli"
-    description: "Vector CLI - a command-line tool"
+    description: "CLI for the Vector hosting platform by BuiltFast"
     license: "MIT"
+    install: |
+      bin.install "vector"
+      man1.install "man/man1/vector.1"
+      generate_completions_from_executable(bin/"vector", "completion")
 
 changelog:
   sort: asc
