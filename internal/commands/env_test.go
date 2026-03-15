@@ -198,6 +198,9 @@ func newEnvTestServer(validToken string) *httptest.Server {
 }
 
 func buildEnvCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -209,6 +212,7 @@ func buildEnvCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -219,8 +223,6 @@ func buildEnvCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 	envCmd := NewEnvCmd()
 	root.AddCommand(envCmd)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
@@ -228,6 +230,9 @@ func buildEnvCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 }
 
 func buildEnvCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -239,6 +244,7 @@ func buildEnvCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -249,8 +255,6 @@ func buildEnvCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 	envCmd := NewEnvCmd()
 	root.AddCommand(envCmd)
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 

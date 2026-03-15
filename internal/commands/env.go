@@ -61,12 +61,12 @@ func newEnvListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list environments: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list environments: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -93,8 +93,10 @@ func newEnvListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta.LastPage > 1 {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -130,8 +132,8 @@ func newEnvShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to show environment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -162,7 +164,7 @@ func newEnvShowCmd() *cobra.Command {
 				pairs = append(pairs, output.KeyValue{Key: "Certificate Status", Value: formatString(getString(cert, "status"))})
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 			return nil
 		},
 	}
@@ -241,8 +243,8 @@ func newEnvCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create environment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -251,7 +253,7 @@ func newEnvCreateCmd() *cobra.Command {
 			}
 
 			tags := tagsFromItem(item)
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Site ID", Value: getString(item, "vector_site_id")},
 				{Key: "Name", Value: getString(item, "name")},
@@ -334,8 +336,8 @@ func newEnvUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update environment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -344,7 +346,7 @@ func newEnvUpdateCmd() *cobra.Command {
 			}
 
 			tags := tagsFromItem(item)
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Name", Value: getString(item, "name")},
 				{Key: "Status", Value: getString(item, "status")},
@@ -410,8 +412,8 @@ func newEnvDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete environment: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -419,7 +421,7 @@ func newEnvDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete environment: %w", err)
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Environment %s deletion initiated.", getString(item, "id")))
+			app.Output.Message(fmt.Sprintf("Environment %s deletion initiated.", getString(item, "id")))
 			return nil
 		},
 	}
