@@ -154,6 +154,41 @@ func TestSkillInstallCopyFallback(t *testing.T) {
 	assert.Contains(t, stdout.String(), "Skill installed successfully.")
 }
 
+func TestSkillUninstallRemovesFiles(t *testing.T) {
+	installDir, claudeDir := setSkillTestDirs(t)
+
+	// Install first.
+	cmd1, _ := buildSkillCmd()
+	cmd1.SetArgs([]string{"skill", "install"})
+	require.NoError(t, cmd1.Execute())
+
+	// Verify files exist.
+	require.FileExists(t, filepath.Join(installDir, "vector", "SKILL.md"))
+	require.FileExists(t, filepath.Join(claudeDir, "vector", "SKILL.md"))
+
+	// Uninstall.
+	cmd2, stdout := buildSkillCmd()
+	cmd2.SetArgs([]string{"skill", "uninstall"})
+	require.NoError(t, cmd2.Execute())
+
+	// Verify files are removed.
+	assert.NoDirExists(t, filepath.Join(installDir, "vector"))
+	assert.NoDirExists(t, filepath.Join(claudeDir, "vector"))
+	assert.Contains(t, stdout.String(), "Skill uninstalled successfully.")
+}
+
+func TestSkillUninstallNoOpWhenNotInstalled(t *testing.T) {
+	setSkillTestDirs(t)
+
+	// Uninstall without installing first — should be a no-op.
+	cmd, stdout := buildSkillCmd()
+	cmd.SetArgs([]string{"skill", "uninstall"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.Contains(t, stdout.String(), "Skill uninstalled successfully.")
+}
+
 func TestSkillInstallVersionStamp(t *testing.T) {
 	installDir, _ := setSkillTestDirs(t)
 

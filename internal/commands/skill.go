@@ -71,6 +71,7 @@ func NewSkillCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newSkillInstallCmd())
+	cmd.AddCommand(newSkillUninstallCmd())
 
 	return cmd
 }
@@ -137,6 +138,47 @@ func linkClaudeSkill(claudeDir, installedPath string) error {
 			return fmt.Errorf("failed to copy skill file: %w", writeErr)
 		}
 	}
+
+	return nil
+}
+
+// newSkillUninstallCmd creates the skill uninstall leaf command.
+func newSkillUninstallCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "uninstall",
+		Short: "Uninstall skill document",
+		Long:  "Remove the installed SKILL.md agent reference from ~/.agents/skills/vector/ and ~/.claude/skills/vector/.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSkillUninstall(cmd)
+		},
+	}
+}
+
+// runSkillUninstall removes the installed skill files and Claude symlink/copy.
+func runSkillUninstall(cmd *cobra.Command) error {
+	installDir, err := getSkillInstallDir()
+	if err != nil {
+		return err
+	}
+
+	claudeDir, err := getClaudeSkillsDir()
+	if err != nil {
+		return err
+	}
+
+	// Remove ~/.agents/skills/vector/
+	vectorInstallDir := filepath.Join(installDir, "vector")
+	if err := os.RemoveAll(vectorInstallDir); err != nil {
+		return fmt.Errorf("failed to remove skill directory: %w", err)
+	}
+
+	// Remove ~/.claude/skills/vector/
+	claudeVectorDir := filepath.Join(claudeDir, "vector")
+	if err := os.RemoveAll(claudeVectorDir); err != nil {
+		return fmt.Errorf("failed to remove Claude skill directory: %w", err)
+	}
+
+	_, _ = fmt.Fprintln(cmd.OutOrStdout(), "Skill uninstalled successfully.")
 
 	return nil
 }
