@@ -110,7 +110,7 @@ func TestAuthLoginCmd_ValidToken_TableOutput(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
 	// Verify credentials were saved
 	creds, err := config.LoadCredentials()
@@ -203,6 +203,23 @@ func TestAuthLoginCmd_OverwritesExistingCredentials(t *testing.T) {
 	assert.Equal(t, "new-token", creds.ApiKey)
 }
 
+func TestAuthLoginCmd_KeyringDisabled(t *testing.T) {
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "1")
+
+	ts := newTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAuthLoginCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"auth", "login"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot store token: keyring is disabled")
+	assert.Contains(t, err.Error(), "--token flag or VECTOR_API_KEY environment variable")
+}
+
 func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
 	keyring.MockInit()
 	tmpDir := t.TempDir()
@@ -218,7 +235,7 @@ func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
 	creds, err := config.LoadCredentials()
 	require.NoError(t, err)
@@ -261,7 +278,7 @@ func TestAuthLoginCmd_PipedInput(t *testing.T) {
 
 	err = cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 	assert.Contains(t, stderr.String(), "Enter API token: ")
 
 	creds, loadErr := config.LoadCredentials()
@@ -319,7 +336,7 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 
 	err := root.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
 	// Verify credentials stored in keyring
 	creds, err := config.LoadCredentials()
@@ -678,7 +695,7 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "login", "--token", "flow-token"})
 	require.NoError(t, root.Execute())
-	assert.Equal(t, "Authenticated as john@example.com (Acme Inc).", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Authenticated as john@example.com (Acme Inc). Token stored in system keyring.", strings.TrimSpace(stdout.String()))
 
 	// Step 2: Status shows authenticated
 	root2, stdout2 := buildRootWithAuth()

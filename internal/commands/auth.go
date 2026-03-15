@@ -67,7 +67,7 @@ func newAuthLoginCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate with the Vector API",
-		Long:  "Validate an API token and save it to credentials.",
+		Long:  "Validate an API token and store it in the system keyring.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app := appctx.FromContext(cmd.Context())
 			if app == nil {
@@ -129,9 +129,12 @@ func newAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("parsing response: %w", err)
 			}
 
-			// Save credentials
+			// Save credentials to system keyring
 			creds := &config.Credentials{ApiKey: token}
 			if err := config.SaveCredentials(creds); err != nil {
+				if errors.Is(err, config.ErrKeyringDisabled) {
+					return fmt.Errorf("cannot store token: keyring is disabled. Use --token flag or VECTOR_API_KEY environment variable instead")
+				}
 				return fmt.Errorf("saving credentials: %w", err)
 			}
 
@@ -142,7 +145,7 @@ func newAuthLoginCmd() *cobra.Command {
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf(
-				"Authenticated as %s (%s).",
+				"Authenticated as %s (%s). Token stored in system keyring.",
 				whoami.Data.User.Email, whoami.Data.Account.Name,
 			))
 			return nil
