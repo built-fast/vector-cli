@@ -209,13 +209,14 @@ func TestAuthLoginCmd_KeyringDisabled(t *testing.T) {
 	ts := newTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildAuthLoginCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, stderr := buildAuthLoginCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"auth", "login"})
 
 	err := cmd.Execute()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot store token: keyring is disabled")
-	assert.Contains(t, err.Error(), "--token flag or VECTOR_API_KEY environment variable")
+	require.NoError(t, err)
+	assert.Contains(t, stderr.String(), "keyring is disabled")
+	assert.Contains(t, stdout.String(), "Authenticated as")
+	assert.Contains(t, stdout.String(), "Token not persisted (keyring disabled)")
 }
 
 func TestAuthLoginCmd_TokenFromEnv(t *testing.T) {
@@ -436,7 +437,7 @@ func TestAuthLogoutCmd_TableOutput(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 
 	// Verify token was removed from keyring
 	_, err = config.Load()
@@ -458,7 +459,7 @@ func TestAuthLogoutCmd_JSONOutput(t *testing.T) {
 
 	var result map[string]string
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
-	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", result["message"])
+	assert.Equal(t, "Logged out successfully.", result["message"])
 }
 
 func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
@@ -472,7 +473,7 @@ func TestAuthLogoutCmd_AlreadyLoggedOut(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 }
 
 func TestAuthLogoutCmd_KeyringDisabled(t *testing.T) {
@@ -485,7 +486,7 @@ func TestAuthLogoutCmd_KeyringDisabled(t *testing.T) {
 
 	err := cmd.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Keyring is disabled. No stored credentials to remove.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 }
 
 func TestAuthLogoutCmd_KeyringDisabled_JSONOutput(t *testing.T) {
@@ -501,7 +502,7 @@ func TestAuthLogoutCmd_KeyringDisabled_JSONOutput(t *testing.T) {
 
 	var result map[string]string
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
-	assert.Equal(t, "Keyring is disabled. No stored credentials to remove.", result["message"])
+	assert.Equal(t, "Logged out successfully.", result["message"])
 }
 
 func TestAuthLogout_Integration_RemovesToken(t *testing.T) {
@@ -524,7 +525,7 @@ func TestAuthLogout_Integration_RemovesToken(t *testing.T) {
 
 	err = root.Execute()
 	require.NoError(t, err)
-	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout.String()))
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout.String()))
 
 	// Token should be gone from keyring
 	_, err = config.Load()
@@ -730,7 +731,7 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	root3, stdout3 := buildRootWithAuth()
 	root3.SetArgs([]string{"--no-json", "auth", "logout"})
 	require.NoError(t, root3.Execute())
-	assert.Equal(t, "Logged out successfully. Token removed from system keyring.", strings.TrimSpace(stdout3.String()))
+	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout3.String()))
 
 	// Step 4: Status shows not authenticated
 	root4, _ := buildRootWithAuth()

@@ -18,12 +18,23 @@ setup() {
   # Ensure the binary is on PATH
   export PATH="$(dirname "$VECTOR_BINARY"):$PATH"
 
+  # Disable OS keyring — not available on CI (no D-Bus Secret Service on Linux)
+  export VECTOR_NO_KEYRING=1
+
   # Clear env vars that could interfere
   unset VECTOR_API_KEY
   unset XDG_CONFIG_HOME
 
   # Write config.json pointing at Prism
   create_config "$PRISM_URL"
+}
+
+# create_credentials TOKEN
+# Sets VECTOR_API_KEY so the CLI picks up the token via env var.
+# Replaces the old file-based credential helper now that tokens
+# are stored in the OS keyring (which is unavailable on CI).
+create_credentials() {
+  export VECTOR_API_KEY="$1"
 }
 
 teardown() {

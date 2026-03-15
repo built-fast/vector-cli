@@ -131,11 +131,14 @@ func newAuthLoginCmd() *cobra.Command {
 			}
 
 			// Save token to system keyring
+			storedInKeyring := true
 			if err := config.Save(token); err != nil {
 				if errors.Is(err, config.ErrKeyringDisabled) {
-					return fmt.Errorf("cannot store token: keyring is disabled. Use --token flag or VECTOR_API_KEY environment variable instead")
+					storedInKeyring = false
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Warning: keyring is disabled. Token validated but not persisted. Use --token flag or VECTOR_API_KEY environment variable.")
+				} else {
+					return fmt.Errorf("saving token: %w", err)
 				}
-				return fmt.Errorf("saving token: %w", err)
 			}
 
 			// Output
@@ -144,9 +147,13 @@ func newAuthLoginCmd() *cobra.Command {
 				return app.Output.JSON(raw)
 			}
 
+			suffix := "Token stored in system keyring."
+			if !storedInKeyring {
+				suffix = "Token not persisted (keyring disabled)."
+			}
 			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf(
-				"Authenticated as %s (%s). Token stored in system keyring.",
-				whoami.Data.User.Email, whoami.Data.Account.Name,
+				"Authenticated as %s (%s). %s",
+				whoami.Data.User.Email, whoami.Data.Account.Name, suffix,
 			))
 			return nil
 		},
@@ -165,22 +172,12 @@ func newAuthLogoutCmd() *cobra.Command {
 			}
 
 			if err := config.Delete(); err != nil {
-				if errors.Is(err, config.ErrKeyringDisabled) {
-					msg := "Keyring is disabled. No stored credentials to remove."
-					if app.Output.Format() == output.JSON {
-						return app.Output.JSON(map[string]string{
-							"message": msg,
-						})
-					}
-					output.PrintMessage(cmd.OutOrStdout(), msg)
-					return nil
-				}
-				if !errors.Is(err, keyring.ErrNotFound) {
+				if !errors.Is(err, config.ErrKeyringDisabled) && !errors.Is(err, keyring.ErrNotFound) {
 					return fmt.Errorf("clearing token: %w", err)
 				}
 			}
 
-			msg := "Logged out successfully. Token removed from system keyring."
+			msg := "Logged out successfully."
 			if app.Output.Format() == output.JSON {
 				return app.Output.JSON(map[string]string{
 					"message": msg,
