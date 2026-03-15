@@ -64,8 +64,8 @@ func newEnvDBPromoteCmd() *cobra.Command {
 				return fmt.Errorf("failed to promote database: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -73,7 +73,7 @@ func newEnvDBPromoteCmd() *cobra.Command {
 				return fmt.Errorf("failed to promote database: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
 				{Key: "Status", Value: getString(item, "status")},
@@ -118,8 +118,8 @@ func newEnvDBPromoteStatusCmd() *cobra.Command {
 				return fmt.Errorf("failed to get promote status: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -154,7 +154,7 @@ func newEnvDBPromoteStatusCmd() *cobra.Command {
 				pairs = append(pairs, output.KeyValue{Key: "Error", Value: errorMsg})
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 			return nil
 		},
 	}
