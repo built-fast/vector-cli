@@ -140,6 +140,9 @@ func newBackupTestServer(validToken string) *httptest.Server {
 }
 
 func buildBackupCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -151,6 +154,7 @@ func buildBackupCmd(baseURL, token string, format output.Format) (*cobra.Command
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -160,8 +164,6 @@ func buildBackupCmd(baseURL, token string, format output.Format) (*cobra.Command
 
 	root.AddCommand(NewBackupCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
@@ -169,6 +171,9 @@ func buildBackupCmd(baseURL, token string, format output.Format) (*cobra.Command
 }
 
 func buildBackupCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -180,6 +185,7 @@ func buildBackupCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, 
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -189,8 +195,6 @@ func buildBackupCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, 
 
 	root.AddCommand(NewBackupCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 

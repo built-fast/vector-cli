@@ -85,12 +85,12 @@ func newBackupListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list backups: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list backups: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -117,8 +117,10 @@ func newBackupListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta.LastPage > 1 {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -157,8 +159,8 @@ func newBackupShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get backup: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -166,7 +168,7 @@ func newBackupShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get backup: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
 				{Key: "Model ID", Value: getString(item, "archivable_id")},
@@ -239,8 +241,8 @@ func newBackupCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -252,7 +254,7 @@ func newBackupCreateCmd() *cobra.Command {
 			output.PrintMessage(w, fmt.Sprintf("Backup created: %s (%s)", getString(item, "id"), getString(item, "status")))
 			output.PrintMessage(w, "")
 
-			output.PrintKeyValue(w, []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
 				{Key: "Model ID", Value: getString(item, "archivable_id")},
