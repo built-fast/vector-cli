@@ -427,6 +427,23 @@ List all PHP versions available on the platform.
 Set up Claude Desktop with the Vector MCP server. Use
 .B \-\-force
 to overwrite existing configuration.
+.SS completion \- Generate shell completions
+.TP
+.B completion bash
+Generate Bash completion script.
+.TP
+.B completion zsh
+Generate Zsh completion script.
+.TP
+.B completion fish
+Generate Fish completion script.
+.TP
+.B completion powershell
+Generate PowerShell completion script.
+.PP
+See
+.B vector completion \-\-help
+for installation instructions specific to your shell.
 .SH TOKEN RESOLUTION
 The API token is resolved in the following order (first match wins):
 .IP 1. 4

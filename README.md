@@ -51,6 +51,26 @@ make build
 # Binary is at ./bin/vector
 ```
 
+### Shell Completions
+
+```bash
+# Bash (add to ~/.bashrc)
+eval "$(vector completion bash)"
+
+# Zsh (add to ~/.zshrc)
+eval "$(vector completion zsh)"
+
+# Fish
+vector completion fish | source
+# To load on startup:
+vector completion fish > ~/.config/fish/completions/vector.fish
+
+# PowerShell (add to $PROFILE)
+vector completion powershell | Out-String | Invoke-Expression
+```
+
+Homebrew installs completions automatically.
+
 ## Usage
 
 ### Global Flags
