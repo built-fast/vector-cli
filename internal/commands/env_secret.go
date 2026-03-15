@@ -56,12 +56,12 @@ func newEnvSecretListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list secrets: %w", err)
 			}
 
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				data, err := parseResponseData(body)
 				if err != nil {
 					return fmt.Errorf("failed to list secrets: %w", err)
 				}
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -85,8 +85,10 @@ func newEnvSecretListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
-			printPaginationIfNeeded(cmd.OutOrStdout(), meta)
+			app.Output.Table(headers, rows)
+			if meta != nil && meta.LastPage > 1 {
+				app.Output.Pagination(meta.CurrentPage, meta.LastPage, meta.Total)
+			}
 			return nil
 		},
 	}
@@ -122,8 +124,8 @@ func newEnvSecretShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to show secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -144,7 +146,7 @@ func newEnvSecretShowCmd() *cobra.Command {
 				pairs = append(pairs, output.KeyValue{Key: "Value", Value: formatString(getString(item, "value"))})
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), pairs)
+			app.Output.KeyValue(pairs)
 			return nil
 		},
 	}
@@ -192,8 +194,8 @@ func newEnvSecretCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -201,7 +203,7 @@ func newEnvSecretCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create secret: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Key", Value: getString(item, "key")},
 				{Key: "Secret", Value: formatBool(getBool(item, "is_secret"))},
@@ -263,8 +265,8 @@ func newEnvSecretUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -272,7 +274,7 @@ func newEnvSecretUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update secret: %w", err)
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: getString(item, "id")},
 				{Key: "Key", Value: getString(item, "key")},
 				{Key: "Secret", Value: formatBool(getBool(item, "is_secret"))},
@@ -304,7 +306,7 @@ func newEnvSecretDeleteCmd() *cobra.Command {
 			force, _ := cmd.Flags().GetBool("force")
 			if !force {
 				if !confirmAction(cmd, fmt.Sprintf("Are you sure you want to delete secret %s?", args[0])) {
-					output.PrintMessage(cmd.OutOrStdout(), "Aborted.")
+					app.Output.Message("Aborted.")
 					return nil
 				}
 			}
@@ -325,11 +327,11 @@ func newEnvSecretDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete secret: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), "Secret deleted successfully.")
+			app.Output.Message("Secret deleted successfully.")
 			return nil
 		},
 	}
