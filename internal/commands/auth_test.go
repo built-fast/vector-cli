@@ -54,6 +54,7 @@ func newTestServer(validToken string) *httptest.Server {
 
 // buildAuthLoginCmd creates a root + auth + login command wired with an App context.
 func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -65,6 +66,7 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -73,7 +75,6 @@ func buildAuthLoginCmd(baseURL, token string, format output.Format) (*cobra.Comm
 	authCmd := NewAuthCmd()
 	root.AddCommand(authCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -282,9 +283,7 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 	cfg := &config.Config{ApiURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
-	root := buildRootWithAuth()
-	stdout := new(bytes.Buffer)
-	root.SetOut(stdout)
+	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "login", "--token", "integration-token"})
 
 	err := root.Execute()
@@ -310,7 +309,7 @@ func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
 	cfg := &config.Config{ApiURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
-	root := buildRootWithAuth()
+	root, _ := buildRootWithAuth()
 	root.SetArgs([]string{"auth", "login", "--token", "wrong-token"})
 
 	err := root.Execute()
@@ -337,9 +336,7 @@ func TestAuthLogin_Integration_EnvToken(t *testing.T) {
 	cfg := &config.Config{ApiURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
-	root := buildRootWithAuth()
-	stdout := new(bytes.Buffer)
-	root.SetOut(stdout)
+	root, _ := buildRootWithAuth()
 	root.SetArgs([]string{"auth", "login"})
 
 	err := root.Execute()
@@ -353,6 +350,7 @@ func TestAuthLogin_Integration_EnvToken(t *testing.T) {
 // --- Auth Logout Tests ---
 
 func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -364,6 +362,7 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -372,7 +371,6 @@ func buildAuthLogoutCmd(format output.Format) (*cobra.Command, *bytes.Buffer, *b
 	authCmd := NewAuthCmd()
 	root.AddCommand(authCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -440,9 +438,7 @@ func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
 	_, err := os.Stat(filepath.Join(tmpDir, "credentials.json"))
 	require.NoError(t, err)
 
-	root := buildRootWithAuth()
-	stdout := new(bytes.Buffer)
-	root.SetOut(stdout)
+	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "logout"})
 
 	err = root.Execute()
@@ -455,7 +451,8 @@ func TestAuthLogout_Integration_RemovesCredentials(t *testing.T) {
 }
 
 // buildRootWithAuth creates a real root command (with PersistentPreRunE) + auth subcommand.
-func buildRootWithAuth() *cobra.Command {
+func buildRootWithAuth() (*cobra.Command, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -489,6 +486,7 @@ func buildRootWithAuth() *cobra.Command {
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
 			app := appctx.NewApp(cfg, creds, client, format, tokenSource)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -500,14 +498,16 @@ func buildRootWithAuth() *cobra.Command {
 	root.PersistentFlags().Bool("json", false, "Force JSON output")
 	root.PersistentFlags().Bool("no-json", false, "Force table output")
 
+	root.SetOut(stdout)
 	root.AddCommand(NewAuthCmd())
-	return root
+	return root, stdout
 }
 
 // --- Auth Status Tests ---
 
 // buildAuthStatusCmd creates a root + auth + status command wired with an App context.
 func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -521,6 +521,7 @@ func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format
 				format,
 				tokenSource,
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -529,7 +530,6 @@ func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format
 	authCmd := NewAuthCmd()
 	root.AddCommand(authCmd)
 
-	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
@@ -622,17 +622,13 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	require.NoError(t, config.SaveConfig(cfg))
 
 	// Step 1: Login
-	root := buildRootWithAuth()
-	stdout := new(bytes.Buffer)
-	root.SetOut(stdout)
+	root, stdout := buildRootWithAuth()
 	root.SetArgs([]string{"--no-json", "auth", "login", "--token", "flow-token"})
 	require.NoError(t, root.Execute())
 	assert.Equal(t, "Successfully authenticated.", strings.TrimSpace(stdout.String()))
 
 	// Step 2: Status shows authenticated
-	root2 := buildRootWithAuth()
-	stdout2 := new(bytes.Buffer)
-	root2.SetOut(stdout2)
+	root2, stdout2 := buildRootWithAuth()
 	root2.SetArgs([]string{"--no-json", "auth", "status"})
 	require.NoError(t, root2.Execute())
 
@@ -642,15 +638,13 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	assert.Contains(t, out, ts.URL)
 
 	// Step 3: Logout
-	root3 := buildRootWithAuth()
-	stdout3 := new(bytes.Buffer)
-	root3.SetOut(stdout3)
+	root3, stdout3 := buildRootWithAuth()
 	root3.SetArgs([]string{"--no-json", "auth", "logout"})
 	require.NoError(t, root3.Execute())
 	assert.Equal(t, "Logged out successfully.", strings.TrimSpace(stdout3.String()))
 
 	// Step 4: Status shows not authenticated
-	root4 := buildRootWithAuth()
+	root4, _ := buildRootWithAuth()
 	stderr4 := new(bytes.Buffer)
 	root4.SetErr(stderr4)
 	root4.SetArgs([]string{"--no-json", "auth", "status"})

@@ -107,9 +107,9 @@ func newAuthLoginCmd() *cobra.Command {
 			}
 
 			// Output
-			if app.Format == output.JSON {
+			if app.Output.Format() == output.JSON {
 				var raw json.RawMessage = body
-				return output.PrintJSON(cmd.OutOrStdout(), raw)
+				return app.Output.JSON(raw)
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "Successfully authenticated.")
@@ -133,8 +133,8 @@ func newAuthLogoutCmd() *cobra.Command {
 				return fmt.Errorf("clearing credentials: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), map[string]string{
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(map[string]string{
 					"message": "Logged out successfully.",
 				})
 			}
@@ -203,8 +203,8 @@ func newAuthStatusCmd() *cobra.Command {
 
 			configDir, _ := config.ConfigDir()
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), map[string]any{
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(map[string]any{
 					"authenticated": true,
 					"token_source":  app.TokenSource,
 					"config_dir":    configDir,
@@ -213,7 +213,7 @@ func newAuthStatusCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "Token source", Value: app.TokenSource},
 				{Key: "Config directory", Value: configDir},
 				{Key: "API URL", Value: app.Config.ApiURL},
