@@ -60,8 +60,8 @@ func newWafRateLimitListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list rate limits: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var items []map[string]any
@@ -85,7 +85,7 @@ func newWafRateLimitListCmd() *cobra.Command {
 				})
 			}
 
-			output.PrintTable(cmd.OutOrStdout(), headers, rows)
+			app.Output.Table(headers, rows)
 			return nil
 		},
 	}
@@ -119,8 +119,8 @@ func newWafRateLimitShowCmd() *cobra.Command {
 				return fmt.Errorf("failed to get rate limit: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -130,7 +130,7 @@ func newWafRateLimitShowCmd() *cobra.Command {
 
 			config := getMap(item, "configuration")
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: fmt.Sprintf("%.0f", getFloat(item, "id"))},
 				{Key: "Name", Value: getString(item, "name")},
 				{Key: "Description", Value: formatString(getString(item, "description"))},
@@ -212,8 +212,8 @@ func newWafRateLimitCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create rate limit: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -223,7 +223,7 @@ func newWafRateLimitCreateCmd() *cobra.Command {
 
 			config := getMap(item, "configuration")
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: fmt.Sprintf("%.0f", getFloat(item, "id"))},
 				{Key: "Name", Value: getString(item, "name")},
 				{Key: "Description", Value: formatString(getString(item, "description"))},
@@ -331,8 +331,8 @@ func newWafRateLimitUpdateCmd() *cobra.Command {
 				return fmt.Errorf("failed to update rate limit: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
 			var item map[string]any
@@ -342,7 +342,7 @@ func newWafRateLimitUpdateCmd() *cobra.Command {
 
 			config := getMap(item, "configuration")
 
-			output.PrintKeyValue(cmd.OutOrStdout(), []output.KeyValue{
+			app.Output.KeyValue([]output.KeyValue{
 				{Key: "ID", Value: fmt.Sprintf("%.0f", getFloat(item, "id"))},
 				{Key: "Name", Value: getString(item, "name")},
 				{Key: "Description", Value: formatString(getString(item, "description"))},
@@ -399,11 +399,11 @@ func newWafRateLimitDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete rate limit: %w", err)
 			}
 
-			if app.Format == output.JSON {
-				return output.PrintJSON(cmd.OutOrStdout(), json.RawMessage(data))
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(json.RawMessage(data))
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), "Rate limit rule deleted successfully.")
+			app.Output.Message("Rate limit rule deleted successfully.")
 			return nil
 		},
 	}

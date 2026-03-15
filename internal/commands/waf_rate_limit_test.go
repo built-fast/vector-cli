@@ -172,6 +172,9 @@ func newWafRateLimitTestServer(validToken string) *httptest.Server {
 }
 
 func buildWafCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -183,6 +186,7 @@ func buildWafCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -192,8 +196,6 @@ func buildWafCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 
 	root.AddCommand(NewWafCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
@@ -201,6 +203,9 @@ func buildWafCmd(baseURL, token string, format output.Format) (*cobra.Command, *
 }
 
 func buildWafCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
 	root := &cobra.Command{
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -212,6 +217,7 @@ func buildWafCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 				format,
 				"",
 			)
+			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
 			return nil
 		},
@@ -221,8 +227,6 @@ func buildWafCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *by
 
 	root.AddCommand(NewWafCmd())
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
