@@ -547,27 +547,24 @@ func buildRootWithAuth() (*cobra.Command, *bytes.Buffer) {
 			if err != nil {
 				return err
 			}
-			creds, err := config.LoadCredentials()
-			if err != nil {
-				return err
-			}
-			var tokenSource string
-			token, _ := cmd.Flags().GetString("token")
+			var token, tokenSource string
+			token, _ = cmd.Flags().GetString("token")
 			if token != "" {
-				tokenSource = "--token flag"
+				tokenSource = "flag"
 			}
 			if token == "" {
 				token = os.Getenv("VECTOR_API_KEY")
 				if token != "" {
-					tokenSource = "VECTOR_API_KEY env"
+					tokenSource = "env"
 				}
 			}
 			if token == "" {
-				token = creds.ApiKey
-				if token != "" {
-					tokenSource = "stored credentials"
+				if t, err := config.Load(); err == nil && t != "" {
+					token = t
+					tokenSource = "keyring"
 				}
 			}
+			creds := &config.Credentials{ApiKey: token}
 			client := api.NewClient(cfg.ApiURL, token, "")
 			jsonFlag, _ := cmd.Flags().GetBool("json")
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
@@ -629,7 +626,7 @@ func TestAuthStatusCmd_Authenticated_TableOutput(t *testing.T) {
 	ts := newTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "stored credentials", output.Table)
+	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "keyring", output.Table)
 	cmd.SetArgs([]string{"auth", "status"})
 
 	err := cmd.Execute()
@@ -639,7 +636,7 @@ func TestAuthStatusCmd_Authenticated_TableOutput(t *testing.T) {
 	assert.Contains(t, out, "John Doe (john@example.com)")
 	assert.Contains(t, out, "Acme Inc")
 	assert.Contains(t, out, "vector-cli")
-	assert.Contains(t, out, "stored credentials")
+	assert.Contains(t, out, "keyring")
 	assert.Contains(t, out, ts.URL)
 }
 
@@ -649,7 +646,7 @@ func TestAuthStatusCmd_Authenticated_JSONOutput(t *testing.T) {
 	ts := newTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "--token flag", output.JSON)
+	cmd, stdout, _ := buildAuthStatusCmd(ts.URL, "valid-token", "flag", output.JSON)
 	cmd.SetArgs([]string{"auth", "status"})
 
 	err := cmd.Execute()
@@ -658,7 +655,7 @@ func TestAuthStatusCmd_Authenticated_JSONOutput(t *testing.T) {
 	var result map[string]any
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
 	assert.Equal(t, true, result["authenticated"])
-	assert.Equal(t, "--token flag", result["token_source"])
+	assert.Equal(t, "flag", result["token_source"])
 	assert.Equal(t, ts.URL, result["api_url"])
 	assert.NotEmpty(t, result["config_dir"])
 
@@ -694,7 +691,7 @@ func TestAuthStatusCmd_InvalidToken(t *testing.T) {
 	ts := newTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, stderr := buildAuthStatusCmd(ts.URL, "bad-token", "stored credentials", output.Table)
+	cmd, _, stderr := buildAuthStatusCmd(ts.URL, "bad-token", "keyring", output.Table)
 	cmd.SetArgs([]string{"auth", "status"})
 
 	err := cmd.Execute()
@@ -734,7 +731,7 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	out := stdout2.String()
 	assert.Contains(t, out, "John Doe (john@example.com)")
 	assert.Contains(t, out, "Acme Inc")
-	assert.Contains(t, out, "stored credentials")
+	assert.Contains(t, out, "keyring")
 	assert.Contains(t, out, ts.URL)
 
 	// Step 3: Logout

@@ -36,7 +36,7 @@ func requireApp(cmd *cobra.Command) (*appctx.App, error) {
 	}
 	if app.Client.Token == "" {
 		return nil, &api.APIError{
-			Message:  "Authentication required. Run 'vector auth login' first.",
+			Message:  "Authentication required. Run 'vector auth login', use --token flag, or set VECTOR_API_KEY environment variable.",
 			ExitCode: 2,
 		}
 	}

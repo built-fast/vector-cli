@@ -137,6 +137,7 @@ func TestPersistentPreRunE_TokenFromFlag(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "flag-token", captured.Client.Token)
+	assert.Equal(t, "flag", captured.TokenSource)
 }
 
 func TestPersistentPreRunE_TokenFromEnv(t *testing.T) {
@@ -156,9 +157,10 @@ func TestPersistentPreRunE_TokenFromEnv(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "env-token", captured.Client.Token)
+	assert.Equal(t, "env", captured.TokenSource)
 }
 
-func TestPersistentPreRunE_TokenFromCredentials(t *testing.T) {
+func TestPersistentPreRunE_TokenFromKeyring(t *testing.T) {
 	keyring.MockInit()
 	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
 	t.Setenv("VECTOR_NO_KEYRING", "")
@@ -178,6 +180,7 @@ func TestPersistentPreRunE_TokenFromCredentials(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "stored-token", captured.Client.Token)
+	assert.Equal(t, "keyring", captured.TokenSource)
 }
 
 func TestPersistentPreRunE_TokenPrecedence(t *testing.T) {
@@ -202,6 +205,7 @@ func TestPersistentPreRunE_TokenPrecedence(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Equal(t, "flag-token", captured.Client.Token)
+	assert.Equal(t, "flag", captured.TokenSource)
 }
 
 func TestPersistentPreRunE_NoTokenIsOK(t *testing.T) {
@@ -220,6 +224,69 @@ func TestPersistentPreRunE_NoTokenIsOK(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, captured)
 	assert.Empty(t, captured.Client.Token)
+	assert.Empty(t, captured.TokenSource)
+}
+
+func TestPersistentPreRunE_KeyringDisabledNoToken(t *testing.T) {
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "1")
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	// Commands that don't require auth still work without a token
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Empty(t, captured.Client.Token)
+	assert.Empty(t, captured.TokenSource)
+}
+
+func TestPersistentPreRunE_KeyringDisabledFlagTokenWorks(t *testing.T) {
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "1")
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{"--token", "flag-token"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "flag-token", captured.Client.Token)
+	assert.Equal(t, "flag", captured.TokenSource)
+}
+
+func TestPersistentPreRunE_KeyringDisabledEnvTokenWorks(t *testing.T) {
+	keyring.MockInit()
+	t.Setenv("VECTOR_CONFIG_DIR", t.TempDir())
+	t.Setenv("VECTOR_NO_KEYRING", "1")
+	t.Setenv("VECTOR_API_KEY", "env-token")
+
+	var captured *appctx.App
+	cmd := NewRootCmd()
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		captured = appctx.FromContext(cmd.Context())
+		return nil
+	}
+	cmd.SetArgs([]string{})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	require.NotNil(t, captured)
+	assert.Equal(t, "env-token", captured.Client.Token)
+	assert.Equal(t, "env", captured.TokenSource)
 }
 
 func TestPersistentPreRunE_DetectsOutputFormat(t *testing.T) {

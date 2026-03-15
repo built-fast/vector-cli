@@ -30,40 +30,37 @@ func NewRootCmd() *cobra.Command {
 				return err
 			}
 
-			// 2. Load credentials (empty if missing)
-			creds, err := config.LoadCredentials()
-			if err != nil {
-				return err
-			}
-
-			// 3. Resolve token: --token flag > VECTOR_API_KEY env > stored credentials
-			var tokenSource string
-			token, _ := cmd.Flags().GetString("token")
+			// 2. Resolve token: --token flag > VECTOR_API_KEY env > keyring
+			var token, tokenSource string
+			token, _ = cmd.Flags().GetString("token")
 			if token != "" {
-				tokenSource = "--token flag"
+				tokenSource = "flag"
 			}
 			if token == "" {
 				token = os.Getenv("VECTOR_API_KEY")
 				if token != "" {
-					tokenSource = "VECTOR_API_KEY env"
+					tokenSource = "env"
 				}
 			}
 			if token == "" {
-				token = creds.ApiKey
-				if token != "" {
-					tokenSource = "stored credentials"
+				if t, err := config.Load(); err == nil && t != "" {
+					token = t
+					tokenSource = "keyring"
 				}
 			}
 
-			// 4. Build API client
+			// Build credentials for backward compatibility
+			creds := &config.Credentials{ApiKey: token}
+
+			// 3. Build API client
 			client := api.NewClient(cfg.ApiURL, token, "")
 
-			// 5. Detect output format from --json/--no-json flags
+			// 4. Detect output format from --json/--no-json flags
 			jsonFlag, _ := cmd.Flags().GetBool("json")
 			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
 			format := output.DetectFormat(jsonFlag, noJsonFlag)
 
-			// 6. Handle --jq flag
+			// 5. Handle --jq flag
 			jqExpr, _ := cmd.Flags().GetString("jq")
 			var writerOpts []output.WriterOption
 
@@ -87,7 +84,7 @@ func NewRootCmd() *cobra.Command {
 				writerOpts = append(writerOpts, output.WithJQ(jqExpr, code))
 			}
 
-			// 7. Create App and store in context
+			// 6. Create App and store in context
 			app := appctx.NewApp(cfg, creds, client, tokenSource)
 			app.Output = output.NewWriter(os.Stdout, format, writerOpts...)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
@@ -106,7 +103,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&showVersion, "version", false, "Print version information and exit")
-	cmd.PersistentFlags().String("token", "", "API token (overrides VECTOR_API_KEY and stored credentials)")
+	cmd.PersistentFlags().String("token", "", "API token (overrides VECTOR_API_KEY and keyring)")
 	cmd.PersistentFlags().Bool("json", false, "Force JSON output")
 	cmd.PersistentFlags().Bool("no-json", false, "Force table output")
 	cmd.PersistentFlags().String("jq", "", `Filter JSON output with a jq expression (built-in, no external jq required)`)

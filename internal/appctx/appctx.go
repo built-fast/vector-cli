@@ -18,7 +18,7 @@ type App struct {
 	Credentials *config.Credentials
 	Client      *api.Client
 	Output      *output.Writer
-	TokenSource string // "--token flag", "VECTOR_API_KEY env", "stored credentials", or ""
+	TokenSource string // "flag", "env", "keyring", or ""
 }
 
 // NewApp creates a new App with the given dependencies.
