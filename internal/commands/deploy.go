@@ -315,10 +315,18 @@ func newDeployRollbackCmd() *cobra.Command {
   vector deploy rollback env-abc123
 
   # Rollback to a specific deployment
-  vector deploy rollback env-abc123 --target deploy-789`,
+  vector deploy rollback env-abc123 --target deploy-789
+
+  # Rollback and wait for completion
+  vector deploy rollback env-abc123 --wait`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
+			if err != nil {
+				return err
+			}
+
+			waitEnabled, interval, timeout, err := getWaitConfig(cmd)
 			if err != nil {
 				return err
 			}
@@ -347,27 +355,76 @@ func newDeployRollbackCmd() *cobra.Command {
 				return fmt.Errorf("failed to rollback deployment: %w", err)
 			}
 
-			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+			if !waitEnabled {
+				if app.Output.Format() == output.JSON {
+					return app.Output.JSON(json.RawMessage(data))
+				}
+
+				var item map[string]any
+				if err := json.Unmarshal(data, &item); err != nil {
+					return fmt.Errorf("failed to rollback deployment: %w", err)
+				}
+
+				app.Output.KeyValue([]output.KeyValue{
+					{Key: "ID", Value: getString(item, "id")},
+					{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
+					{Key: "Status", Value: getString(item, "status")},
+					{Key: "Actor", Value: getString(item, "actor")},
+					{Key: "Created", Value: getString(item, "created_at")},
+				})
+				return nil
 			}
 
-			var item map[string]any
-			if err := json.Unmarshal(data, &item); err != nil {
+			var rollbackItem map[string]any
+			if err := json.Unmarshal(data, &rollbackItem); err != nil {
 				return fmt.Errorf("failed to rollback deployment: %w", err)
 			}
 
+			deployID := getString(rollbackItem, "id")
+			if deployID == "" {
+				return fmt.Errorf("failed to rollback deployment: response missing deployment ID")
+			}
+
+			cfg := &waitConfig{
+				ResourceID:       deployID,
+				PollPath:         deploysBasePath + "/" + deployID,
+				Interval:         interval,
+				Timeout:          timeout,
+				TerminalStatuses: map[string]bool{"deployed": true},
+				FailedStatuses:   map[string]bool{"failed": true, "cancelled": true},
+				Noun:             "Deployment",
+				FormatDisplay:    deployFormatDisplay,
+			}
+
+			result, err := waitForResource(cmd.Context(), app, cfg)
+			if err != nil {
+				return err
+			}
+
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(result.FinalData)
+			}
+
+			var finalItem map[string]any
+			if err := json.Unmarshal(result.FinalData, &finalItem); err != nil {
+				return fmt.Errorf("failed to rollback deployment: %w", err)
+			}
+
+			app.Output.Message(fmt.Sprintf("Deployment %s %s in %s", deployID, result.Status, result.Elapsed.Truncate(time.Second)))
 			app.Output.KeyValue([]output.KeyValue{
-				{Key: "ID", Value: getString(item, "id")},
-				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
-				{Key: "Status", Value: getString(item, "status")},
-				{Key: "Actor", Value: getString(item, "actor")},
-				{Key: "Created", Value: getString(item, "created_at")},
+				{Key: "ID", Value: getString(finalItem, "id")},
+				{Key: "Environment ID", Value: getString(finalItem, "vector_environment_id")},
+				{Key: "Status", Value: getString(finalItem, "status")},
+				{Key: "Actor", Value: getString(finalItem, "actor")},
+				{Key: "Created", Value: getString(finalItem, "created_at")},
+				{Key: "Updated", Value: getString(finalItem, "updated_at")},
 			})
 			return nil
 		},
 	}
 
 	cmd.Flags().String("target", "", "Target deployment ID to rollback to")
+	addWaitFlags(cmd)
 
 	return cmd
 }
