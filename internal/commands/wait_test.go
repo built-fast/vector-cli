@@ -99,4 +99,8 @@ var (
 	_ = (*waitResult)(nil)
 	_ = waitForResource
 	_ = pollOnce
+	_ = useAltScreen
+	_ = renderWaitDisplay
+	_ = isTerminalForWait
+	_ = altScreenWriter
 )

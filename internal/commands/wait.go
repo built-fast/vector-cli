@@ -5,21 +5,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/built-fast/vector-cli/internal/api"
 	"github.com/built-fast/vector-cli/internal/appctx"
+	"github.com/built-fast/vector-cli/internal/output"
 )
 
 const (
 	maxTimeout           = 30 * time.Minute
 	minPollInterval      = 1 * time.Second
 	maxConsecutiveErrors = 10
+
+	// ANSI escape sequences for alternate screen buffer.
+	ansiAltScreenEnter = "\033[?1049h"
+	ansiAltScreenExit  = "\033[?1049l"
+	ansiCursorHome     = "\033[H"
+	ansiClearScreen    = "\033[2J"
 )
+
+// isTerminalForWait checks if stdout is a terminal. Override in tests.
+var isTerminalForWait = func() bool {
+	return term.IsTerminal(int(os.Stdout.Fd()))
+}
+
+// altScreenWriter is the writer used for alternate screen display. Override in tests.
+var altScreenWriter io.Writer = os.Stdout
 
 // waitConfig holds all parameters needed by waitForResource.
 type waitConfig struct {
@@ -103,11 +120,37 @@ func getWaitConfig(cmd *cobra.Command) (enabled bool, interval, timeout time.Dur
 	return enabled, interval, timeout, nil
 }
 
+// useAltScreen returns true when the alternate screen display should be used.
+// It requires a TTY and non-JSON output format.
+func useAltScreen(app *appctx.App) bool {
+	if app.Output.Format() == output.JSON {
+		return false
+	}
+	return isTerminalForWait()
+}
+
+// renderWaitDisplay writes the current wait status to the alternate screen buffer.
+func renderWaitDisplay(w io.Writer, cfg *waitConfig, pollCount, estimatedPolls int, elapsed time.Duration, kvLines []string) {
+	_, _ = fmt.Fprint(w, ansiCursorHome+ansiClearScreen)
+	_, _ = fmt.Fprintf(w, "Waiting for %s %s... (%s)\n\n", cfg.Noun, cfg.ResourceID, elapsed.Truncate(time.Second))
+	_, _ = fmt.Fprintf(w, "Poll %d of ~%d\n", pollCount, estimatedPolls)
+	_, _ = fmt.Fprintf(w, "Polling every %s. Press Ctrl+C to cancel.\n\n", cfg.Interval)
+	for _, line := range kvLines {
+		_, _ = fmt.Fprintln(w, line)
+	}
+}
+
 // waitForResource polls the API until the resource reaches a terminal or failed
 // status, the timeout expires, or the context is cancelled (e.g., Ctrl+C).
 func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*waitResult, error) {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
+
+	useAlt := useAltScreen(app)
+	if useAlt {
+		_, _ = fmt.Fprint(altScreenWriter, ansiAltScreenEnter)
+		defer func() { _, _ = fmt.Fprint(altScreenWriter, ansiAltScreenExit) }()
+	}
 
 	deadline := time.After(cfg.Timeout)
 	ticker := time.NewTicker(cfg.Interval)
@@ -115,6 +158,8 @@ func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*wa
 
 	start := time.Now()
 	consecutiveErrors := 0
+	pollCount := 0
+	estimatedPolls := int(math.Ceil(float64(cfg.Timeout) / float64(cfg.Interval)))
 	var lastErr error
 
 	for {
@@ -130,6 +175,7 @@ func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*wa
 				ExitCode: 1,
 			}
 		case <-ticker.C:
+			pollCount++
 			data, status, err := pollOnce(ctx, app, cfg)
 			if err != nil {
 				consecutiveErrors++
@@ -144,6 +190,14 @@ func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*wa
 			}
 
 			consecutiveErrors = 0
+
+			if useAlt && cfg.FormatDisplay != nil {
+				var item map[string]any
+				if jsonErr := json.Unmarshal(data, &item); jsonErr == nil {
+					kvLines := cfg.FormatDisplay(item)
+					renderWaitDisplay(altScreenWriter, cfg, pollCount, estimatedPolls, time.Since(start), kvLines)
+				}
+			}
 
 			if cfg.FailedStatuses[status] {
 				return nil, &api.APIError{
