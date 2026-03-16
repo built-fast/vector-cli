@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -197,10 +198,18 @@ func newRestoreCreateCmd() *cobra.Command {
   vector restore create backup-456
 
   # Restore database only with search-replace
-  vector restore create backup-456 --scope database --search-replace-from old.example.com --search-replace-to new.example.com`,
+  vector restore create backup-456 --scope database --search-replace-from old.example.com --search-replace-to new.example.com
+
+  # Restore and wait for completion
+  vector restore create backup-456 --wait`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
+			if err != nil {
+				return err
+			}
+
+			waitEnabled, interval, timeout, err := getWaitConfig(cmd)
 			if err != nil {
 				return err
 			}
@@ -243,32 +252,82 @@ func newRestoreCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create restore: %w", err)
 			}
 
-			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+			if !waitEnabled {
+				if app.Output.Format() == output.JSON {
+					return app.Output.JSON(json.RawMessage(data))
+				}
+
+				var item map[string]any
+				if err := json.Unmarshal(data, &item); err != nil {
+					return fmt.Errorf("failed to create restore: %w", err)
+				}
+
+				output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Restore initiated. Use 'vector restore show %s' to check progress.", getString(item, "id")))
+				output.PrintMessage(cmd.OutOrStdout(), "")
+
+				app.Output.KeyValue([]output.KeyValue{
+					{Key: "ID", Value: getString(item, "id")},
+					{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
+					{Key: "Model ID", Value: getString(item, "archivable_id")},
+					{Key: "Backup ID", Value: getString(item, "vector_backup_id")},
+					{Key: "Scope", Value: getString(item, "scope")},
+					{Key: "Trigger", Value: getString(item, "trigger")},
+					{Key: "Status", Value: getString(item, "status")},
+					{Key: "Error Message", Value: formatString(getString(item, "error_message"))},
+					{Key: "Duration", Value: formatFloat(getFloat(item, "duration_ms"))},
+					{Key: "Started At", Value: formatString(getString(item, "started_at"))},
+					{Key: "Completed At", Value: formatString(getString(item, "completed_at"))},
+					{Key: "Created At", Value: getString(item, "created_at")},
+					{Key: "Updated At", Value: getString(item, "updated_at")},
+				})
+				return nil
 			}
 
-			var item map[string]any
-			if err := json.Unmarshal(data, &item); err != nil {
+			var createItem map[string]any
+			if err := json.Unmarshal(data, &createItem); err != nil {
 				return fmt.Errorf("failed to create restore: %w", err)
 			}
 
-			output.PrintMessage(cmd.OutOrStdout(), fmt.Sprintf("Restore initiated. Use 'vector restore show %s' to check progress.", getString(item, "id")))
-			output.PrintMessage(cmd.OutOrStdout(), "")
+			restoreID := getString(createItem, "id")
+			if restoreID == "" {
+				return fmt.Errorf("failed to create restore: response missing restore ID")
+			}
 
+			cfg := &waitConfig{
+				ResourceID:       restoreID,
+				PollPath:         restoresBasePath + "/" + restoreID,
+				Interval:         interval,
+				Timeout:          timeout,
+				TerminalStatuses: map[string]bool{"completed": true},
+				FailedStatuses:   map[string]bool{"failed": true},
+				Noun:             "Restore",
+				FormatDisplay:    restoreFormatDisplay,
+			}
+
+			result, err := waitForResource(cmd.Context(), app, cfg)
+			if err != nil {
+				return err
+			}
+
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(result.FinalData)
+			}
+
+			var finalItem map[string]any
+			if err := json.Unmarshal(result.FinalData, &finalItem); err != nil {
+				return fmt.Errorf("failed to create restore: %w", err)
+			}
+
+			app.Output.Message(fmt.Sprintf("Restore %s %s in %s", restoreID, result.Status, result.Elapsed.Truncate(time.Second)))
 			app.Output.KeyValue([]output.KeyValue{
-				{Key: "ID", Value: getString(item, "id")},
-				{Key: "Model", Value: formatArchivableType(getString(item, "archivable_type"))},
-				{Key: "Model ID", Value: getString(item, "archivable_id")},
-				{Key: "Backup ID", Value: getString(item, "vector_backup_id")},
-				{Key: "Scope", Value: getString(item, "scope")},
-				{Key: "Trigger", Value: getString(item, "trigger")},
-				{Key: "Status", Value: getString(item, "status")},
-				{Key: "Error Message", Value: formatString(getString(item, "error_message"))},
-				{Key: "Duration", Value: formatFloat(getFloat(item, "duration_ms"))},
-				{Key: "Started At", Value: formatString(getString(item, "started_at"))},
-				{Key: "Completed At", Value: formatString(getString(item, "completed_at"))},
-				{Key: "Created At", Value: getString(item, "created_at")},
-				{Key: "Updated At", Value: getString(item, "updated_at")},
+				{Key: "ID", Value: getString(finalItem, "id")},
+				{Key: "Model", Value: formatArchivableType(getString(finalItem, "archivable_type"))},
+				{Key: "Backup ID", Value: getString(finalItem, "vector_backup_id")},
+				{Key: "Scope", Value: getString(finalItem, "scope")},
+				{Key: "Status", Value: getString(finalItem, "status")},
+				{Key: "Duration", Value: formatFloat(getFloat(finalItem, "duration_ms"))},
+				{Key: "Started At", Value: formatString(getString(finalItem, "started_at"))},
+				{Key: "Completed At", Value: formatString(getString(finalItem, "completed_at"))},
 			})
 			return nil
 		},
@@ -278,6 +337,21 @@ func newRestoreCreateCmd() *cobra.Command {
 	cmd.Flags().Bool("disable-foreign-keys", false, "Disable foreign key checks during restore")
 	cmd.Flags().String("search-replace-from", "", "URL to search for (used with --search-replace-to)")
 	cmd.Flags().String("search-replace-to", "", "URL to replace with (used with --search-replace-from)")
+	addWaitFlags(cmd)
 
 	return cmd
+}
+
+// restoreFormatDisplay formats restore data for the alternate screen display.
+func restoreFormatDisplay(data map[string]any) []string {
+	return []string{
+		fmt.Sprintf("%16s: %s", "ID", getString(data, "id")),
+		fmt.Sprintf("%16s: %s", "Model", formatArchivableType(getString(data, "archivable_type"))),
+		fmt.Sprintf("%16s: %s", "Backup ID", getString(data, "vector_backup_id")),
+		fmt.Sprintf("%16s: %s", "Scope", getString(data, "scope")),
+		fmt.Sprintf("%16s: %s", "Status", getString(data, "status")),
+		fmt.Sprintf("%16s: %s", "Duration", formatFloat(getFloat(data, "duration_ms"))),
+		fmt.Sprintf("%16s: %s", "Started", formatString(getString(data, "started_at"))),
+		fmt.Sprintf("%16s: %s", "Completed", formatString(getString(data, "completed_at"))),
+	}
 }
