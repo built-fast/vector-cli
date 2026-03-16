@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -207,9 +208,17 @@ func newSiteCreateCmd() *cobra.Command {
   vector site create --customer-id cust-001 --php-version 8.2
 
   # Create with WordPress auto-install
-  vector site create --customer-id cust-001 --php-version 8.2 --wp-admin-email admin@example.com`,
+  vector site create --customer-id cust-001 --php-version 8.2 --wp-admin-email admin@example.com
+
+  # Create and wait for site to become active
+  vector site create --customer-id cust-001 --wait`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
+			if err != nil {
+				return err
+			}
+
+			waitEnabled, interval, timeout, err := getWaitConfig(cmd)
 			if err != nil {
 				return err
 			}
@@ -277,57 +286,69 @@ func newSiteCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create site: %w", err)
 			}
 
-			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+			if !waitEnabled {
+				if app.Output.Format() == output.JSON {
+					return app.Output.JSON(json.RawMessage(data))
+				}
+
+				var item map[string]any
+				if err := json.Unmarshal(data, &item); err != nil {
+					return fmt.Errorf("failed to create site: %w", err)
+				}
+
+				app.Output.KeyValue(siteCreateCredentialPairs(item))
+				return nil
 			}
 
-			var item map[string]any
-			if err := json.Unmarshal(data, &item); err != nil {
+			var createItem map[string]any
+			if err := json.Unmarshal(data, &createItem); err != nil {
 				return fmt.Errorf("failed to create site: %w", err)
 			}
 
-			pairs := []output.KeyValue{
-				{Key: "ID", Value: getString(item, "id")},
-				{Key: "Customer ID", Value: formatString(getString(item, "your_customer_id"))},
-				{Key: "Status", Value: getString(item, "status")},
-				{Key: "Dev Domain", Value: formatString(getString(item, "dev_domain"))},
-				{Key: "Dev DB Host", Value: formatString(getString(item, "dev_db_host"))},
-				{Key: "Dev DB Name", Value: formatString(getString(item, "dev_db_name"))},
+			siteID := getString(createItem, "id")
+			if siteID == "" {
+				return fmt.Errorf("failed to create site: response missing site ID")
 			}
 
-			// Show SFTP credentials if present
-			sftp := getMap(item, "dev_sftp")
-			if sftp != nil {
-				pairs = append(pairs,
-					output.KeyValue{Key: "SFTP Host", Value: getString(sftp, "hostname")},
-					output.KeyValue{Key: "SFTP Port", Value: fmt.Sprintf("%.0f", getFloat(sftp, "port"))},
-					output.KeyValue{Key: "SFTP User", Value: getString(sftp, "username")},
-					output.KeyValue{Key: "SFTP Password", Value: getString(sftp, "password")},
-				)
+			// TTY/table mode: print one-time credentials before entering alt screen
+			if app.Output.Format() != output.JSON {
+				app.Output.KeyValue(siteCreateCredentialPairs(createItem))
+				_, _ = fmt.Fprintln(cmd.OutOrStdout())
 			}
 
-			// Show DB credentials if present
-			dbUser := getString(item, "dev_db_username")
-			dbPass := getString(item, "dev_db_password")
-			if dbUser != "" {
-				pairs = append(pairs, output.KeyValue{Key: "DB Username", Value: dbUser})
-			}
-			if dbPass != "" {
-				pairs = append(pairs, output.KeyValue{Key: "DB Password", Value: dbPass})
-			}
-
-			// Show WP admin credentials if present
-			wp := getMap(item, "wp_admin")
-			if wp != nil {
-				pairs = append(pairs,
-					output.KeyValue{Key: "WP Admin User", Value: getString(wp, "user")},
-					output.KeyValue{Key: "WP Admin Email", Value: getString(wp, "email")},
-					output.KeyValue{Key: "WP Admin Password", Value: getString(wp, "password")},
-					output.KeyValue{Key: "WP Site Title", Value: getString(wp, "site_title")},
-				)
+			cfg := &waitConfig{
+				ResourceID:       siteID,
+				PollPath:         sitesBasePath + "/" + siteID,
+				Interval:         interval,
+				Timeout:          timeout,
+				TerminalStatuses: map[string]bool{"active": true},
+				FailedStatuses:   map[string]bool{"failed": true},
+				Noun:             "Site",
+				FormatDisplay:    siteFormatDisplay,
 			}
 
-			app.Output.KeyValue(pairs)
+			result, err := waitForResource(cmd.Context(), app, cfg)
+			if err != nil {
+				return err
+			}
+
+			if app.Output.Format() == output.JSON {
+				merged := siteCreateMergeCredentials(createItem, result.FinalData)
+				return app.Output.JSON(merged)
+			}
+
+			var finalItem map[string]any
+			if err := json.Unmarshal(result.FinalData, &finalItem); err != nil {
+				return fmt.Errorf("failed to create site: %w", err)
+			}
+
+			app.Output.Message(fmt.Sprintf("Site %s %s in %s", siteID, result.Status, result.Elapsed.Truncate(time.Second)))
+			app.Output.KeyValue([]output.KeyValue{
+				{Key: "ID", Value: getString(finalItem, "id")},
+				{Key: "Customer ID", Value: formatString(getString(finalItem, "your_customer_id"))},
+				{Key: "Status", Value: getString(finalItem, "status")},
+				{Key: "Dev Domain", Value: formatString(getString(finalItem, "dev_domain"))},
+			})
 			return nil
 		},
 	}
@@ -340,8 +361,88 @@ func newSiteCreateCmd() *cobra.Command {
 	cmd.Flags().String("wp-admin-email", "", "WordPress admin email for auto-install")
 	cmd.Flags().String("wp-admin-user", "", "WordPress admin username")
 	cmd.Flags().String("wp-site-title", "", "WordPress site title")
+	addWaitFlags(cmd)
 
 	return cmd
+}
+
+// siteFormatDisplay formats site data for the alternate screen display.
+func siteFormatDisplay(data map[string]any) []string {
+	return []string{
+		fmt.Sprintf("%16s: %s", "ID", getString(data, "id")),
+		fmt.Sprintf("%16s: %s", "Customer ID", formatString(getString(data, "your_customer_id"))),
+		fmt.Sprintf("%16s: %s", "Status", getString(data, "status")),
+		fmt.Sprintf("%16s: %s", "Dev Domain", formatString(getString(data, "dev_domain"))),
+	}
+}
+
+// siteCreateCredentialPairs builds the key-value pairs for the site create response,
+// including one-time SFTP, DB, and WP admin credentials.
+func siteCreateCredentialPairs(item map[string]any) []output.KeyValue {
+	pairs := []output.KeyValue{
+		{Key: "ID", Value: getString(item, "id")},
+		{Key: "Customer ID", Value: formatString(getString(item, "your_customer_id"))},
+		{Key: "Status", Value: getString(item, "status")},
+		{Key: "Dev Domain", Value: formatString(getString(item, "dev_domain"))},
+		{Key: "Dev DB Host", Value: formatString(getString(item, "dev_db_host"))},
+		{Key: "Dev DB Name", Value: formatString(getString(item, "dev_db_name"))},
+	}
+
+	sftp := getMap(item, "dev_sftp")
+	if sftp != nil {
+		pairs = append(pairs,
+			output.KeyValue{Key: "SFTP Host", Value: getString(sftp, "hostname")},
+			output.KeyValue{Key: "SFTP Port", Value: fmt.Sprintf("%.0f", getFloat(sftp, "port"))},
+			output.KeyValue{Key: "SFTP User", Value: getString(sftp, "username")},
+			output.KeyValue{Key: "SFTP Password", Value: getString(sftp, "password")},
+		)
+	}
+
+	dbUser := getString(item, "dev_db_username")
+	dbPass := getString(item, "dev_db_password")
+	if dbUser != "" {
+		pairs = append(pairs, output.KeyValue{Key: "DB Username", Value: dbUser})
+	}
+	if dbPass != "" {
+		pairs = append(pairs, output.KeyValue{Key: "DB Password", Value: dbPass})
+	}
+
+	wp := getMap(item, "wp_admin")
+	if wp != nil {
+		pairs = append(pairs,
+			output.KeyValue{Key: "WP Admin User", Value: getString(wp, "user")},
+			output.KeyValue{Key: "WP Admin Email", Value: getString(wp, "email")},
+			output.KeyValue{Key: "WP Admin Password", Value: getString(wp, "password")},
+			output.KeyValue{Key: "WP Site Title", Value: getString(wp, "site_title")},
+		)
+	}
+
+	return pairs
+}
+
+// siteCreateMergeCredentials merges one-time credential fields from the initial
+// create response into the final polled data for JSON output.
+func siteCreateMergeCredentials(createItem map[string]any, finalData json.RawMessage) json.RawMessage {
+	var finalItem map[string]any
+	if err := json.Unmarshal(finalData, &finalItem); err != nil {
+		return finalData
+	}
+
+	// Merge one-time credential fields that are not present in the polled response
+	credentialKeys := []string{"dev_sftp", "dev_db_username", "dev_db_password", "wp_admin"}
+	for _, key := range credentialKeys {
+		if val, ok := createItem[key]; ok && val != nil {
+			if _, exists := finalItem[key]; !exists || finalItem[key] == nil {
+				finalItem[key] = val
+			}
+		}
+	}
+
+	merged, err := json.Marshal(finalItem)
+	if err != nil {
+		return finalData
+	}
+	return merged
 }
 
 func newSiteUpdateCmd() *cobra.Command {
