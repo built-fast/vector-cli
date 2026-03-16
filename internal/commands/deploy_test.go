@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -718,4 +719,207 @@ func TestDeployShowCmd_NotFound(t *testing.T) {
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to show deployment")
+}
+
+// --- Deploy Trigger --wait Tests ---
+
+// newDeployWaitTestServer creates a test server that handles:
+// - POST /environments/{id}/deployments -> returns deployTriggerResponse
+// - POST /environments/{id}/rollback -> returns deployRollbackResponse
+// - GET /deployments/{id} -> returns successive poll responses
+func newDeployWaitTestServer(validToken string, pollResponses []countingResponse) *httptest.Server {
+	var pollCount atomic.Int64
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Unauthenticated.",
+				"http_status": 401,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == "POST" && path == "/api/v1/vector/environments/env-001/deployments":
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(deployTriggerResponse)
+
+		case method == "POST" && path == "/api/v1/vector/environments/env-001/rollback":
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(deployRollbackResponse)
+
+		case method == "GET" && (path == "/api/v1/vector/deployments/dep-005" || path == "/api/v1/vector/deployments/dep-006"):
+			idx := int(pollCount.Add(1)) - 1
+			if idx >= len(pollResponses) {
+				idx = len(pollResponses) - 1
+			}
+			resp := pollResponses[idx]
+			if resp.httpStatus != 0 {
+				w.WriteHeader(resp.httpStatus)
+			}
+			_ = json.NewEncoder(w).Encode(resp.body)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Not Found",
+				"http_status": 404,
+			})
+		}
+	}))
+}
+
+func makeDeployPollResponse(id, status string) countingResponse {
+	return countingResponse{
+		httpStatus: http.StatusOK,
+		body: map[string]any{
+			"data": map[string]any{
+				"id":                    id,
+				"vector_environment_id": "env-001",
+				"status":                status,
+				"actor":                 "user@example.com",
+				"created_at":            "2025-01-15T12:00:00+00:00",
+				"updated_at":            "2025-01-15T12:05:00+00:00",
+			},
+			"message":     "Deployment retrieved successfully",
+			"http_status": 200,
+		},
+	}
+}
+
+func TestDeployTriggerCmd_WaitSuccess(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-005", "pending"),
+		makeDeployPollResponse("dep-005", "deploying"),
+		makeDeployPollResponse("dep-005", "deployed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDeployCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"deploy", "trigger", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "dep-005")
+	assert.Contains(t, out, "deployed")
+	assert.Contains(t, out, "Deployment dep-005 deployed in")
+}
+
+func TestDeployTriggerCmd_WaitFailure(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-005", "pending"),
+		makeDeployPollResponse("dep-005", "failed"),
+	})
+	defer ts.Close()
+
+	cmd, _, _ := buildDeployCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"deploy", "trigger", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 1, apiErr.ExitCode)
+	assert.Contains(t, apiErr.Message, "failed status")
+}
+
+func TestDeployTriggerCmd_WaitJSON(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-005", "pending"),
+		makeDeployPollResponse("dep-005", "deployed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDeployCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"deploy", "trigger", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "dep-005", result["id"])
+	assert.Equal(t, "deployed", result["status"])
+}
+
+// --- Deploy Rollback --wait Tests ---
+
+func TestDeployRollbackCmd_WaitSuccess(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-006", "pending"),
+		makeDeployPollResponse("dep-006", "deployed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDeployCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"deploy", "rollback", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "dep-006")
+	assert.Contains(t, out, "deployed")
+	assert.Contains(t, out, "Deployment dep-006 deployed in")
+}
+
+func TestDeployRollbackCmd_WaitFailure(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-006", "pending"),
+		makeDeployPollResponse("dep-006", "cancelled"),
+	})
+	defer ts.Close()
+
+	cmd, _, _ := buildDeployCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"deploy", "rollback", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 1, apiErr.ExitCode)
+	assert.Contains(t, apiErr.Message, "failed status")
+	assert.Contains(t, apiErr.Message, "cancelled")
+}
+
+func TestDeployRollbackCmd_WaitJSON(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newDeployWaitTestServer("valid-token", []countingResponse{
+		makeDeployPollResponse("dep-006", "pending"),
+		makeDeployPollResponse("dep-006", "deployed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDeployCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"deploy", "rollback", "env-001", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "dep-006", result["id"])
+	assert.Equal(t, "deployed", result["status"])
 }

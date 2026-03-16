@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -531,4 +532,142 @@ func TestRestoreCmd_Help(t *testing.T) {
 	assert.Contains(t, out, "show")
 	assert.Contains(t, out, "create")
 	assert.Contains(t, out, "restores")
+}
+
+// --- Restore Create --wait Tests ---
+
+// newRestoreWaitTestServer creates a test server that handles:
+// - POST /restores -> returns restoreCreateResponse
+// - GET /restores/{id} -> returns successive poll responses
+func newRestoreWaitTestServer(validToken string, pollResponses []countingResponse) *httptest.Server {
+	var pollCount atomic.Int64
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Unauthenticated.",
+				"http_status": 401,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == "POST" && path == "/api/v1/vector/restores":
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(restoreCreateResponse)
+
+		case method == "GET" && path == "/api/v1/vector/restores/rst-003":
+			idx := int(pollCount.Add(1)) - 1
+			if idx >= len(pollResponses) {
+				idx = len(pollResponses) - 1
+			}
+			resp := pollResponses[idx]
+			if resp.httpStatus != 0 {
+				w.WriteHeader(resp.httpStatus)
+			}
+			_ = json.NewEncoder(w).Encode(resp.body)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Not Found",
+				"http_status": 404,
+			})
+		}
+	}))
+}
+
+func makeRestorePollResponse(id, status string) countingResponse {
+	return countingResponse{
+		httpStatus: http.StatusOK,
+		body: map[string]any{
+			"data": map[string]any{
+				"id":               id,
+				"archivable_type":  "vector_site",
+				"archivable_id":    "site-001",
+				"scope":            "full",
+				"status":           status,
+				"vector_backup_id": "bk-005",
+				"duration_ms":      float64(45200),
+				"started_at":       "2025-01-20T12:00:00+00:00",
+				"completed_at":     "2025-01-20T12:01:00+00:00",
+			},
+			"message":     "Restore retrieved successfully",
+			"http_status": 200,
+		},
+	}
+}
+
+func TestRestoreCreateCmd_WaitSuccess(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newRestoreWaitTestServer("valid-token", []countingResponse{
+		makeRestorePollResponse("rst-003", "pending"),
+		makeRestorePollResponse("rst-003", "running"),
+		makeRestorePollResponse("rst-003", "completed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildRestoreCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"restore", "create", "bk-005", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	// Should NOT contain the "Restore initiated" message when --wait is used
+	assert.NotContains(t, out, "Restore initiated")
+	// Should contain the summary line and final state
+	assert.Contains(t, out, "Restore rst-003 completed in")
+	assert.Contains(t, out, "rst-003")
+	assert.Contains(t, out, "completed")
+}
+
+func TestRestoreCreateCmd_WaitFailure(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newRestoreWaitTestServer("valid-token", []countingResponse{
+		makeRestorePollResponse("rst-003", "pending"),
+		makeRestorePollResponse("rst-003", "failed"),
+	})
+	defer ts.Close()
+
+	cmd, _, _ := buildRestoreCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"restore", "create", "bk-005", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 1, apiErr.ExitCode)
+	assert.Contains(t, apiErr.Message, "failed status")
+}
+
+func TestRestoreCreateCmd_WaitJSON(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newRestoreWaitTestServer("valid-token", []countingResponse{
+		makeRestorePollResponse("rst-003", "pending"),
+		makeRestorePollResponse("rst-003", "completed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildRestoreCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"restore", "create", "bk-005", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "rst-003", result["id"])
+	assert.Equal(t, "completed", result["status"])
 }

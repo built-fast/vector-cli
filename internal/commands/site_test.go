@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -1215,4 +1216,205 @@ func TestSiteListCmd_ServerError(t *testing.T) {
 	var apiErr *api.APIError
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 5, apiErr.ExitCode)
+}
+
+// --- Site Create --wait Tests ---
+
+// siteActivePollResponse is the polled response for a site that has become active.
+// It does NOT contain one-time credentials (those are only in the initial POST response).
+var siteActivePollResponse = map[string]any{
+	"data": map[string]any{
+		"id":               "site-002",
+		"your_customer_id": "cust_456",
+		"status":           "active",
+		"dev_domain":       "dev.new.vectorpages.com",
+		"dev_db_host":      "db.new.rds.amazonaws.com",
+		"dev_db_name":      "db_site002",
+		"environments": []map[string]any{
+			{
+				"id":              "env-002",
+				"name":            "production",
+				"is_production":   true,
+				"status":          "active",
+				"php_version":     "8.3",
+				"platform_domain": "new--prod.vectorpages.com",
+			},
+		},
+		"created_at": "2025-01-15T12:00:00+00:00",
+		"updated_at": "2025-01-15T12:05:00+00:00",
+	},
+	"message":     "Site retrieved successfully",
+	"http_status": 200,
+}
+
+// newSiteWaitTestServer creates a test server that handles:
+// - POST /sites -> returns siteCreateResponse (with credentials)
+// - GET /sites/{id} -> returns successive poll responses (without credentials)
+func newSiteWaitTestServer(validToken string, pollResponses []countingResponse) *httptest.Server {
+	var pollCount atomic.Int64
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Unauthenticated.",
+				"http_status": 401,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == "POST" && path == "/api/v1/vector/sites":
+			body, _ := io.ReadAll(r.Body)
+			var reqBody map[string]any
+			_ = json.Unmarshal(body, &reqBody)
+			if reqBody["your_customer_id"] == nil || reqBody["your_customer_id"] == "" {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"errors": map[string][]string{
+						"your_customer_id": {"The partner customer id field is required."},
+					},
+					"message":     "Validation failed",
+					"http_status": 422,
+				})
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(siteCreateResponse)
+
+		case method == "GET" && path == "/api/v1/vector/sites/site-002":
+			idx := int(pollCount.Add(1)) - 1
+			if idx >= len(pollResponses) {
+				idx = len(pollResponses) - 1
+			}
+			resp := pollResponses[idx]
+			if resp.httpStatus != 0 {
+				w.WriteHeader(resp.httpStatus)
+			}
+			_ = json.NewEncoder(w).Encode(resp.body)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Not Found",
+				"http_status": 404,
+			})
+		}
+	}))
+}
+
+func makeSitePollResponse(id, status string) countingResponse {
+	return countingResponse{
+		httpStatus: http.StatusOK,
+		body: map[string]any{
+			"data": map[string]any{
+				"id":               id,
+				"your_customer_id": "cust_456",
+				"status":           status,
+				"dev_domain":       "dev.new.vectorpages.com",
+			},
+			"message":     "Site retrieved successfully",
+			"http_status": 200,
+		},
+	}
+}
+
+func TestSiteCreateCmd_WaitSuccess(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newSiteWaitTestServer("valid-token", []countingResponse{
+		makeSitePollResponse("site-002", "pending"),
+		makeSitePollResponse("site-002", "provisioning"),
+		{
+			httpStatus: http.StatusOK,
+			body:       siteActivePollResponse,
+		},
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildSiteCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"site", "create", "--customer-id", "cust_456", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+
+	// Credentials should be printed before polling (from the initial POST response)
+	assert.Contains(t, out, "sftp-pass-123")
+	assert.Contains(t, out, "db-pass-456")
+	assert.Contains(t, out, "wp-pass-789")
+
+	// Final state should be shown after polling completes
+	assert.Contains(t, out, "Site site-002 active in")
+	assert.Contains(t, out, "active")
+}
+
+func TestSiteCreateCmd_WaitFailure(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newSiteWaitTestServer("valid-token", []countingResponse{
+		makeSitePollResponse("site-002", "pending"),
+		makeSitePollResponse("site-002", "failed"),
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildSiteCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"site", "create", "--customer-id", "cust_456", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	// Even on failure, credentials should have been printed
+	out := stdout.String()
+	assert.Contains(t, out, "sftp-pass-123")
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 1, apiErr.ExitCode)
+	assert.Contains(t, apiErr.Message, "failed status")
+}
+
+func TestSiteCreateCmd_WaitJSON(t *testing.T) {
+	overrideWaitGlobals(t, false)
+
+	ts := newSiteWaitTestServer("valid-token", []countingResponse{
+		makeSitePollResponse("site-002", "pending"),
+		{
+			httpStatus: http.StatusOK,
+			body:       siteActivePollResponse,
+		},
+	})
+	defer ts.Close()
+
+	cmd, stdout, _ := buildSiteCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"site", "create", "--customer-id", "cust_456", "--wait", "--poll-interval", "1s", "--timeout", "30s"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+
+	// Final status should be active
+	assert.Equal(t, "site-002", result["id"])
+	assert.Equal(t, "active", result["status"])
+
+	// One-time credentials from the initial POST should be merged into the final JSON
+	sftp, ok := result["dev_sftp"].(map[string]any)
+	require.True(t, ok, "dev_sftp should be merged into final JSON")
+	assert.Equal(t, "sftp-pass-123", sftp["password"])
+
+	assert.Equal(t, "db_site002", result["dev_db_username"])
+	assert.Equal(t, "db-pass-456", result["dev_db_password"])
+
+	wp, ok := result["wp_admin"].(map[string]any)
+	require.True(t, ok, "wp_admin should be merged into final JSON")
+	assert.Equal(t, "wp-pass-789", wp["password"])
 }
