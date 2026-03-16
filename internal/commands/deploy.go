@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -169,15 +170,23 @@ func newDeployTriggerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "trigger <env-id>",
 		Short: "Trigger a deployment",
-		Long: "Initiate a new deployment for an environment.",
+		Long:  "Initiate a new deployment for an environment.",
 		Example: `  # Trigger a deployment
   vector deploy trigger env-abc123
 
   # Include uploads
-  vector deploy trigger env-abc123 --include-uploads`,
+  vector deploy trigger env-abc123 --include-uploads
+
+  # Trigger and wait for completion
+  vector deploy trigger env-abc123 --wait`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
+			if err != nil {
+				return err
+			}
+
+			waitEnabled, interval, timeout, err := getWaitConfig(cmd)
 			if err != nil {
 				return err
 			}
@@ -210,21 +219,69 @@ func newDeployTriggerCmd() *cobra.Command {
 				return fmt.Errorf("failed to trigger deployment: %w", err)
 			}
 
-			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+			if !waitEnabled {
+				if app.Output.Format() == output.JSON {
+					return app.Output.JSON(json.RawMessage(data))
+				}
+
+				var item map[string]any
+				if err := json.Unmarshal(data, &item); err != nil {
+					return fmt.Errorf("failed to trigger deployment: %w", err)
+				}
+
+				app.Output.KeyValue([]output.KeyValue{
+					{Key: "ID", Value: getString(item, "id")},
+					{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
+					{Key: "Status", Value: getString(item, "status")},
+					{Key: "Actor", Value: getString(item, "actor")},
+					{Key: "Created", Value: getString(item, "created_at")},
+				})
+				return nil
 			}
 
-			var item map[string]any
-			if err := json.Unmarshal(data, &item); err != nil {
+			var triggerItem map[string]any
+			if err := json.Unmarshal(data, &triggerItem); err != nil {
 				return fmt.Errorf("failed to trigger deployment: %w", err)
 			}
 
+			deployID := getString(triggerItem, "id")
+			if deployID == "" {
+				return fmt.Errorf("failed to trigger deployment: response missing deployment ID")
+			}
+
+			cfg := &waitConfig{
+				ResourceID:       deployID,
+				PollPath:         deploysBasePath + "/" + deployID,
+				Interval:         interval,
+				Timeout:          timeout,
+				TerminalStatuses: map[string]bool{"deployed": true},
+				FailedStatuses:   map[string]bool{"failed": true, "cancelled": true},
+				Noun:             "Deployment",
+				FormatDisplay:    deployFormatDisplay,
+			}
+
+			result, err := waitForResource(cmd.Context(), app, cfg)
+			if err != nil {
+				return err
+			}
+
+			if app.Output.Format() == output.JSON {
+				return app.Output.JSON(result.FinalData)
+			}
+
+			var finalItem map[string]any
+			if err := json.Unmarshal(result.FinalData, &finalItem); err != nil {
+				return fmt.Errorf("failed to trigger deployment: %w", err)
+			}
+
+			app.Output.Message(fmt.Sprintf("Deployment %s %s in %s", deployID, result.Status, result.Elapsed.Truncate(time.Second)))
 			app.Output.KeyValue([]output.KeyValue{
-				{Key: "ID", Value: getString(item, "id")},
-				{Key: "Environment ID", Value: getString(item, "vector_environment_id")},
-				{Key: "Status", Value: getString(item, "status")},
-				{Key: "Actor", Value: getString(item, "actor")},
-				{Key: "Created", Value: getString(item, "created_at")},
+				{Key: "ID", Value: getString(finalItem, "id")},
+				{Key: "Environment ID", Value: getString(finalItem, "vector_environment_id")},
+				{Key: "Status", Value: getString(finalItem, "status")},
+				{Key: "Actor", Value: getString(finalItem, "actor")},
+				{Key: "Created", Value: getString(finalItem, "created_at")},
+				{Key: "Updated", Value: getString(finalItem, "updated_at")},
 			})
 			return nil
 		},
@@ -232,8 +289,21 @@ func newDeployTriggerCmd() *cobra.Command {
 
 	cmd.Flags().Bool("include-uploads", false, "Include wp-content/uploads in deployment")
 	cmd.Flags().Bool("include-database", true, "Include database in deployment")
+	addWaitFlags(cmd)
 
 	return cmd
+}
+
+// deployFormatDisplay formats deployment data for the alternate screen display.
+func deployFormatDisplay(data map[string]any) []string {
+	return []string{
+		fmt.Sprintf("%16s: %s", "ID", getString(data, "id")),
+		fmt.Sprintf("%16s: %s", "Environment ID", getString(data, "vector_environment_id")),
+		fmt.Sprintf("%16s: %s", "Status", getString(data, "status")),
+		fmt.Sprintf("%16s: %s", "Actor", getString(data, "actor")),
+		fmt.Sprintf("%16s: %s", "Created", getString(data, "created_at")),
+		fmt.Sprintf("%16s: %s", "Updated", getString(data, "updated_at")),
+	}
 }
 
 func newDeployRollbackCmd() *cobra.Command {
