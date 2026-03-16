@@ -57,6 +57,40 @@ JSON output includes `meta.current_page`, `meta.last_page`, and `meta.total`.
 Commands that delete or suspend resources require interactive confirmation
 unless `--force` is passed.
 
+### Waiting for Async Operations
+
+Four commands support `--wait` to block until the operation reaches a terminal
+status instead of returning immediately:
+
+| Command | Terminal Status | Failed Statuses |
+|---------|----------------|-----------------|
+| `site create` | `active` | `failed` |
+| `deploy trigger` | `deployed` | `failed`, `cancelled` |
+| `deploy rollback` | `deployed` | `failed`, `cancelled` |
+| `restore create` | `completed` | `failed` |
+
+**Shared flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--wait` | false | Enable blocking wait |
+| `--poll-interval` | 60s | Poll frequency (min 1s, must be ≤ timeout) |
+| `--timeout` | 5m | Maximum wait time (max 30m) |
+
+**Behavior:**
+- TTY: displays a live-updating alternate screen with status, then prints
+  a summary line and final state on exit.
+- JSON mode (`--json`): silently polls and emits only the final JSON object.
+- Piped/non-TTY: silently polls with no ANSI output.
+- Returns exit code 1 if the operation reaches a failed status or times out.
+- Ctrl+C cleanly aborts the wait.
+- `site create --wait` prints one-time credentials (SFTP, DB, WP admin)
+  before entering the wait loop; with `--json`, credentials are merged into
+  the final JSON output.
+
+**Agents** should prefer `--wait --json` to get a single blocking call that
+returns the final resource state, eliminating the need for manual poll loops.
+
 ---
 
 ## Authentication
@@ -129,7 +163,8 @@ Displays site details including environments table.
 ```
 vector site create --customer-id <id> [--php-version <ver>] [--tags <t1,t2>] \
   [--production-domain <domain>] [--staging-domain <domain>] \
-  [--wp-admin-email <email>] [--wp-admin-user <user>] [--wp-site-title <title>]
+  [--wp-admin-email <email>] [--wp-admin-user <user>] [--wp-site-title <title>] \
+  [--wait] [--poll-interval <duration>] [--timeout <duration>]
 ```
 
 Creates a new site. Returns SFTP, DB, and WordPress credentials (shown once).
@@ -144,6 +179,9 @@ Creates a new site. Returns SFTP, DB, and WordPress credentials (shown once).
 | `--wp-admin-email` | no | WordPress admin email |
 | `--wp-admin-user` | no | WordPress admin username |
 | `--wp-site-title` | no | WordPress site title |
+| `--wait` | no | Block until site reaches active status |
+| `--poll-interval` | no | How often to poll for status (default 60s, min 1s) |
+| `--timeout` | no | Maximum time to wait (default 5m, max 30m) |
 
 #### vector site update
 
@@ -330,21 +368,33 @@ Shows deployment details including stdout/stderr.
 #### vector deploy trigger
 
 ```
-vector deploy trigger <env-id> [--include-uploads] [--include-database]
+vector deploy trigger <env-id> [--include-uploads] [--include-database] \
+  [--wait] [--poll-interval <duration>] [--timeout <duration>]
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--include-uploads` | false | Include uploads in deployment |
 | `--include-database` | true | Include database in deployment |
+| `--wait` | false | Block until deployment reaches a terminal status |
+| `--poll-interval` | 60s | How often to poll for status (min 1s) |
+| `--timeout` | 5m | Maximum time to wait (max 30m) |
 
 #### vector deploy rollback
 
 ```
-vector deploy rollback <env-id> [--target <deploy-id>]
+vector deploy rollback <env-id> [--target <deploy-id>] \
+  [--wait] [--poll-interval <duration>] [--timeout <duration>]
 ```
 
 Rolls back to last successful deployment, or to a specific `--target`.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--target` | | Specific deployment ID to roll back to |
+| `--wait` | false | Block until rollback deployment reaches a terminal status |
+| `--poll-interval` | 60s | How often to poll for status (min 1s) |
+| `--timeout` | 5m | Maximum time to wait (max 30m) |
 
 ---
 
@@ -424,11 +474,18 @@ vector restore show <id> [--json]
 
 ```
 vector restore create <backup-id> [--drop-tables] [--disable-foreign-keys] \
-  [--search-replace-from <url>] [--search-replace-to <url>]
+  [--search-replace-from <url>] [--search-replace-to <url>] \
+  [--wait] [--poll-interval <duration>] [--timeout <duration>]
 ```
 
 Initiates a restore from backup. `--drop-tables` and `--disable-foreign-keys`
 default to false.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--wait` | false | Block until restore reaches a terminal status |
+| `--poll-interval` | 60s | How often to poll for status (min 1s) |
+| `--timeout` | 5m | Maximum time to wait (max 30m) |
 
 ---
 
@@ -613,14 +670,25 @@ Configures Vector MCP server for Claude Desktop or Claude Code.
 ### Deploy a Site
 
 ```bash
-# 1. Trigger deployment
-vector deploy trigger <env-id> --json
+# Single blocking call (recommended for agents)
+vector deploy trigger <env-id> --wait --json
 
-# 2. Check deployment status
+# Or manually poll
+vector deploy trigger <env-id> --json
 vector deploy show <deploy-id> --json
 
-# 3. Rollback if needed
-vector deploy rollback <env-id>
+# Rollback if needed (blocking)
+vector deploy rollback <env-id> --wait --json
+```
+
+### Create a Site and Wait for Active
+
+```bash
+# Single blocking call — credentials are merged into the final JSON
+vector site create --customer-id <id> --wait --json
+
+# With custom timeout for large sites
+vector site create --customer-id <id> --wait --timeout 15m --json
 ```
 
 ### Backup and Restore
@@ -633,10 +701,11 @@ vector backup create --site-id <site-id> --scope full --json
 vector backup download create <backup-id> --json
 vector backup download status <backup-id> <download-id> --json
 
-# 3. Restore from backup
-vector restore create <backup-id> --json
+# 3. Restore from backup (blocking)
+vector restore create <backup-id> --wait --json
 
-# 4. Check restore status
+# Or manually poll
+vector restore create <backup-id> --json
 vector restore show <restore-id> --json
 ```
 
@@ -700,9 +769,11 @@ vector env db promote <env-id>
 Need to deploy code?
 ├── Yes → vector deploy trigger <env-id>
 │   ├── Include uploads? → --include-uploads
-│   └── Skip database? → --include-database=false
+│   ├── Skip database? → --include-database=false
+│   └── Wait for completion? → --wait [--timeout 10m]
 └── Need to undo? → vector deploy rollback <env-id>
-    └── Specific version? → --target <deploy-id>
+    ├── Specific version? → --target <deploy-id>
+    └── Wait for completion? → --wait
 ```
 
 ### Which backup/restore path?
@@ -716,7 +787,8 @@ Need a backup?
 ├── Download → vector backup download create <backup-id>
 │   └── Poll → vector backup download status <backup-id> <download-id>
 └── Restore → vector restore create <backup-id>
-    └── With search-replace → --search-replace-from/--search-replace-to
+    ├── With search-replace → --search-replace-from/--search-replace-to
+    └── Wait for completion? → --wait [--timeout 10m]
 ```
 
 ### Which WAF command?

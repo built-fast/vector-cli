@@ -63,8 +63,11 @@ List all sites. Defaults to page 1 with 15 results per page.
 .B site show \fIID\fR
 Show details for a site.
 .TP
-.B site create \fB\-\-customer\-id\fR \fIID\fR \fB\-\-dev\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-production\-domain\fR \fIDOMAIN\fR] [\fB\-\-staging\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR] [\fB\-\-wp\-admin\-email\fR \fIEMAIL\fR] [\fB\-\-wp\-admin\-user\fR \fIUSER\fR] [\fB\-\-wp\-site\-title\fR \fITITLE\fR]
-Create a new site. Optionally set custom domains for the production and staging
+.B site create \fB\-\-customer\-id\fR \fIID\fR \fB\-\-dev\-php\-version\fR \fIVERSION\fR \fR[\fB\-\-production\-domain\fR \fIDOMAIN\fR] [\fB\-\-staging\-domain\fR \fIDOMAIN\fR] [\fB\-\-tags\fR \fITAGS\fR] [\fB\-\-wp\-admin\-email\fR \fIEMAIL\fR] [\fB\-\-wp\-admin\-user\fR \fIUSER\fR] [\fB\-\-wp\-site\-title\fR \fITITLE\fR] [\fB\-\-wait\fR] [\fB\-\-poll\-interval\fR \fIDURATION\fR] [\fB\-\-timeout\fR \fIDURATION\fR]
+Create a new site. Use
+.B \-\-wait
+to block until the site reaches active status. One\-time credentials (SFTP, DB,
+WP admin) are displayed before the wait begins. Optionally set custom domains for the production and staging
 environments. When custom domains are provided, DNS setup instructions and
 certificate validation records will be displayed.
 .IP
@@ -192,11 +195,16 @@ List deployments for an environment.
 .B deploy show \fIDEPLOY_ID\fR
 Show deployment details.
 .TP
-.B deploy trigger \fIENV_ID\fR \fR[\fB\-\-include\-uploads\fR] [\fB\-\-include\-database\fR]
-Trigger a new deployment.
+.B deploy trigger \fIENV_ID\fR \fR[\fB\-\-include\-uploads\fR] [\fB\-\-include\-database\fR] [\fB\-\-wait\fR] [\fB\-\-poll\-interval\fR \fIDURATION\fR] [\fB\-\-timeout\fR \fIDURATION\fR]
+Trigger a new deployment. Use
+.B \-\-wait
+to block until the deployment reaches a terminal status. Default poll interval
+is 60s (min 1s), default timeout is 5m (max 30m).
 .TP
-.B deploy rollback \fIENV_ID\fR \fR[\fB\-\-target\-deployment\-id\fR \fIID\fR]
-Rollback to a previous deployment.
+.B deploy rollback \fIENV_ID\fR \fR[\fB\-\-target\-deployment\-id\fR \fIID\fR] [\fB\-\-wait\fR] [\fB\-\-poll\-interval\fR \fIDURATION\fR] [\fB\-\-timeout\fR \fIDURATION\fR]
+Rollback to a previous deployment. Use
+.B \-\-wait
+to block until the rollback deployment reaches a terminal status.
 .SS ssl \- Manage SSL certificates
 .TP
 .B ssl status \fIENV_ID\fR
@@ -289,8 +297,10 @@ List restores. Filter by site, environment, type (site, environment), or backup.
 .B restore show \fIRESTORE_ID\fR
 Show restore details.
 .TP
-.B restore create \fIBACKUP_ID\fR \fR[\fB\-\-scope\fR \fISCOPE\fR] [\fB\-\-drop\-tables\fR] [\fB\-\-disable\-foreign\-keys\fR] [\fB\-\-search\-replace\-from\fR \fIFROM\fR] [\fB\-\-search\-replace\-to\fR \fITO\fR]
-Restore from a backup. Scope can be
+.B restore create \fIBACKUP_ID\fR \fR[\fB\-\-scope\fR \fISCOPE\fR] [\fB\-\-drop\-tables\fR] [\fB\-\-disable\-foreign\-keys\fR] [\fB\-\-search\-replace\-from\fR \fIFROM\fR] [\fB\-\-search\-replace\-to\fR \fITO\fR] [\fB\-\-wait\fR] [\fB\-\-poll\-interval\fR \fIDURATION\fR] [\fB\-\-timeout\fR \fIDURATION\fR]
+Restore from a backup. Use
+.B \-\-wait
+to block until the restore completes or fails. Scope can be
 .B full\fR,
 .B database\fR,
 or
