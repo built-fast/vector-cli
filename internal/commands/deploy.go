@@ -33,7 +33,7 @@ func newDeployListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <env-id>",
 		Short: "List deployments for an environment",
-		Long: "Retrieve a paginated list of deployments for an environment.",
+		Long:  "Retrieve a paginated list of deployments for an environment.",
 		Example: `  # List deployments for an environment
   vector deploy list env-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -102,7 +102,7 @@ func newDeployShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <deploy-id>",
 		Short: "Show deployment details",
-		Long: "Retrieve details of a specific deployment, including stdout and stderr output.",
+		Long:  "Retrieve details of a specific deployment, including stdout and stderr output.",
 		Example: `  # Show deployment details
   vector deploy show deploy-456`,
 		Args: cobra.ExactArgs(1),
@@ -310,7 +310,7 @@ func newDeployRollbackCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rollback <env-id>",
 		Short: "Rollback a deployment",
-		Long: "Initiate a rollback for an environment. Rolls back to the last successful deployment unless a target is specified.",
+		Long:  "Initiate a rollback for an environment. Rolls back to the last successful deployment unless a target is specified.",
 		Example: `  # Rollback to the last successful deployment
   vector deploy rollback env-abc123
 

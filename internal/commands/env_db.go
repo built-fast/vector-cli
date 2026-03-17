@@ -28,7 +28,7 @@ func newEnvDBPromoteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "promote <env-id>",
 		Short: "Promote database",
-		Long: "Initiate a database promote for an environment. Copies the development database to the environment.",
+		Long:  "Initiate a database promote for an environment. Copies the development database to the environment.",
 		Example: `  # Promote the dev database to an environment
   vector env db promote env-abc123
 
@@ -98,7 +98,7 @@ func newEnvDBPromoteStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "promote-status <env-id> <promote-id>",
 		Short: "Check promote status",
-		Long: "Check the status of a database promote operation.",
+		Long:  "Check the status of a database promote operation.",
 		Example: `  # Check promote status
   vector env db promote-status env-abc123 promote-789`,
 		Args: cobra.ExactArgs(2),

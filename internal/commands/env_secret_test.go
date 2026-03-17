@@ -221,7 +221,7 @@ func TestEnvSecretShowCmd_EnvVar(t *testing.T) {
 	out := stdout.String()
 	assert.Contains(t, out, "sec-002")
 	assert.Contains(t, out, "APP_DEBUG")
-	assert.Contains(t, out, "No") // is_secret = false
+	assert.Contains(t, out, "No")   // is_secret = false
 	assert.Contains(t, out, "true") // value shown for non-secrets
 }
 
@@ -238,7 +238,7 @@ func TestEnvSecretShowCmd_Secret(t *testing.T) {
 	out := stdout.String()
 	assert.Contains(t, out, "sec-001")
 	assert.Contains(t, out, "API_KEY")
-	assert.Contains(t, out, "Yes") // is_secret = true
+	assert.Contains(t, out, "Yes")      // is_secret = true
 	assert.NotContains(t, out, "Value") // value not shown for secrets
 }
 

@@ -17,7 +17,7 @@ func NewPHPVersionsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "php-versions",
 		Short: "List available PHP versions",
-		Long: "Retrieve a list of all available PHP versions for Vector environments.",
+		Long:  "Retrieve a list of all available PHP versions for Vector environments.",
 		Example: `  # List available PHP versions
   vector php-versions`,
 		Args: cobra.NoArgs,

@@ -28,7 +28,7 @@ func newDbExportCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create a database export",
-		Long: "Create a new database export for a site. The export is created with a pending status and processed asynchronously.",
+		Long:  "Create a new database export for a site. The export is created with a pending status and processed asynchronously.",
 		Example: `  # Create a database export
   vector db export create site-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -91,7 +91,7 @@ func newDbExportStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <site-id> <export-id>",
 		Short: "Check database export status",
-		Long: "Retrieve the status of a database export. Includes a download URL when the export is completed.",
+		Long:  "Retrieve the status of a database export. Includes a download URL when the export is completed.",
 		Example: `  # Check export status
   vector db export status site-abc123 export-789`,
 		Args: cobra.ExactArgs(2),

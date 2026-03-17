@@ -28,9 +28,9 @@ var accountShowResponse = map[string]any{
 			"company": "Acme Corp",
 		},
 		"cluster": map[string]any{
-			"alb_dns_name":             "alb-abc123.us-west-2.elb.amazonaws.com",
-			"aurora_cluster_endpoint":  "cluster.abc123.us-east-1.rds.amazonaws.com",
-			"ssh_nlb_dns":              "nlb-abc123.us-west-2.elb.amazonaws.com",
+			"alb_dns_name":            "alb-abc123.us-west-2.elb.amazonaws.com",
+			"aurora_cluster_endpoint": "cluster.abc123.us-east-1.rds.amazonaws.com",
+			"ssh_nlb_dns":             "nlb-abc123.us-west-2.elb.amazonaws.com",
 		},
 		"domains": []any{"example.com", "example.org"},
 		"sites": map[string]any{

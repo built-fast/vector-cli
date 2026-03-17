@@ -29,7 +29,7 @@ func newSSHKeyListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List SSH keys",
-		Long: "Retrieve all SSH keys installed on a site's development container.",
+		Long:  "Retrieve all SSH keys installed on a site's development container.",
 		Example: `  # List SSH keys for a site
   vector site ssh-key list site-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -99,7 +99,7 @@ func newSSHKeyAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <site-id>",
 		Short: "Add an SSH key",
-		Long: "Add a new SSH key to a site's development container.",
+		Long:  "Add a new SSH key to a site's development container.",
 		Example: `  # Add an SSH key to a site
   vector site ssh-key add site-abc123 --name "deploy-key" --public-key "ssh-ed25519 AAAA..."`,
 		Args: cobra.ExactArgs(1),
@@ -165,7 +165,7 @@ func newSSHKeyRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <site-id> <key-id>",
 		Short: "Remove an SSH key",
-		Long: "Remove an SSH key from a site's development container.",
+		Long:  "Remove an SSH key from a site's development container.",
 		Example: `  # Remove an SSH key from a site
   vector site ssh-key remove site-abc123 key-456`,
 		Args: cobra.ExactArgs(2),

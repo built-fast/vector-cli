@@ -32,7 +32,7 @@ func newAccountShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Show account summary",
-		Long: "Display account details including owner information and resource usage.",
+		Long:  "Display account details including owner information and resource usage.",
 		Example: `  # Show account summary
   vector account show`,
 		Args: cobra.NoArgs,

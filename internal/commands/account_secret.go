@@ -33,7 +33,7 @@ func newAccountSecretListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List global secrets",
-		Long: "Retrieve a paginated list of account-level secrets and environment variables.",
+		Long:  "Retrieve a paginated list of account-level secrets and environment variables.",
 		Example: `  # List global secrets
   vector account secret list`,
 		Args: cobra.NoArgs,
@@ -107,7 +107,7 @@ func newAccountSecretShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a secret",
-		Long: "Display details of an account-level secret or environment variable.",
+		Long:  "Display details of an account-level secret or environment variable.",
 		Example: `  # Show secret details
   vector account secret show secret-456`,
 		Args: cobra.ExactArgs(1),
@@ -165,7 +165,7 @@ func newAccountSecretCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a secret",
-		Long: "Create a new account-level secret or environment variable.",
+		Long:  "Create a new account-level secret or environment variable.",
 		Example: `  # Create a global secret
   vector account secret create --key STRIPE_KEY --value sk_live_xxx
 
@@ -243,7 +243,7 @@ func newAccountSecretUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <id>",
 		Short: "Update a secret",
-		Long: "Update an account-level secret or environment variable.",
+		Long:  "Update an account-level secret or environment variable.",
 		Example: `  # Update a secret value
   vector account secret update secret-456 --value new-value`,
 		Args: cobra.ExactArgs(1),
@@ -318,7 +318,7 @@ func newAccountSecretDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Delete a secret",
-		Long: "Delete an account-level secret or environment variable.",
+		Long:  "Delete an account-level secret or environment variable.",
 		Example: `  # Delete a global secret
   vector account secret delete secret-456`,
 		Args: cobra.ExactArgs(1),

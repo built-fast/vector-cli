@@ -38,7 +38,7 @@ func newEnvListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List environments for a site",
-		Long: "Retrieve a paginated list of environments for a site.",
+		Long:  "Retrieve a paginated list of environments for a site.",
 		Example: `  # List environments for a site
   vector env list site-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -110,7 +110,7 @@ func newEnvShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <env-id>",
 		Short: "Show environment details",
-		Long: "Retrieve details of a specific environment.",
+		Long:  "Retrieve details of a specific environment.",
 		Example: `  # Show environment details
   vector env show env-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -178,7 +178,7 @@ func newEnvCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create an environment",
-		Long: "Create a new environment for a site.",
+		Long:  "Create a new environment for a site.",
 		Example: `  # Create a staging environment
   vector env create site-abc123 --name staging --php-version 8.2
 
@@ -290,7 +290,7 @@ func newEnvUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <env-id>",
 		Short: "Update an environment",
-		Long: "Update an environment's custom domain or tags. Domain changes trigger async infrastructure updates.",
+		Long:  "Update an environment's custom domain or tags. Domain changes trigger async infrastructure updates.",
 		Example: `  # Set a custom domain
   vector env update env-abc123 --custom-domain example.com
 
@@ -394,7 +394,7 @@ func newEnvDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <env-id>",
 		Short: "Delete an environment",
-		Long: "Initiate deletion of an environment. This operation is irreversible.",
+		Long:  "Initiate deletion of an environment. This operation is irreversible.",
 		Example: `  # Delete an environment
   vector env delete env-abc123
 

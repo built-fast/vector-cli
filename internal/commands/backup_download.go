@@ -28,7 +28,7 @@ func newBackupDownloadCreateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "create <backup-id>",
 		Short: "Create a backup download",
-		Long: "Create a new download request for a backup. The download is created with a pending status and processed asynchronously.",
+		Long:  "Create a new download request for a backup. The download is created with a pending status and processed asynchronously.",
 		Example: `  # Request a backup download
   vector backup download create backup-456`,
 		Args: cobra.ExactArgs(1),
@@ -86,7 +86,7 @@ func newBackupDownloadStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <backup-id> <download-id>",
 		Short: "Check backup download status",
-		Long: "Retrieve the status of a backup download. Includes a download URL when the download is completed.",
+		Long:  "Retrieve the status of a backup download. Includes a download URL when the download is completed.",
 		Example: `  # Check download status
   vector backup download status backup-456 download-789`,
 		Args: cobra.ExactArgs(2),

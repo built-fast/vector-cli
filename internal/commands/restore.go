@@ -32,7 +32,7 @@ func newRestoreListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List restores",
-		Long: "Retrieve a paginated list of restores, optionally filtered by type, site, environment, or backup.",
+		Long:  "Retrieve a paginated list of restores, optionally filtered by type, site, environment, or backup.",
 		Example: `  # List all restores
   vector restore list
 
@@ -134,7 +134,7 @@ func newRestoreShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a restore",
-		Long: "Display details of a specific restore.",
+		Long:  "Display details of a specific restore.",
 		Example: `  # Show restore details
   vector restore show restore-456`,
 		Args: cobra.ExactArgs(1),
@@ -193,7 +193,7 @@ func newRestoreCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <backup-id>",
 		Short: "Create a restore",
-		Long: "Create a new restore from a backup.",
+		Long:  "Create a new restore from a backup.",
 		Example: `  # Restore from a backup
   vector restore create backup-456
 

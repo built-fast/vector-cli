@@ -44,7 +44,7 @@ func newBackupListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List backups",
-		Long: "Retrieve a paginated list of backups, optionally filtered by type, site, or environment.",
+		Long:  "Retrieve a paginated list of backups, optionally filtered by type, site, or environment.",
 		Example: `  # List all backups
   vector backup list
 
@@ -140,7 +140,7 @@ func newBackupShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <id>",
 		Short: "Show a backup",
-		Long: "Display details of a specific backup.",
+		Long:  "Display details of a specific backup.",
 		Example: `  # Show backup details
   vector backup show backup-456`,
 		Args: cobra.ExactArgs(1),
@@ -199,7 +199,7 @@ func newBackupCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a backup",
-		Long: "Create a new backup for a site or environment.",
+		Long:  "Create a new backup for a site or environment.",
 		Example: `  # Create a full backup
   vector backup create --site-id site-abc123
 

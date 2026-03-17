@@ -29,7 +29,7 @@ func newArchiveImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import <site-id> <file>",
 		Short: "Import a site archive from a local file",
-		Long: "Import a site archive from a local file. Creates an import session, uploads the file to a presigned URL, and triggers the import.",
+		Long:  "Import a site archive from a local file. Creates an import session, uploads the file to a presigned URL, and triggers the import.",
 		Example: `  # Import an archive
   vector archive import site-abc123 site-backup.tar.gz
 

@@ -40,7 +40,7 @@ func newMcpSetupCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setup",
 		Short: "Configure Vector MCP server",
-		Long: "Configure the Vector MCP server in Claude Desktop or Claude Code for AI-assisted site management.",
+		Long:  "Configure the Vector MCP server in Claude Desktop or Claude Code for AI-assisted site management.",
 		Example: `  # Set up for Claude Desktop
   vector mcp setup
 
@@ -88,9 +88,9 @@ func newMcpSetupCmd() *cobra.Command {
 			if _, exists := mcpServers["vector"]; exists {
 				if !force {
 					return &api.APIError{
-					Message:  "Vector MCP server already configured. Use --force to overwrite.",
-					ExitCode: 1,
-				}
+						Message:  "Vector MCP server already configured. Use --force to overwrite.",
+						ExitCode: 1,
+					}
 				}
 				action = "updated"
 			}

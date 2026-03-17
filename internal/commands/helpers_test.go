@@ -87,10 +87,10 @@ func TestPaginationFlags_Defaults(t *testing.T) {
 
 func TestBuildPaginationQuery(t *testing.T) {
 	tests := []struct {
-		name            string
-		page, perPage   int
-		wantPage        string
-		wantPerPage     string
+		name          string
+		page, perPage int
+		wantPage      string
+		wantPerPage   string
 	}{
 		{"explicit values", 2, 30, "2", "30"},
 		{"defaults for zero", 0, 0, "1", "15"},

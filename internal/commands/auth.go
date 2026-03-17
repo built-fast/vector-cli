@@ -68,7 +68,7 @@ func newAuthLoginCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate with the Vector API",
-		Long: "Validate an API token and store it in the system keyring.",
+		Long:  "Validate an API token and store it in the system keyring.",
 		Example: `  # Log in interactively (prompts for token)
   vector auth login
 
@@ -169,7 +169,7 @@ func newAuthLogoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
 		Short: "Remove stored credentials",
-		Long: "Log out by deleting stored API credentials from the system keyring.",
+		Long:  "Log out by deleting stored API credentials from the system keyring.",
 		Example: `  # Log out and clear stored credentials
   vector auth logout`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -201,7 +201,7 @@ func newAuthStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show authentication status",
-		Long: "Check whether you are authenticated and display account details.",
+		Long:  "Check whether you are authenticated and display account details.",
 		Example: `  # Check authentication status
   vector auth status`,
 		RunE: func(cmd *cobra.Command, args []string) error {

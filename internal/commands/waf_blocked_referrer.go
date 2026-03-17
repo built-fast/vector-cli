@@ -33,7 +33,7 @@ func newWafBlockedReferrerListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list <site-id>",
 		Short: "List blocked referrers",
-		Long: "List all blocked referrer hostnames for a site.",
+		Long:  "List all blocked referrer hostnames for a site.",
 		Example: `  # List blocked referrers
   vector waf blocked-referrer list site-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -86,7 +86,7 @@ func newWafBlockedReferrerAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <site-id> <hostname>",
 		Short: "Add a blocked referrer",
-		Long: "Add a hostname to the blocked referrers list for a site.",
+		Long:  "Add a hostname to the blocked referrers list for a site.",
 		Example: `  # Block a referrer
   vector waf blocked-referrer add site-abc123 spam.example.com`,
 		Args: cobra.ExactArgs(2),
@@ -130,7 +130,7 @@ func newWafBlockedReferrerRemoveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <site-id> <hostname>",
 		Short: "Remove a blocked referrer",
-		Long: "Remove a hostname from the blocked referrers list for a site.",
+		Long:  "Remove a hostname from the blocked referrers list for a site.",
 		Example: `  # Unblock a referrer
   vector waf blocked-referrer remove site-abc123 spam.example.com`,
 		Args: cobra.ExactArgs(2),

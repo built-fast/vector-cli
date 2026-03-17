@@ -33,7 +33,7 @@ func newEnvSecretListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list <env-id>",
 		Short: "List secrets for an environment",
-		Long: "Retrieve a paginated list of secrets and environment variables for an environment.",
+		Long:  "Retrieve a paginated list of secrets and environment variables for an environment.",
 		Example: `  # List secrets for an environment
   vector env secret list env-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -102,7 +102,7 @@ func newEnvSecretShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <secret-id>",
 		Short: "Show secret details",
-		Long: "Retrieve details of a specific secret or environment variable.",
+		Long:  "Retrieve details of a specific secret or environment variable.",
 		Example: `  # Show secret details
   vector env secret show secret-456`,
 		Args: cobra.ExactArgs(1),
@@ -160,7 +160,7 @@ func newEnvSecretCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <env-id>",
 		Short: "Create a secret",
-		Long: "Create a new secret or environment variable for an environment.",
+		Long:  "Create a new secret or environment variable for an environment.",
 		Example: `  # Create a secret
   vector env secret create env-abc123 --key DB_PASSWORD --value s3cret
 
@@ -235,7 +235,7 @@ func newEnvSecretUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <secret-id>",
 		Short: "Update a secret",
-		Long: "Update an existing secret or environment variable.",
+		Long:  "Update an existing secret or environment variable.",
 		Example: `  # Update a secret value
   vector env secret update secret-456 --value new-value`,
 		Args: cobra.ExactArgs(1),
@@ -306,7 +306,7 @@ func newEnvSecretDeleteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <secret-id>",
 		Short: "Delete a secret",
-		Long: "Delete a secret or environment variable.",
+		Long:  "Delete a secret or environment variable.",
 		Example: `  # Delete a secret
   vector env secret delete secret-456
 

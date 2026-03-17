@@ -21,10 +21,10 @@ import (
 var rateLimitListResponse = map[string]any{
 	"data": []map[string]any{
 		{
-			"id":              float64(12345),
-			"name":            "API Rate Limit",
-			"description":     "Limit API requests to 100/second",
-			"shield_zone_id":  float64(67890),
+			"id":             float64(12345),
+			"name":           "API Rate Limit",
+			"description":    "Limit API requests to 100/second",
+			"shield_zone_id": float64(67890),
 			"configuration": map[string]any{
 				"request_count":   float64(100),
 				"timeframe":       float64(1),
@@ -37,10 +37,10 @@ var rateLimitListResponse = map[string]any{
 			},
 		},
 		{
-			"id":              float64(12346),
-			"name":            "Login Rate Limit",
-			"description":     "Limit login attempts",
-			"shield_zone_id":  float64(67890),
+			"id":             float64(12346),
+			"name":           "Login Rate Limit",
+			"description":    "Limit login attempts",
+			"shield_zone_id": float64(67890),
 			"configuration": map[string]any{
 				"request_count":   float64(10),
 				"timeframe":       float64(10),
@@ -59,10 +59,10 @@ var rateLimitListResponse = map[string]any{
 
 var rateLimitShowResponse = map[string]any{
 	"data": map[string]any{
-		"id":              float64(12345),
-		"name":            "API Rate Limit",
-		"description":     "Limit API requests to 100/second",
-		"shield_zone_id":  float64(67890),
+		"id":             float64(12345),
+		"name":           "API Rate Limit",
+		"description":    "Limit API requests to 100/second",
+		"shield_zone_id": float64(67890),
 		"configuration": map[string]any{
 			"request_count":   float64(100),
 			"timeframe":       float64(1),
@@ -80,10 +80,10 @@ var rateLimitShowResponse = map[string]any{
 
 var rateLimitCreateResponse = map[string]any{
 	"data": map[string]any{
-		"id":              float64(12347),
-		"name":            "New Rate Limit",
-		"description":     "New rule description",
-		"shield_zone_id":  float64(67890),
+		"id":             float64(12347),
+		"name":           "New Rate Limit",
+		"description":    "New rule description",
+		"shield_zone_id": float64(67890),
 		"configuration": map[string]any{
 			"request_count":   float64(50),
 			"timeframe":       float64(10),
@@ -101,10 +101,10 @@ var rateLimitCreateResponse = map[string]any{
 
 var rateLimitUpdateResponse = map[string]any{
 	"data": map[string]any{
-		"id":              float64(12345),
-		"name":            "Updated Rate Limit",
-		"description":     "Updated description",
-		"shield_zone_id":  float64(67890),
+		"id":             float64(12345),
+		"name":           "Updated Rate Limit",
+		"description":    "Updated description",
+		"shield_zone_id": float64(67890),
 		"configuration": map[string]any{
 			"request_count":   float64(200),
 			"timeframe":       float64(10),

@@ -29,7 +29,7 @@ func newEventListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List events",
-		Long: "Retrieve a paginated list of account event logs in reverse chronological order.",
+		Long:  "Retrieve a paginated list of account event logs in reverse chronological order.",
 		Example: `  # List recent events
   vector event list
 

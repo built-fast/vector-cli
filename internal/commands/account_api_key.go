@@ -32,7 +32,7 @@ func newAccountAPIKeyListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List API keys",
-		Long: "Retrieve a paginated list of API keys for your account.",
+		Long:  "Retrieve a paginated list of API keys for your account.",
 		Example: `  # List API keys
   vector account api-key list`,
 		Args: cobra.NoArgs,
@@ -101,7 +101,7 @@ func newAccountAPIKeyCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create an API key",
-		Long: "Create a new API key for programmatic access to your account.",
+		Long:  "Create a new API key for programmatic access to your account.",
 		Example: `  # Create an API key
   vector account api-key create --name "ci-deploy"
 
@@ -183,7 +183,7 @@ func newAccountAPIKeyDeleteCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete <key-id>",
 		Short: "Delete an API key",
-		Long: "Delete an API key. You cannot delete the token currently being used for authentication.",
+		Long:  "Delete an API key. You cannot delete the token currently being used for authentication.",
 		Example: `  # Delete an API key
   vector account api-key delete token-456`,
 		Args: cobra.ExactArgs(1),

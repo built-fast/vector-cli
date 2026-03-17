@@ -28,7 +28,7 @@ func newSSLStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <env-id>",
 		Short: "Check SSL provisioning status",
-		Long: "Get the current SSL provisioning status for an environment.",
+		Long:  "Get the current SSL provisioning status for an environment.",
 		Example: `  # Check SSL status
   vector ssl status env-abc123`,
 		Args: cobra.ExactArgs(1),
@@ -81,7 +81,7 @@ func newSSLNudgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "nudge <env-id>",
 		Short: "Nudge SSL provisioning",
-		Long: "Manually nudge SSL provisioning for an environment. Use this when SSL provisioning appears to be stuck or to retry after a failure.",
+		Long:  "Manually nudge SSL provisioning for an environment. Use this when SSL provisioning appears to be stuck or to retry after a failure.",
 		Example: `  # Nudge SSL provisioning
   vector ssl nudge env-abc123
 

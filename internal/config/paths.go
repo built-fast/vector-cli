@@ -56,4 +56,3 @@ func ConfigFilePath() string {
 	}
 	return filepath.Join(dir, "config.json")
 }
-

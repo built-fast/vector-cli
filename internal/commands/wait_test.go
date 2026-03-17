@@ -265,7 +265,7 @@ func TestWaitForResource_HandlesTransientPollErrors(t *testing.T) {
 
 	ts := newCountingTestServer("test-token", []countingResponse{
 		makeOKResponse("pending"),
-		makeErrorResponse(), // 500 on 2nd poll
+		makeErrorResponse(),        // 500 on 2nd poll
 		makeOKResponse("deployed"), // success on 3rd
 	})
 	defer ts.Close()

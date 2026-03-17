@@ -95,4 +95,3 @@ func TestConfigFilePath(t *testing.T) {
 	path := ConfigFilePath()
 	assert.Equal(t, filepath.Join("/test/config", "config.json"), path)
 }
-

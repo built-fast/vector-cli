@@ -33,7 +33,7 @@ func newDbImportSessionCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create a database import session",
-		Long: "Create a new database import session. Returns a presigned upload URL for uploading a SQL dump file.",
+		Long:  "Create a new database import session. Returns a presigned upload URL for uploading a SQL dump file.",
 		Example: `  # Create an import session
   vector db import-session create site-abc123
 
@@ -146,7 +146,7 @@ func newDbImportSessionRunCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "run <site-id> <import-id>",
 		Short: "Run a database import",
-		Long: "Execute a database import after the SQL dump has been uploaded to the presigned URL.",
+		Long:  "Execute a database import after the SQL dump has been uploaded to the presigned URL.",
 		Example: `  # Run a database import
   vector db import-session run site-abc123 import-456`,
 		Args: cobra.ExactArgs(2),
@@ -199,7 +199,7 @@ func newDbImportSessionStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <site-id> <import-id>",
 		Short: "Check database import status",
-		Long: "Retrieve the current status of a database import session.",
+		Long:  "Retrieve the current status of a database import session.",
 		Example: `  # Check import status
   vector db import-session status site-abc123 import-456`,
 		Args: cobra.ExactArgs(2),

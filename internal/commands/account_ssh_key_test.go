@@ -18,7 +18,7 @@ import (
 var accountSSHKeyListResponse = map[string]any{
 	"data": []map[string]any{
 		{
-			"id":                  "key-001",
+			"id":                 "key-001",
 			"account_id":         1,
 			"name":               "deploy key",
 			"fingerprint":        "SHA256:abc123def456",
@@ -39,7 +39,7 @@ var accountSSHKeyListResponse = map[string]any{
 
 var accountSSHKeyShowResponse = map[string]any{
 	"data": map[string]any{
-		"id":                  "key-001",
+		"id":                 "key-001",
 		"account_id":         1,
 		"name":               "deploy key",
 		"fingerprint":        "SHA256:abc123def456",
@@ -54,7 +54,7 @@ var accountSSHKeyShowResponse = map[string]any{
 
 var accountSSHKeyCreateResponse = map[string]any{
 	"data": map[string]any{
-		"id":                  "key-002",
+		"id":                 "key-002",
 		"account_id":         1,
 		"name":               "new key",
 		"fingerprint":        "SHA256:xyz789",
@@ -69,7 +69,7 @@ var accountSSHKeyCreateResponse = map[string]any{
 
 var accountSSHKeyDeleteResponse = map[string]any{
 	"data": map[string]any{
-		"id":                  "key-001",
+		"id":                 "key-001",
 		"account_id":         1,
 		"name":               "deploy key",
 		"fingerprint":        "SHA256:abc123def456",

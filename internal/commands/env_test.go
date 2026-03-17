@@ -36,7 +36,7 @@ var envListResponse = map[string]any{
 			"database_host":   "db.rds.amazonaws.com",
 			"database_name":   "db_env001",
 			"custom_domain_certificate": map[string]any{
-				"status":                "issued",
+				"status":                 "issued",
 				"dns_validation_records": nil,
 			},
 			"created_at": "2025-01-15T12:00:00+00:00",
@@ -67,7 +67,7 @@ var envShowResponse = map[string]any{
 		"database_host":   "db.rds.amazonaws.com",
 		"database_name":   "db_env001",
 		"custom_domain_certificate": map[string]any{
-			"status":                "issued",
+			"status":                 "issued",
 			"dns_validation_records": nil,
 		},
 		"created_at": "2025-01-15T12:00:00+00:00",
