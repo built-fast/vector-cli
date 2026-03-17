@@ -66,4 +66,6 @@ jobs:
           fi
 
       - name: Run checks
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: make check
