@@ -5,8 +5,9 @@
 ## Development Loop
 
 Make changes, run `make check`, fix what it catches, repeat until green, then
-push. `make check` runs lint + test + test-e2e. Treat it as your inner-loop
-companion, not a final hurdle.
+push. `make check` runs fmt-check + vet + lint + test + test-e2e + surface +
+skill-drift + tidy-check. Treat it as your inner-loop companion, not a final
+hurdle.
 
 ## Repository Structure
 
@@ -67,14 +68,23 @@ All resource paths are under `/api/v1/vector/`. Key resources:
 `make check` is the local CI gate. Run it before pushing.
 
 ```bash
-make check             # All checks: lint + test + test-e2e + surface + drift
+make check             # All checks (local CI gate)
 make test              # Go unit tests only
 make lint              # golangci-lint
+make vet               # go vet
+make fmt               # Format code (gofmt -s)
+make fmt-check         # Check formatting (fails if not formatted)
+make tidy              # go mod tidy
+make tidy-check        # Verify go.mod/go.sum are tidy (non-mutating)
+make race-test         # Tests with race detector
 make test-e2e          # BATS e2e tests (requires Prism)
 make build             # Build binary to ./bin/vector
 make surface           # Regenerate .surface snapshot
 make check-surface     # Verify .surface is up to date
 make check-skill-drift # Verify SKILL.md matches .surface
+make vuln              # govulncheck for dependency vulnerabilities
+make replace-check     # Guard against replace directives in go.mod
+make release-check     # Full pre-flight: check + replace-check + vuln + race
 ```
 
 When iterating on a specific area, use targeted targets for faster feedback,
@@ -85,7 +95,8 @@ that validates requests against `e2e/openapi.yaml`. The test helper (`e2e/test_h
 starts Prism automatically.
 
 **Requirements**: Go 1.26+, [golangci-lint](https://golangci-lint.run),
-[bats-core](https://github.com/bats-core/bats-core), Node.js/npx (for Prism).
+[bats-core](https://github.com/bats-core/bats-core), Node.js/npx (for Prism),
+[govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) (for `make vuln`).
 
 ## Surface Snapshot
 
@@ -163,4 +174,4 @@ When you add, remove, or rename a command or flag:
 2. `make surface` — regenerate `.surface`
 3. Update `skills/vector/SKILL.md` if the change affects agent-visible behavior
 4. Update `man/man1/vector.1` — the e2e manpage test enforces this
-5. `make check` — validates lint, tests, surface, skill drift, and e2e
+5. `make check` — validates fmt, vet, lint, tests, e2e, surface, skill drift, and tidy
