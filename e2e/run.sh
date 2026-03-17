@@ -26,12 +26,18 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+if ! command -v gh &>/dev/null; then
+  echo "Error: gh not found. Install with: brew install gh (macOS) or from https://cli.github.com" >&2
+  exit 1
+fi
+
 # --- Download OpenAPI spec if missing ---
 
 if [[ ! -f "$SPEC_FILE" ]]; then
-  echo "Downloading OpenAPI spec..."
-  if ! curl -fsSL -o "$SPEC_FILE" "https://builtfast.dev/api/openapi.yaml"; then
-    echo "Error: failed to download OpenAPI spec from https://builtfast.dev/api/openapi.yaml" >&2
+  echo "Downloading OpenAPI spec from GitHub..."
+  if ! gh api repos/built-fast/builtfast.dev/contents/api/openapi.yaml --header "Accept: application/vnd.github.raw+json" > "$SPEC_FILE"; then
+    rm -f "$SPEC_FILE"
+    echo "Error: failed to download OpenAPI spec from GitHub" >&2
     exit 1
   fi
 fi
