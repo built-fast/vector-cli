@@ -38,20 +38,6 @@ archives:
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
-
-brews:
-  - repository:
-      owner: built-fast
-      name: homebrew-devtools
-    name: vector
-    homepage: "https://github.com/built-fast/vector-cli"
-    description: "CLI for the Vector hosting platform by BuiltFast"
-    license: "MIT"
-    install: |
-      bin.install "vector"
-      man1.install "man/man1/vector.1"
-      generate_completions_from_executable(bin/"vector", "completion")
-
 changelog:
   sort: asc
   filters:

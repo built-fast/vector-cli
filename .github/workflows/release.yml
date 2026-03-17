@@ -30,12 +30,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update homebrew tap
+      - name: Update Homebrew formula
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh workflow run bump-formula.yml \
             -f version="${GITHUB_REF_NAME}" \
-            -f formula=vector-cli \
+            -f formula=vector \
             -f type=go \
             -R built-fast/homebrew-devtools
