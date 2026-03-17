@@ -53,7 +53,7 @@ jobs:
           /tmp/bats-core/install.sh "$HOME/bats-install"
 
       - name: Add BATS to PATH
-        run: echo "$HOME/bats-install/bin" >> $GITHUB_PATH
+        run: echo "$HOME/bats-install/bin" >> "$GITHUB_PATH"
 
       - name: Install jq
         run: |
