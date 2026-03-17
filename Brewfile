@@ -1,0 +1,5 @@
+brew "go"
+brew "golangci-lint"
+brew "bats-core"
+brew "node"
+brew "jq"
