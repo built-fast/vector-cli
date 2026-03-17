@@ -11,13 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: CI / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
@@ -32,6 +28,40 @@ jobs:
         with:
           version: v2.11.3
           args: --help
+
+      - name: Quality - formatting
+        run: make fmt-check
+
+      - name: Quality - go vet
+        run: make vet
+
+      - name: Quality - linting
+        run: make lint
+
+      - name: Quality - go tidy
+        run: make tidy-check
+
+      - name: Regressions - CLI surface changes
+        run: make check-surface
+
+      - name: Regressions - AI skill drift
+        run: make check-skill-drift
+
+  tests:
+    name: Tests / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
 
       - uses: actions/setup-node@v6
         with:
@@ -55,24 +85,6 @@ jobs:
 
       - name: Add BATS to PATH
         run: echo "$HOME/bats-install/bin" >> "$GITHUB_PATH"
-
-      - name: Quality - formatting
-        run: make fmt-check
-
-      - name: Quality - go vet
-        run: make vet
-
-      - name: Quality - linting
-        run: make lint
-
-      - name: Quality - go tidy
-        run: make tidy-check
-
-      - name: Regressions - CLI surface changes
-        run: make check-surface
-
-      - name: Regressions - AI skill drift
-        run: make check-skill-drift
 
       - name: Tests - go unit tests
         run: make test
