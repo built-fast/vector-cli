@@ -99,7 +99,7 @@ jobs:
         if: steps.cache-bats.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          /tmp/bats-core/install.sh /usr/local
+          sudo /tmp/bats-core/install.sh /usr/local
 
       - name: Tests - BATS e2e tests
         env:
