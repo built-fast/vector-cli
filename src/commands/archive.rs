@@ -1,3 +1,4 @@
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
@@ -5,8 +6,13 @@ use std::time::Duration;
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::api::{ApiClient, ApiError};
+use crate::api::{ApiClient, ApiError, CompletedPart};
 use crate::output::{OutputFormat, format_option, print_json, print_key_value, print_message};
+
+struct UploadPart {
+    part_number: u64,
+    url: String,
+}
 
 #[derive(Debug, Serialize)]
 struct CreateImportSessionRequest {
@@ -97,9 +103,7 @@ pub fn import(
     let import_id = data["id"]
         .as_str()
         .ok_or_else(|| ApiError::Other("Missing import ID in response".to_string()))?;
-    let upload_url = data["upload_url"]
-        .as_str()
-        .ok_or_else(|| ApiError::Other("Missing upload URL in response".to_string()))?;
+    let is_multipart = data["is_multipart"].as_bool().unwrap_or(false);
 
     if format == OutputFormat::Table {
         print_message(&format!("Import ID: {}", import_id));
@@ -107,14 +111,39 @@ pub fn import(
 
     // Step 2: Upload file
     let size_mb = content_length as f64 / 1_048_576.0;
-    if format == OutputFormat::Table {
-        print_message(&format!("Uploading {} ({:.1} MB)...", filename, size_mb));
-    }
+    let completed_parts = if is_multipart {
+        let upload_parts = parse_upload_parts(data)?;
+        let part_count = upload_parts.len();
 
-    let file_handle = std::fs::File::open(path)
-        .map_err(|e| ApiError::Other(format!("Cannot open file: {}", e)))?;
+        if format == OutputFormat::Table {
+            print_message(&format!(
+                "Uploading {} ({:.1} MB) in {} parts...",
+                filename, size_mb, part_count
+            ));
+        }
 
-    client.put_file(upload_url, file_handle, content_length)?;
+        Some(upload_multipart(
+            client,
+            path,
+            content_length,
+            &upload_parts,
+            format,
+        )?)
+    } else {
+        let upload_url = data["upload_url"]
+            .as_str()
+            .ok_or_else(|| ApiError::Other("Missing upload URL in response".to_string()))?;
+
+        if format == OutputFormat::Table {
+            print_message(&format!("Uploading {} ({:.1} MB)...", filename, size_mb));
+        }
+
+        let file_handle = std::fs::File::open(path)
+            .map_err(|e| ApiError::Other(format!("Cannot open file: {}", e)))?;
+
+        client.put_file(upload_url, file_handle, content_length)?;
+        None
+    };
 
     if format == OutputFormat::Table {
         print_message("Upload complete.");
@@ -125,10 +154,14 @@ pub fn import(
         print_message("Starting import...");
     }
 
-    let run_response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/imports/{}/run",
-        site_id, import_id
-    ))?;
+    let run_path = format!("/api/v1/vector/sites/{}/imports/{}/run", site_id, import_id);
+
+    let run_response: Value = if let Some(ref parts) = completed_parts {
+        let body = serde_json::json!({ "parts": parts });
+        client.post(&run_path, &body)?
+    } else {
+        client.post_empty(&run_path)?
+    };
 
     if format == OutputFormat::Table {
         print_message("Import started.");
@@ -203,4 +236,66 @@ pub fn import(
     }
 
     Ok(())
+}
+
+fn parse_upload_parts(data: &Value) -> Result<Vec<UploadPart>, ApiError> {
+    let parts_array = data["upload_parts"]
+        .as_array()
+        .ok_or_else(|| ApiError::Other("Missing upload_parts in response".to_string()))?;
+
+    parts_array
+        .iter()
+        .map(|p| {
+            let part_number = p["part_number"]
+                .as_u64()
+                .ok_or_else(|| ApiError::Other("Missing part_number".to_string()))?;
+            let url = p["url"]
+                .as_str()
+                .ok_or_else(|| ApiError::Other("Missing part url".to_string()))?
+                .to_string();
+            Ok(UploadPart { part_number, url })
+        })
+        .collect()
+}
+
+fn upload_multipart(
+    client: &ApiClient,
+    file_path: &Path,
+    content_length: u64,
+    parts: &[UploadPart],
+    format: OutputFormat,
+) -> Result<Vec<CompletedPart>, ApiError> {
+    let part_count = parts.len() as u64;
+    let base_size = content_length / part_count;
+    let last_size = content_length - base_size * (part_count - 1);
+
+    let mut completed = Vec::with_capacity(parts.len());
+
+    for (i, part) in parts.iter().enumerate() {
+        let chunk_size = if (i as u64) < part_count - 1 {
+            base_size
+        } else {
+            last_size
+        };
+        let offset = base_size * i as u64;
+
+        if format == OutputFormat::Table {
+            print_message(&format!("Uploading part {}/{}...", i + 1, part_count));
+        }
+
+        let mut file = std::fs::File::open(file_path)
+            .map_err(|e| ApiError::Other(format!("Cannot open file: {}", e)))?;
+        file.seek(SeekFrom::Start(offset))
+            .map_err(|e| ApiError::Other(format!("Cannot seek file: {}", e)))?;
+        let reader = file.take(chunk_size);
+
+        let etag = client.put_file_part(&part.url, reader, chunk_size)?;
+
+        completed.push(CompletedPart {
+            part_number: part.part_number,
+            etag,
+        });
+    }
+
+    Ok(completed)
 }

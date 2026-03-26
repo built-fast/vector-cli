@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::api::{ApiClient, ApiError};
+use crate::api::{ApiClient, ApiError, CompletedPart};
 use crate::output::{OutputFormat, format_option, print_json, print_key_value, print_message};
 
 #[derive(Debug, Serialize)]
@@ -81,25 +81,54 @@ pub fn import_session_create(
     }
 
     let data = &response["data"];
-    print_key_value(vec![
-        ("Import ID", data["id"].as_str().unwrap_or("-").to_string()),
-        ("Status", data["status"].as_str().unwrap_or("-").to_string()),
-        (
-            "Upload URL",
-            format_option(&data["upload_url"].as_str().map(String::from)),
-        ),
-        (
-            "Expires",
-            format_option(&data["upload_expires_at"].as_str().map(String::from)),
-        ),
-    ]);
+    let is_multipart = data["is_multipart"].as_bool().unwrap_or(false);
+    let import_id = data["id"].as_str().unwrap_or("-");
 
-    print_message("\nUpload your SQL file to the URL above, then run:");
-    print_message(&format!(
-        "  vector db import-session run {} {}",
-        site_id,
-        data["id"].as_str().unwrap_or("IMPORT_ID")
-    ));
+    if is_multipart {
+        print_key_value(vec![
+            ("Import ID", import_id.to_string()),
+            ("Status", data["status"].as_str().unwrap_or("-").to_string()),
+            ("Multipart", "Yes".to_string()),
+            (
+                "Upload ID",
+                format_option(&data["upload_id"].as_str().map(String::from)),
+            ),
+            (
+                "Part Count",
+                format_option(&data["part_count"].as_u64().map(|v| v.to_string())),
+            ),
+            (
+                "Expires",
+                format_option(&data["upload_expires_at"].as_str().map(String::from)),
+            ),
+        ]);
+
+        print_message("\nUse --json to see all part URLs.");
+        print_message("After uploading each part, run with the ETags:");
+        print_message(&format!(
+            "  vector db import-session run {} {} --parts '[{{\"part_number\":1,\"etag\":\"...\"}},...]'",
+            site_id, import_id
+        ));
+    } else {
+        print_key_value(vec![
+            ("Import ID", import_id.to_string()),
+            ("Status", data["status"].as_str().unwrap_or("-").to_string()),
+            (
+                "Upload URL",
+                format_option(&data["upload_url"].as_str().map(String::from)),
+            ),
+            (
+                "Expires",
+                format_option(&data["upload_expires_at"].as_str().map(String::from)),
+            ),
+        ]);
+
+        print_message("\nUpload your SQL file to the URL above, then run:");
+        print_message(&format!(
+            "  vector db import-session run {} {}",
+            site_id, import_id
+        ));
+    };
 
     Ok(())
 }
@@ -108,12 +137,19 @@ pub fn import_session_run(
     client: &ApiClient,
     site_id: &str,
     import_id: &str,
+    parts: Option<String>,
     format: OutputFormat,
 ) -> Result<(), ApiError> {
-    let response: Value = client.post_empty(&format!(
-        "/api/v1/vector/sites/{}/imports/{}/run",
-        site_id, import_id
-    ))?;
+    let run_path = format!("/api/v1/vector/sites/{}/imports/{}/run", site_id, import_id);
+
+    let response: Value = if let Some(parts_json) = parts {
+        let completed_parts: Vec<CompletedPart> = serde_json::from_str(&parts_json)
+            .map_err(|e| ApiError::Other(format!("Invalid parts JSON: {}", e)))?;
+        let body = serde_json::json!({ "parts": completed_parts });
+        client.post(&run_path, &body)?
+    } else {
+        client.post_empty(&run_path)?
+    };
 
     if format == OutputFormat::Json {
         print_json(&response);

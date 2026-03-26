@@ -155,7 +155,7 @@ vector ssl nudge <env_id> [--retry]
 ```bash
 # Import session for large files
 vector db import-session create <site_id> [--filename <name>] [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>]
-vector db import-session run <site_id> <import_id>
+vector db import-session run <site_id> <import_id> [--parts '<json>']
 vector db import-session status <site_id> <import_id>
 
 # Export
@@ -163,11 +163,23 @@ vector db export create <site_id>
 vector db export status <site_id> <export_id>
 ```
 
+When `--content-length` exceeds 5GB, the API returns multipart upload details
+instead of a single upload URL. Use `--json` to see all part URLs. After
+uploading each part, pass the ETags to the run command:
+
+```bash
+vector db import-session run <site_id> <import_id> --parts '[{"part_number":1,"etag":"\"abc...\""},...]'
+```
+
 ### Archives
 
 ```bash
 vector archive import <site_id> <file.tar.gz> [--drop-tables] [--disable-foreign-keys] [--search-replace-from <from>] [--search-replace-to <to>] [--wait] [--poll-interval <seconds>]
 ```
+
+Files larger than 5GB are automatically uploaded using S3 multipart upload.
+The CLI handles splitting the file into parts, uploading each one, and
+finalizing the upload — no additional flags are needed.
 
 ### Backups
 
