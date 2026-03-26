@@ -9,8 +9,56 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/built-fast/vector-cli/internal/appctx"
 	"github.com/built-fast/vector-cli/internal/output"
 )
+
+func uploadMultipart(cmd *cobra.Command, app *appctx.App, file *os.File, fileSize int64, filename string, importID string, uploadParts []any) ([]map[string]any, error) {
+	w := cmd.ErrOrStderr()
+	partCount := int64(len(uploadParts))
+	baseSize := fileSize / partCount
+	lastSize := fileSize - baseSize*(partCount-1)
+
+	sizeMB := float64(fileSize) / (1024 * 1024)
+	_, _ = fmt.Fprintf(w, "Uploading %s (%.1f MB) in %d parts...\n", filename, sizeMB, partCount)
+
+	completedParts := make([]map[string]any, 0, partCount)
+
+	for i, part := range uploadParts {
+		partMap, ok := part.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("invalid upload part at index %d", i)
+		}
+
+		partNumber := int(getFloat(partMap, "part_number"))
+		partURL := getString(partMap, "url")
+		if partURL == "" {
+			return nil, fmt.Errorf("upload part %d missing URL", partNumber)
+		}
+
+		chunkSize := baseSize
+		if i == len(uploadParts)-1 {
+			chunkSize = lastSize
+		}
+		offset := baseSize * int64(i)
+
+		_, _ = fmt.Fprintf(w, "  Uploading part %d/%d...\n", partNumber, partCount)
+
+		section := io.NewSectionReader(file, offset, chunkSize)
+		etag, err := app.Client.PutFilePart(cmd.Context(), partURL, section, chunkSize)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload part %d: %w", partNumber, err)
+		}
+
+		completedParts = append(completedParts, map[string]any{
+			"part_number": partNumber,
+			"etag":        etag,
+		})
+	}
+
+	_, _ = fmt.Fprintln(w, "Upload complete.")
+	return completedParts, nil
+}
 
 // NewArchiveCmd creates the archive command group.
 func NewArchiveCmd() *cobra.Command {
@@ -116,40 +164,59 @@ func newArchiveImportCmd() *cobra.Command {
 			}
 
 			importID := getString(item, "id")
-			uploadURL := getString(item, "upload_url")
-
-			if importID == "" || uploadURL == "" {
-				return fmt.Errorf("import session response missing upload URL or import ID")
+			if importID == "" {
+				return fmt.Errorf("import session response missing import ID")
 			}
 
-			// Step 2: Upload file to presigned URL
-			sizeMB := float64(fileSize) / (1024 * 1024)
-			_, _ = fmt.Fprintf(w, "Uploading %s (%.1f MB)...\n", filename, sizeMB)
+			// Step 2: Upload file
+			var runBody any
 
-			uploadResp, err := app.Client.PutFile(cmd.Context(), uploadURL, file)
-			if err != nil {
-				return fmt.Errorf("failed to upload file: %w", err)
+			if getBool(item, "is_multipart") {
+				uploadParts := getSlice(item, "upload_parts")
+				if len(uploadParts) == 0 {
+					return fmt.Errorf("multipart import session response missing upload parts")
+				}
+
+				completedParts, uploadErr := uploadMultipart(cmd, app, file, fileSize, filename, importID, uploadParts)
+				if uploadErr != nil {
+					return uploadErr
+				}
+
+				runBody = map[string]any{"parts": completedParts}
+			} else {
+				uploadURL := getString(item, "upload_url")
+				if uploadURL == "" {
+					return fmt.Errorf("import session response missing upload URL")
+				}
+
+				sizeMB := float64(fileSize) / (1024 * 1024)
+				_, _ = fmt.Fprintf(w, "Uploading %s (%.1f MB)...\n", filename, sizeMB)
+
+				uploadResp, uploadErr := app.Client.PutFile(cmd.Context(), uploadURL, file)
+				if uploadErr != nil {
+					return fmt.Errorf("failed to upload file: %w", uploadErr)
+				}
+				defer func() { _ = uploadResp.Body.Close() }()
+
+				_, _ = fmt.Fprintln(w, "Upload complete.")
 			}
-			defer func() { _ = uploadResp.Body.Close() }()
-
-			_, _ = fmt.Fprintln(w, "Upload complete.")
 
 			// Step 3: Trigger import
 			_, _ = fmt.Fprintln(w, "Starting import...")
 
 			runEndpoint := fmt.Sprintf("%s/%s/run", importsPath(siteID), importID)
-			runResp, err := app.Client.Post(cmd.Context(), runEndpoint, nil)
+			runResp, err := app.Client.Post(cmd.Context(), runEndpoint, runBody)
 			if err != nil {
 				return fmt.Errorf("failed to start import: %w", err)
 			}
 			defer func() { _ = runResp.Body.Close() }()
 
-			runBody, err := io.ReadAll(runResp.Body)
+			runRespBody, err := io.ReadAll(runResp.Body)
 			if err != nil {
 				return fmt.Errorf("failed to start import: %w", err)
 			}
 
-			runData, err := parseResponseData(runBody)
+			runData, err := parseResponseData(runRespBody)
 			if err != nil {
 				return fmt.Errorf("failed to start import: %w", err)
 			}

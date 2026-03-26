@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -197,6 +198,68 @@ func TestClient_PutFile(t *testing.T) {
 	assert.Equal(t, http.MethodPut, gotMethod)
 	assert.Equal(t, "vector-cli/test", gotUserAgent)
 	assert.Equal(t, "file-content", string(gotBody))
+}
+
+func TestClient_PutFilePart(t *testing.T) {
+	var gotMethod, gotUserAgent string
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotUserAgent = r.Header.Get("User-Agent")
+		gotBody, _ = io.ReadAll(r.Body)
+		// PutFilePart should not add Authorization or Accept headers (presigned S3 URL).
+		assert.Empty(t, r.Header.Get("Authorization"))
+		assert.Empty(t, r.Header.Get("Accept"))
+		w.Header().Set("Etag", `"abc123"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	content := []byte("chunk-data-here")
+	reader := bytes.NewReader(content)
+
+	c := NewClient("https://api.example.com", "tok", "vector-cli/test")
+	etag, err := c.PutFilePart(context.Background(), srv.URL+"/upload/part1", reader, int64(len(content)))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.MethodPut, gotMethod)
+	assert.Equal(t, "vector-cli/test", gotUserAgent)
+	assert.Equal(t, "chunk-data-here", string(gotBody))
+	assert.Equal(t, `"abc123"`, etag)
+}
+
+func TestClient_PutFilePartErrorResponse(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	content := []byte("data")
+	reader := bytes.NewReader(content)
+
+	c := NewClient("https://api.example.com", "tok", "")
+	_, err := c.PutFilePart(context.Background(), srv.URL+"/upload", reader, int64(len(content)))
+	require.Error(t, err)
+
+	apiErr, ok := err.(*APIError)
+	require.True(t, ok, "error should be *APIError")
+	assert.Equal(t, 403, apiErr.HTTPStatus)
+}
+
+func TestClient_PutFilePartMissingEtag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Return 200 but no ETag header
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	content := []byte("data")
+	reader := bytes.NewReader(content)
+
+	c := NewClient("https://api.example.com", "tok", "")
+	_, err := c.PutFilePart(context.Background(), srv.URL+"/upload", reader, int64(len(content)))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing ETag")
 }
 
 func TestClient_ErrorResponse(t *testing.T) {

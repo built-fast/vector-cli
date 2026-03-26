@@ -48,14 +48,14 @@ load test_helper
 
 @test "db import-session create returns valid JSON (default non-TTY)" {
   create_credentials "test-token"
-  run vector db import-session create 01JTEST00000000000000SITE01
+  run vector db import-session create 01JTEST00000000000000SITE01 --content-length 52428800
   assert_success
   is_valid_json
 }
 
 @test "db import-session create --no-json returns key-value output" {
   create_credentials "test-token"
-  run vector db import-session create 01JTEST00000000000000SITE01 --no-json
+  run vector db import-session create 01JTEST00000000000000SITE01 --content-length 52428800 --no-json
   assert_success
   assert_output_contains "Import ID"
   assert_output_contains "Status"
@@ -63,7 +63,7 @@ load test_helper
 
 @test "db import-session create with flags succeeds" {
   create_credentials "test-token"
-  run vector db import-session create 01JTEST00000000000000SITE01 --filename test.sql --drop-tables
+  run vector db import-session create 01JTEST00000000000000SITE01 --content-length 1024 --filename test.sql --drop-tables
   assert_success
 }
 
@@ -119,7 +119,7 @@ load test_helper
 }
 
 @test "db import-session create without auth fails with exit code 2" {
-  run vector db import-session create 01JTEST00000000000000SITE01
+  run vector db import-session create 01JTEST00000000000000SITE01 --content-length 1024
   assert_failure
   assert_exit_code 2
 }

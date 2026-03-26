@@ -547,14 +547,18 @@ Creates a SQL dump, then poll status for the download URL.
 #### vector db import-session create / run / status
 
 ```
-vector db import-session create <site-id> [--filename <name>] \
-  [--content-length <bytes>] [--drop-tables] [--disable-foreign-keys] \
+vector db import-session create <site-id> --content-length <bytes> \
+  [--filename <name>] [--drop-tables] [--disable-foreign-keys] \
   [--search-replace-from <from>] [--search-replace-to <to>]
-vector db import-session run <site-id> <import-id>
+vector db import-session run <site-id> <import-id> [--parts '<json>']
 vector db import-session status <site-id> <import-id>
 ```
 
 Three-step import: create session (get upload URL), upload file, run import.
+For files >= 5GB, the create response includes multipart upload details
+(`is_multipart`, `upload_parts`). Use `--json` to get presigned URLs for each
+part. After uploading all parts, pass the completed ETags to the run command
+with `--parts`.
 
 #### vector archive import
 
@@ -564,6 +568,7 @@ vector archive import <site-id> <file> [--drop-tables] [--disable-foreign-keys] 
 ```
 
 One-command archive import: creates session, uploads file, and runs import.
+Files >= 5GB are automatically uploaded using S3 multipart upload.
 
 ---
 
@@ -737,9 +742,11 @@ vector db export status <site-id> <export-id> --json
 vector archive import <site-id> dump.sql
 
 # Import (multi-step)
-vector db import-session create <site-id> --filename dump.sql --json
-# Upload file to the returned presigned URL
+vector db import-session create <site-id> --content-length 52428800 --filename dump.sql --json
+# Upload file to the returned presigned URL (single or multipart)
 vector db import-session run <site-id> <import-id>
+# For multipart uploads, pass completed parts:
+# vector db import-session run <site-id> <import-id> --parts '[{"part_number":1,"etag":"\"...\""},...]'
 vector db import-session status <site-id> <import-id> --json
 ```
 

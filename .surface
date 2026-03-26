@@ -238,6 +238,7 @@ FLAG vector db import-session create --drop-tables type=bool
 FLAG vector db import-session create --filename type=string
 FLAG vector db import-session create --search-replace-from type=string
 FLAG vector db import-session create --search-replace-to type=string
+FLAG vector db import-session run --parts type=string
 FLAG vector deploy list --page type=int
 FLAG vector deploy list --per-page type=int
 FLAG vector deploy rollback --poll-interval type=duration

@@ -378,7 +378,7 @@ func TestArchiveImportCmd_MissingUploadURL(t *testing.T) {
 
 	err := cmd.Execute()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "import session response missing upload URL or import ID")
+	assert.Contains(t, err.Error(), "import session response missing upload URL")
 }
 
 func TestArchiveImportCmd_AuthError(t *testing.T) {
@@ -410,6 +410,182 @@ func TestArchiveImportCmd_NoAuth(t *testing.T) {
 	var apiErr *api.APIError
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 2, apiErr.ExitCode)
+}
+
+// --- Archive Import Multipart Tests ---
+
+var archiveImportRunMultipartResponse = map[string]any{
+	"data": map[string]any{
+		"id":             "imp-200",
+		"vector_site_id": "site-001",
+		"status":         "importing",
+		"filename":       "archive.tar.gz",
+		"created_at":     "2025-01-15T12:00:00+00:00",
+	},
+	"message":     "Archive import started",
+	"http_status": 202,
+}
+
+func newArchiveImportMultipartTestServer(t *testing.T, validToken string) (*httptest.Server, *map[string]any) {
+	t.Helper()
+
+	var capturedRunBody map[string]any
+	mux := http.NewServeMux()
+
+	// Part upload endpoints (presigned URL simulation — no auth required)
+	mux.HandleFunc("/upload/part/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		_, _ = io.ReadAll(r.Body)
+		// Return a unique ETag per part based on the URL path
+		w.Header().Set("Etag", `"etag-`+r.URL.Path+`"`)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// API endpoints
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Unauthenticated.",
+				"http_status": 401,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == "POST" && path == "/api/v1/vector/sites/site-001/imports":
+			w.WriteHeader(http.StatusCreated)
+			resp := map[string]any{
+				"data": map[string]any{
+					"id":           "imp-200",
+					"status":       "pending",
+					"is_multipart": true,
+					"upload_id":    "mp-upload-123",
+					"part_count":   float64(3),
+					"upload_parts": []any{
+						map[string]any{"part_number": float64(1), "url": "http://" + r.Host + "/upload/part/1"},
+						map[string]any{"part_number": float64(2), "url": "http://" + r.Host + "/upload/part/2"},
+						map[string]any{"part_number": float64(3), "url": "http://" + r.Host + "/upload/part/3"},
+					},
+					"upload_expires_at": "2025-01-16T12:00:00+00:00",
+				},
+				"message":     "Import session created successfully",
+				"http_status": 201,
+			}
+			_ = json.NewEncoder(w).Encode(resp)
+
+		case method == "POST" && path == "/api/v1/vector/sites/site-001/imports/imp-200/run":
+			body, _ := io.ReadAll(r.Body)
+			_ = json.Unmarshal(body, &capturedRunBody)
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(archiveImportRunMultipartResponse)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Not Found",
+				"http_status": 404,
+			})
+		}
+	})
+
+	srv := httptest.NewServer(mux)
+	return srv, &capturedRunBody
+}
+
+func TestArchiveImportCmd_MultipartTableOutput(t *testing.T) {
+	ts, capturedRunBody := newArchiveImportMultipartTestServer(t, "valid-token")
+	defer ts.Close()
+
+	// Create a temp file with enough content for 3 parts
+	tmpFile := filepath.Join(t.TempDir(), "archive.tar.gz")
+	require.NoError(t, os.WriteFile(tmpFile, bytes.Repeat([]byte("x"), 300), 0644))
+
+	cmd, stdout, stderr := buildArchiveCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"archive", "import", "site-001", tmpFile})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "imp-200")
+	assert.Contains(t, out, "importing")
+
+	errOut := stderr.String()
+	assert.Contains(t, errOut, "Creating import session...")
+	assert.Contains(t, errOut, "in 3 parts...")
+	assert.Contains(t, errOut, "Uploading part 1/3...")
+	assert.Contains(t, errOut, "Uploading part 2/3...")
+	assert.Contains(t, errOut, "Uploading part 3/3...")
+	assert.Contains(t, errOut, "Upload complete.")
+	assert.Contains(t, errOut, "Starting import...")
+	assert.Contains(t, errOut, "Import started.")
+
+	// Verify run body includes completed parts
+	parts, ok := (*capturedRunBody)["parts"].([]any)
+	require.True(t, ok, "run body should contain parts array")
+	assert.Len(t, parts, 3)
+
+	for i, p := range parts {
+		pm := p.(map[string]any)
+		assert.Equal(t, float64(i+1), pm["part_number"])
+		assert.NotEmpty(t, pm["etag"])
+	}
+}
+
+func TestArchiveImportCmd_MultipartJSONOutput(t *testing.T) {
+	ts, _ := newArchiveImportMultipartTestServer(t, "valid-token")
+	defer ts.Close()
+
+	tmpFile := filepath.Join(t.TempDir(), "archive.tar.gz")
+	require.NoError(t, os.WriteFile(tmpFile, bytes.Repeat([]byte("x"), 300), 0644))
+
+	cmd, stdout, _ := buildArchiveCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"archive", "import", "site-001", tmpFile})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "imp-200", result["id"])
+	assert.Equal(t, "importing", result["status"])
+}
+
+func TestArchiveImportCmd_MultipartMissingParts(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"id":           "imp-200",
+				"status":       "pending",
+				"is_multipart": true,
+				"upload_parts": []any{},
+				"upload_id":    "mp-upload-123",
+				"part_count":   float64(0),
+			},
+		})
+	}))
+	defer ts.Close()
+
+	tmpFile := createTempArchiveFile(t)
+
+	cmd, _, _ := buildArchiveCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"archive", "import", "site-001", tmpFile})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "multipart import session response missing upload parts")
 }
 
 // --- Help Tests ---

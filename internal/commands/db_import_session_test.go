@@ -162,7 +162,7 @@ func TestDbImportSessionCreateCmd_TableOutput(t *testing.T) {
 	defer ts.Close()
 
 	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
-	cmd.SetArgs([]string{"db", "import-session", "create", "site-001"})
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
@@ -180,7 +180,7 @@ func TestDbImportSessionCreateCmd_JSONOutput(t *testing.T) {
 	defer ts.Close()
 
 	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
-	cmd.SetArgs([]string{"db", "import-session", "create", "site-001"})
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
@@ -206,13 +206,14 @@ func TestDbImportSessionCreateCmd_HTTPPath(t *testing.T) {
 	defer ts.Close()
 
 	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
-	cmd.SetArgs([]string{"db", "import-session", "create", "site-001"})
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
 	assert.Equal(t, "POST", receivedMethod)
 	assert.Equal(t, "/api/v1/vector/sites/site-001/imports", receivedPath)
 	assert.Equal(t, "database", receivedBody["scope"])
+	assert.Equal(t, float64(52428800), receivedBody["content_length"])
 }
 
 func TestDbImportSessionCreateCmd_WithOptions(t *testing.T) {
@@ -271,7 +272,7 @@ func TestDbImportSessionCreateCmd_AuthError(t *testing.T) {
 	defer ts.Close()
 
 	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
-	cmd.SetArgs([]string{"db", "import-session", "create", "site-001"})
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "1024"})
 
 	err := cmd.Execute()
 	require.Error(t, err)
@@ -283,7 +284,7 @@ func TestDbImportSessionCreateCmd_AuthError(t *testing.T) {
 
 func TestDbImportSessionCreateCmd_NoAuth(t *testing.T) {
 	cmd, _, _ := buildDbCmdNoAuth(output.Table)
-	cmd.SetArgs([]string{"db", "import-session", "create", "site-001"})
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "1024"})
 
 	err := cmd.Execute()
 	require.Error(t, err)
@@ -467,6 +468,179 @@ func TestDbImportSessionStatusCmd_AuthError(t *testing.T) {
 	var apiErr *api.APIError
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 2, apiErr.ExitCode)
+}
+
+// --- Import Session Create Multipart Tests ---
+
+var importSessionCreateMultipartResponse = map[string]any{
+	"data": map[string]any{
+		"id":             "imp-002",
+		"vector_site_id": "site-001",
+		"status":         "pending",
+		"is_multipart":   true,
+		"upload_id":      "mp-upload-456",
+		"part_count":     float64(3),
+		"upload_parts": []any{
+			map[string]any{"part_number": float64(1), "url": "https://s3.example.com/part1"},
+			map[string]any{"part_number": float64(2), "url": "https://s3.example.com/part2"},
+			map[string]any{"part_number": float64(3), "url": "https://s3.example.com/part3"},
+		},
+		"upload_expires_at": "2025-01-15T13:00:00+00:00",
+	},
+	"message":     "Import session created successfully",
+	"http_status": 201,
+}
+
+func newImportSessionMultipartTestServer(validToken string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Unauthenticated.",
+				"http_status": 401,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		path := r.URL.Path
+		method := r.Method
+
+		switch {
+		case method == "POST" && path == "/api/v1/vector/sites/site-001/imports":
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(importSessionCreateMultipartResponse)
+
+		case method == "POST" && path == "/api/v1/vector/sites/site-001/imports/imp-001/run":
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(importSessionRunResponse)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message":     "Not Found",
+				"http_status": 404,
+			})
+		}
+	}))
+}
+
+func TestDbImportSessionCreateCmd_MultipartTableOutput(t *testing.T) {
+	ts := newImportSessionMultipartTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "16106127360"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "imp-002")
+	assert.Contains(t, out, "pending")
+	assert.Contains(t, out, "Multipart")
+	assert.Contains(t, out, "Yes")
+	assert.Contains(t, out, "Part Count")
+	assert.Contains(t, out, "3")
+	assert.Contains(t, out, "Upload ID")
+	assert.Contains(t, out, "mp-upload-456")
+	assert.Contains(t, out, "Use --json to get the presigned URLs for each part")
+	assert.Contains(t, out, "--parts")
+}
+
+func TestDbImportSessionCreateCmd_MultipartJSONOutput(t *testing.T) {
+	ts := newImportSessionMultipartTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "16106127360"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "imp-002", result["id"])
+	assert.Equal(t, true, result["is_multipart"])
+	parts, ok := result["upload_parts"].([]any)
+	require.True(t, ok)
+	assert.Len(t, parts, 3)
+}
+
+// --- Import Session Run with --parts Tests ---
+
+func TestDbImportSessionRunCmd_WithParts(t *testing.T) {
+	var capturedBody map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &capturedBody)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(importSessionRunResponse)
+	}))
+	defer ts.Close()
+
+	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{
+		"db", "import-session", "run", "site-001", "imp-001",
+		"--parts", `[{"part_number":1,"etag":"\"etag1\""},{"part_number":2,"etag":"\"etag2\""}]`,
+	})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	out := stdout.String()
+	assert.Contains(t, out, "imp-001")
+	assert.Contains(t, out, "uploaded")
+
+	parts, ok := capturedBody["parts"].([]any)
+	require.True(t, ok, "request body should contain parts array")
+	assert.Len(t, parts, 2)
+
+	p1 := parts[0].(map[string]any)
+	assert.Equal(t, float64(1), p1["part_number"])
+	assert.Equal(t, `"etag1"`, p1["etag"])
+
+	p2 := parts[1].(map[string]any)
+	assert.Equal(t, float64(2), p2["part_number"])
+	assert.Equal(t, `"etag2"`, p2["etag"])
+}
+
+func TestDbImportSessionRunCmd_WithoutParts(t *testing.T) {
+	var capturedBody []byte
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(importSessionRunResponse)
+	}))
+	defer ts.Close()
+
+	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+
+	// Without --parts, body should be empty (no Content-Type, no JSON)
+	assert.Empty(t, capturedBody)
+}
+
+func TestDbImportSessionRunCmd_InvalidPartsJSON(t *testing.T) {
+	ts := newImportSessionTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{
+		"db", "import-session", "run", "site-001", "imp-001",
+		"--parts", "not-valid-json",
+	})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse --parts")
 }
 
 // --- Help Tests ---

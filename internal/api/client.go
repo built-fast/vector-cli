@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -85,6 +86,34 @@ func (c *Client) PutFile(ctx context.Context, url string, file *os.File) (*http.
 		return nil, ParseErrorResponse(resp)
 	}
 	return resp, nil
+}
+
+// PutFilePart uploads a file part via PUT to the given URL (typically a presigned
+// S3 URL for multipart uploads). It returns the ETag header from the response.
+// Unlike other methods, this does not add Authorization or Accept headers.
+func (c *Client) PutFilePart(ctx context.Context, url string, body io.Reader, contentLength int64) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, body)
+	if err != nil {
+		return "", fmt.Errorf("creating file part upload request: %w", err)
+	}
+	req.ContentLength = contentLength
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("executing file part upload: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", ParseErrorResponse(resp)
+	}
+
+	etag := resp.Header.Get("Etag")
+	if etag == "" {
+		return "", fmt.Errorf("S3 response missing ETag header")
+	}
+	return etag, nil
 }
 
 // jsonRequest is a helper that JSON-encodes a body and sends a request.
