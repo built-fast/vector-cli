@@ -334,9 +334,11 @@ fn run_db_import_session(
             search_replace_to,
             format,
         ),
-        DbImportSessionCommands::Run { site_id, import_id } => {
-            db::import_session_run(client, &site_id, &import_id, format)
-        }
+        DbImportSessionCommands::Run {
+            site_id,
+            import_id,
+            parts,
+        } => db::import_session_run(client, &site_id, &import_id, parts, format),
         DbImportSessionCommands::Status { site_id, import_id } => {
             db::import_session_status(client, &site_id, &import_id, format)
         }

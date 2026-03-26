@@ -1,11 +1,19 @@
-use reqwest::blocking::{Client, Response};
+use std::io::Read;
+
+use reqwest::blocking::{Body, Client, Response};
 use reqwest::header::{
     ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, HeaderMap, HeaderValue,
 };
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use super::error::ApiError;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompletedPart {
+    pub part_number: u64,
+    pub etag: String,
+}
 
 const DEFAULT_BASE_URL: &str = "https://api.builtfast.com";
 const USER_AGENT: &str = concat!("vector-cli/", env!("CARGO_PKG_VERSION"));
@@ -161,7 +169,7 @@ impl ApiClient {
             .put(url)
             .header(CONTENT_TYPE, "application/gzip")
             .header(CONTENT_LENGTH, content_length)
-            .body(reqwest::blocking::Body::from(file))
+            .body(Body::from(file))
             .send()
             .map_err(ApiError::NetworkError)?;
 
@@ -172,6 +180,38 @@ impl ApiClient {
             let body = response.text().map_err(ApiError::NetworkError)?;
             Err(ApiError::Other(format!(
                 "Upload failed ({}): {}",
+                status, body
+            )))
+        }
+    }
+
+    pub fn put_file_part<R: Read + Send + 'static>(
+        &self,
+        url: &str,
+        reader: R,
+        content_length: u64,
+    ) -> Result<String, ApiError> {
+        let response = self
+            .client
+            .put(url)
+            .header(CONTENT_TYPE, "application/gzip")
+            .body(Body::sized(reader, content_length))
+            .send()
+            .map_err(ApiError::NetworkError)?;
+
+        if response.status().is_success() {
+            let etag = response
+                .headers()
+                .get("etag")
+                .and_then(|v| v.to_str().ok())
+                .map(|s| s.to_string())
+                .ok_or_else(|| ApiError::Other("S3 response missing ETag header".to_string()))?;
+            Ok(etag)
+        } else {
+            let status = response.status();
+            let body = response.text().map_err(ApiError::NetworkError)?;
+            Err(ApiError::Other(format!(
+                "Part upload failed ({}): {}",
                 status, body
             )))
         }

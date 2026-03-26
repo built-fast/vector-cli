@@ -571,6 +571,9 @@ pub enum DbImportSessionCommands {
         site_id: String,
         /// Import ID
         import_id: String,
+        /// Completed parts JSON for multipart uploads (e.g., '[{"part_number":1,"etag":"\"...\""}]')
+        #[arg(long)]
+        parts: Option<String>,
     },
     /// Check archive import session status
     Status {

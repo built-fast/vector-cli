@@ -211,8 +211,15 @@ Create an import session. Options:
 .B \-\-search\-replace\-to
 .IR TO .
 .TP
-.B db import\-session run \fISITE_ID\fR \fIIMPORT_ID\fR
-Run an import session.
+.B db import\-session run \fISITE_ID\fR \fIIMPORT_ID\fR \fR[\fB\-\-parts\fR \fIJSON\fR]
+Run an import session. For multipart uploads, provide the completed parts as a
+JSON array with
+.BR \-\-parts .
+Each element must contain
+.B part_number
+(integer) and
+.B etag
+(string, as returned by S3).
 .TP
 .B db import\-session status \fISITE_ID\fR \fIIMPORT_ID\fR
 Check the status of an import session.
@@ -229,7 +236,8 @@ Check the status of a database export.
 .TP
 .B archive import \fISITE_ID\fR \fIFILE\fR \fR[\fIOPTIONS\fR]
 Import an archive (.tar.gz) to a site. The file is uploaded and processed
-on the server. Options:
+on the server. Files larger than 5GB are automatically uploaded using S3
+multipart upload (streamed in parts, no additional flags needed). Options:
 .B \-\-drop\-tables\fR,
 .B \-\-disable\-foreign\-keys\fR,
 .B \-\-search\-replace\-from
