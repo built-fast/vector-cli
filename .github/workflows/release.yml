@@ -102,6 +102,7 @@ jobs:
           gh workflow run bump-formula.yml \
             -f formula=vector \
             -f version=${GITHUB_REF##refs/tags/} \
+            -f type=rust \
             -R built-fast/homebrew-devtools
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
