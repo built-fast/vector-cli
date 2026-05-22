@@ -167,8 +167,14 @@ load test_helper
 
 @test "site logs succeeds" {
   create_credentials "test-token"
-  run vector site logs 01JTEST00000000000000000AA
+  run vector site logs 01JTEST00000000000000000AA --environment prod
   assert_success
+}
+
+@test "site logs requires --environment" {
+  create_credentials "test-token"
+  run vector site logs 01JTEST00000000000000000AA
+  assert_failure
 }
 
 

@@ -864,11 +864,11 @@ func newSiteLogsCmd() *cobra.Command {
 		Use:   "logs <site-id>",
 		Short: "View site logs",
 		Long:  "Retrieve logs for a site. Logs are returned in reverse chronological order.",
-		Example: `  # View recent logs
-  vector site logs site-abc123
+		Example: `  # View recent logs for an environment
+  vector site logs site-abc123 --environment prod
 
   # View error logs with a limit
-  vector site logs site-abc123 --level error --limit 100`,
+  vector site logs site-abc123 --environment prod --level error --limit 100`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := requireApp(cmd)
@@ -911,10 +911,12 @@ func newSiteLogsCmd() *cobra.Command {
 	cmd.Flags().String("start-time", "", "Start time (RFC3339 or relative, e.g., now-1h)")
 	cmd.Flags().String("end-time", "", "End time (RFC3339 or relative)")
 	cmd.Flags().Int("limit", 0, "Maximum number of log entries (1-1000)")
-	cmd.Flags().String("environment", "", "Filter by environment name")
+	cmd.Flags().String("environment", "", "Environment name (e.g., prod, staging) (required)")
 	cmd.Flags().String("deployment-id", "", "Filter by deployment ID")
 	cmd.Flags().String("level", "", "Filter by log level (error, warning, info)")
 	cmd.Flags().String("cursor", "", "Pagination cursor from previous response")
+
+	_ = cmd.MarkFlagRequired("environment")
 
 	return cmd
 }

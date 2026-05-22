@@ -107,16 +107,16 @@ Reset the database password for a site.
 .B site purge\-cache \fIID\fR \fR[\fB\-\-cache\-tag\fR \fITAG\fR] [\fB\-\-url\fR \fIURL\fR]
 Purge the cache for a site. Optionally filter by cache tag or URL.
 .TP
-.B site logs \fIID\fR \fR[\fIOPTIONS\fR]
-View site logs. Options:
+.B site logs \fIID\fR \fB\-\-environment\fR \fINAME\fR \fR[\fIOPTIONS\fR]
+View site logs. The
+.B \-\-environment
+flag is required. Options:
 .B \-\-start\-time
 .IR ISO8601 ,
 .B \-\-end\-time
 .IR ISO8601 ,
 .B \-\-limit
 .IR N ,
-.B \-\-environment
-.IR NAME ,
 .B \-\-deployment\-id
 .IR ID ,
 .B \-\-level

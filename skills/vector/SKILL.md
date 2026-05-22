@@ -228,20 +228,22 @@ Purges CDN cache. Optionally filter by cache tag or specific URL.
 #### vector site logs
 
 ```
-vector site logs <site-id> [--start-time <time>] [--end-time <time>] \
-  [--limit N] [--level <level>] [--environment <name>] \
+vector site logs <site-id> --environment <name> \
+  [--start-time <time>] [--end-time <time>] \
+  [--limit N] [--level <level>] \
   [--deployment-id <id>] [--cursor <cursor>]
 ```
 
-Retrieves site logs. Time values accept RFC3339 or relative format (e.g., `now-1h`).
+Retrieves site logs for an environment. `--environment` is required. Time values
+accept RFC3339 or relative format (e.g., `now-1h`).
 
 | Flag | Type | Description |
 |------|------|-------------|
+| `--environment` | string | Environment name, e.g. prod, staging (required) |
 | `--start-time` | string | Start time (RFC3339 or relative) |
 | `--end-time` | string | End time (RFC3339 or relative) |
 | `--limit` | int | Number of entries (1-1000) |
 | `--level` | string | Filter: error, warning, info |
-| `--environment` | string | Filter by environment name |
 | `--deployment-id` | string | Filter by deployment |
 | `--cursor` | string | Pagination cursor |
 

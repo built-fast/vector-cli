@@ -1050,7 +1050,7 @@ func TestSiteLogsCmd_TableOutput(t *testing.T) {
 	defer ts.Close()
 
 	cmd, stdout, _ := buildSiteCmd(ts.URL, "valid-token", output.Table)
-	cmd.SetArgs([]string{"site", "logs", "site-001"})
+	cmd.SetArgs([]string{"site", "logs", "site-001", "--environment", "prod"})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
@@ -1066,7 +1066,7 @@ func TestSiteLogsCmd_JSONOutput(t *testing.T) {
 	defer ts.Close()
 
 	cmd, stdout, _ := buildSiteCmd(ts.URL, "valid-token", output.JSON)
-	cmd.SetArgs([]string{"site", "logs", "site-001"})
+	cmd.SetArgs([]string{"site", "logs", "site-001", "--environment", "prod"})
 
 	err := cmd.Execute()
 	require.NoError(t, err)
@@ -1075,6 +1075,17 @@ func TestSiteLogsCmd_JSONOutput(t *testing.T) {
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
 	assert.Equal(t, "abc123", result["cursor"])
 	assert.Equal(t, true, result["has_more"])
+}
+
+func TestSiteLogsCmd_MissingRequiredFlags(t *testing.T) {
+	ts := newSiteTestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildSiteCmd(ts.URL, "valid-token", output.Table)
+	cmd.SetArgs([]string{"site", "logs", "site-001"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
 }
 
 func TestSiteLogsCmd_QueryParams(t *testing.T) {
