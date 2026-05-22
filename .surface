@@ -1,0 +1,354 @@
+ARG vector account api-key delete 0 key-id
+ARG vector account secret delete 0 id
+ARG vector account secret show 0 id
+ARG vector account secret update 0 id
+ARG vector account ssh-key delete 0 key-id
+ARG vector account ssh-key show 0 key-id
+ARG vector archive import 0 site-id
+ARG vector archive import 1 file
+ARG vector backup download create 0 backup-id
+ARG vector backup download status 0 backup-id
+ARG vector backup download status 1 download-id
+ARG vector backup show 0 id
+ARG vector db export create 0 site-id
+ARG vector db export status 0 site-id
+ARG vector db export status 1 export-id
+ARG vector db import-session create 0 site-id
+ARG vector db import-session run 0 site-id
+ARG vector db import-session run 1 import-id
+ARG vector db import-session status 0 site-id
+ARG vector db import-session status 1 import-id
+ARG vector deploy list 0 env-id
+ARG vector deploy rollback 0 env-id
+ARG vector deploy show 0 deploy-id
+ARG vector deploy trigger 0 env-id
+ARG vector env create 0 site-id
+ARG vector env db promote 0 env-id
+ARG vector env db promote-status 0 env-id
+ARG vector env db promote-status 1 promote-id
+ARG vector env delete 0 env-id
+ARG vector env list 0 site-id
+ARG vector env secret create 0 env-id
+ARG vector env secret delete 0 secret-id
+ARG vector env secret list 0 env-id
+ARG vector env secret show 0 secret-id
+ARG vector env secret update 0 secret-id
+ARG vector env show 0 env-id
+ARG vector env update 0 env-id
+ARG vector restore create 0 backup-id
+ARG vector restore show 0 id
+ARG vector site clone 0 site-id
+ARG vector site delete 0 site-id
+ARG vector site logs 0 site-id
+ARG vector site purge-cache 0 site-id
+ARG vector site reset-db-password 0 site-id
+ARG vector site reset-sftp-password 0 site-id
+ARG vector site show 0 site-id
+ARG vector site ssh-key add 0 site-id
+ARG vector site ssh-key list 0 site-id
+ARG vector site ssh-key remove 0 site-id
+ARG vector site ssh-key remove 1 key-id
+ARG vector site suspend 0 site-id
+ARG vector site unsuspend 0 site-id
+ARG vector site update 0 site-id
+ARG vector site wp-reconfig 0 site-id
+ARG vector ssl nudge 0 env-id
+ARG vector ssl status 0 env-id
+ARG vector waf allowed-referrer add 0 site-id
+ARG vector waf allowed-referrer add 1 hostname
+ARG vector waf allowed-referrer list 0 site-id
+ARG vector waf allowed-referrer remove 0 site-id
+ARG vector waf allowed-referrer remove 1 hostname
+ARG vector waf blocked-ip add 0 site-id
+ARG vector waf blocked-ip add 1 ip
+ARG vector waf blocked-ip list 0 site-id
+ARG vector waf blocked-ip remove 0 site-id
+ARG vector waf blocked-ip remove 1 ip
+ARG vector waf blocked-referrer add 0 site-id
+ARG vector waf blocked-referrer add 1 hostname
+ARG vector waf blocked-referrer list 0 site-id
+ARG vector waf blocked-referrer remove 0 site-id
+ARG vector waf blocked-referrer remove 1 hostname
+ARG vector waf rate-limit create 0 site-id
+ARG vector waf rate-limit delete 0 site-id
+ARG vector waf rate-limit delete 1 rule-id
+ARG vector waf rate-limit list 0 site-id
+ARG vector waf rate-limit show 0 site-id
+ARG vector waf rate-limit show 1 rule-id
+ARG vector waf rate-limit update 0 site-id
+ARG vector waf rate-limit update 1 rule-id
+ARG vector webhook delete 0 id
+ARG vector webhook show 0 id
+ARG vector webhook update 0 id
+CMD vector
+CMD vector account
+CMD vector account api-key
+CMD vector account api-key create
+CMD vector account api-key delete
+CMD vector account api-key list
+CMD vector account secret
+CMD vector account secret create
+CMD vector account secret delete
+CMD vector account secret list
+CMD vector account secret show
+CMD vector account secret update
+CMD vector account show
+CMD vector account ssh-key
+CMD vector account ssh-key create
+CMD vector account ssh-key delete
+CMD vector account ssh-key list
+CMD vector account ssh-key show
+CMD vector archive
+CMD vector archive import
+CMD vector auth
+CMD vector auth login
+CMD vector auth logout
+CMD vector auth status
+CMD vector backup
+CMD vector backup create
+CMD vector backup download
+CMD vector backup download create
+CMD vector backup download status
+CMD vector backup list
+CMD vector backup show
+CMD vector db
+CMD vector db export
+CMD vector db export create
+CMD vector db export status
+CMD vector db import-session
+CMD vector db import-session create
+CMD vector db import-session run
+CMD vector db import-session status
+CMD vector deploy
+CMD vector deploy list
+CMD vector deploy rollback
+CMD vector deploy show
+CMD vector deploy trigger
+CMD vector env
+CMD vector env create
+CMD vector env db
+CMD vector env db promote
+CMD vector env db promote-status
+CMD vector env delete
+CMD vector env list
+CMD vector env secret
+CMD vector env secret create
+CMD vector env secret delete
+CMD vector env secret list
+CMD vector env secret show
+CMD vector env secret update
+CMD vector env show
+CMD vector env update
+CMD vector event
+CMD vector event list
+CMD vector mcp
+CMD vector mcp setup
+CMD vector php-versions
+CMD vector restore
+CMD vector restore create
+CMD vector restore list
+CMD vector restore show
+CMD vector site
+CMD vector site clone
+CMD vector site create
+CMD vector site delete
+CMD vector site list
+CMD vector site logs
+CMD vector site purge-cache
+CMD vector site reset-db-password
+CMD vector site reset-sftp-password
+CMD vector site show
+CMD vector site ssh-key
+CMD vector site ssh-key add
+CMD vector site ssh-key list
+CMD vector site ssh-key remove
+CMD vector site suspend
+CMD vector site unsuspend
+CMD vector site update
+CMD vector site wp-reconfig
+CMD vector skill
+CMD vector skill install
+CMD vector skill uninstall
+CMD vector ssl
+CMD vector ssl nudge
+CMD vector ssl status
+CMD vector waf
+CMD vector waf allowed-referrer
+CMD vector waf allowed-referrer add
+CMD vector waf allowed-referrer list
+CMD vector waf allowed-referrer remove
+CMD vector waf blocked-ip
+CMD vector waf blocked-ip add
+CMD vector waf blocked-ip list
+CMD vector waf blocked-ip remove
+CMD vector waf blocked-referrer
+CMD vector waf blocked-referrer add
+CMD vector waf blocked-referrer list
+CMD vector waf blocked-referrer remove
+CMD vector waf rate-limit
+CMD vector waf rate-limit create
+CMD vector waf rate-limit delete
+CMD vector waf rate-limit list
+CMD vector waf rate-limit show
+CMD vector waf rate-limit update
+CMD vector webhook
+CMD vector webhook create
+CMD vector webhook delete
+CMD vector webhook list
+CMD vector webhook show
+CMD vector webhook update
+FLAG vector --jq type=string
+FLAG vector --json type=bool
+FLAG vector --no-json type=bool
+FLAG vector --token type=string
+FLAG vector --version type=bool
+FLAG vector account api-key create --abilities type=string
+FLAG vector account api-key create --expires-at type=string
+FLAG vector account api-key create --name type=string
+FLAG vector account api-key list --page type=int
+FLAG vector account api-key list --per-page type=int
+FLAG vector account secret create --key type=string
+FLAG vector account secret create --no-secret type=bool
+FLAG vector account secret create --value type=string
+FLAG vector account secret list --page type=int
+FLAG vector account secret list --per-page type=int
+FLAG vector account secret update --no-secret type=bool
+FLAG vector account secret update --value type=string
+FLAG vector account ssh-key create --name type=string
+FLAG vector account ssh-key create --public-key type=string
+FLAG vector account ssh-key list --page type=int
+FLAG vector account ssh-key list --per-page type=int
+FLAG vector archive import --disable-foreign-keys type=bool
+FLAG vector archive import --drop-tables type=bool
+FLAG vector archive import --search-replace-from type=string
+FLAG vector archive import --search-replace-to type=string
+FLAG vector backup create --description type=string
+FLAG vector backup create --environment-id type=string
+FLAG vector backup create --scope type=string
+FLAG vector backup create --site-id type=string
+FLAG vector backup list --environment-id type=string
+FLAG vector backup list --page type=int
+FLAG vector backup list --per-page type=int
+FLAG vector backup list --site-id type=string
+FLAG vector backup list --type type=string
+FLAG vector db export create --format type=string
+FLAG vector db import-session create --content-length type=int64
+FLAG vector db import-session create --disable-foreign-keys type=bool
+FLAG vector db import-session create --drop-tables type=bool
+FLAG vector db import-session create --filename type=string
+FLAG vector db import-session create --search-replace-from type=string
+FLAG vector db import-session create --search-replace-to type=string
+FLAG vector db import-session run --parts type=string
+FLAG vector deploy list --page type=int
+FLAG vector deploy list --per-page type=int
+FLAG vector deploy rollback --poll-interval type=duration
+FLAG vector deploy rollback --target type=string
+FLAG vector deploy rollback --timeout type=duration
+FLAG vector deploy rollback --wait type=bool
+FLAG vector deploy trigger --include-database type=bool
+FLAG vector deploy trigger --include-uploads type=bool
+FLAG vector deploy trigger --poll-interval type=duration
+FLAG vector deploy trigger --timeout type=duration
+FLAG vector deploy trigger --wait type=bool
+FLAG vector env create --custom-domain type=string
+FLAG vector env create --name type=string
+FLAG vector env create --php-version type=string
+FLAG vector env create --production type=bool
+FLAG vector env create --tags type=string
+FLAG vector env db promote --disable-foreign-keys type=bool
+FLAG vector env db promote --drop-tables type=bool
+FLAG vector env delete --force type=bool
+FLAG vector env list --page type=int
+FLAG vector env list --per-page type=int
+FLAG vector env secret create --is-secret type=bool
+FLAG vector env secret create --key type=string
+FLAG vector env secret create --value type=string
+FLAG vector env secret delete --force type=bool
+FLAG vector env secret list --page type=int
+FLAG vector env secret list --per-page type=int
+FLAG vector env secret update --is-secret type=bool
+FLAG vector env secret update --key type=string
+FLAG vector env secret update --value type=string
+FLAG vector env update --clear-custom-domain type=bool
+FLAG vector env update --custom-domain type=string
+FLAG vector env update --tags type=string
+FLAG vector event list --event type=string
+FLAG vector event list --from type=string
+FLAG vector event list --page type=int
+FLAG vector event list --per-page type=int
+FLAG vector event list --to type=string
+FLAG vector mcp setup --force type=bool
+FLAG vector mcp setup --global type=bool
+FLAG vector mcp setup --target type=string
+FLAG vector restore create --disable-foreign-keys type=bool
+FLAG vector restore create --drop-tables type=bool
+FLAG vector restore create --poll-interval type=duration
+FLAG vector restore create --search-replace-from type=string
+FLAG vector restore create --search-replace-to type=string
+FLAG vector restore create --timeout type=duration
+FLAG vector restore create --wait type=bool
+FLAG vector restore list --backup-id type=string
+FLAG vector restore list --environment-id type=string
+FLAG vector restore list --page type=int
+FLAG vector restore list --per-page type=int
+FLAG vector restore list --site-id type=string
+FLAG vector restore list --type type=string
+FLAG vector site clone --customer-id type=string
+FLAG vector site clone --php-version type=string
+FLAG vector site clone --tags type=string
+FLAG vector site create --customer-id type=string
+FLAG vector site create --php-version type=string
+FLAG vector site create --poll-interval type=duration
+FLAG vector site create --production-domain type=string
+FLAG vector site create --staging-domain type=string
+FLAG vector site create --tags type=string
+FLAG vector site create --timeout type=duration
+FLAG vector site create --wait type=bool
+FLAG vector site create --wp-admin-email type=string
+FLAG vector site create --wp-admin-user type=string
+FLAG vector site create --wp-site-title type=string
+FLAG vector site delete --force type=bool
+FLAG vector site list --page type=int
+FLAG vector site list --per-page type=int
+FLAG vector site logs --cursor type=string
+FLAG vector site logs --deployment-id type=string
+FLAG vector site logs --end-time type=string
+FLAG vector site logs --environment type=string
+FLAG vector site logs --level type=string
+FLAG vector site logs --limit type=int
+FLAG vector site logs --start-time type=string
+FLAG vector site purge-cache --cache-tag type=string
+FLAG vector site purge-cache --url type=string
+FLAG vector site ssh-key add --name type=string
+FLAG vector site ssh-key add --public-key type=string
+FLAG vector site ssh-key list --page type=int
+FLAG vector site ssh-key list --per-page type=int
+FLAG vector site update --customer-id type=string
+FLAG vector site update --tags type=string
+FLAG vector ssl nudge --retry type=bool
+FLAG vector waf rate-limit create --block-time type=int
+FLAG vector waf rate-limit create --description type=string
+FLAG vector waf rate-limit create --name type=string
+FLAG vector waf rate-limit create --operator type=string
+FLAG vector waf rate-limit create --request-count type=int
+FLAG vector waf rate-limit create --timeframe type=int
+FLAG vector waf rate-limit create --transformations type=string
+FLAG vector waf rate-limit create --value type=string
+FLAG vector waf rate-limit create --variables type=string
+FLAG vector waf rate-limit update --block-time type=int
+FLAG vector waf rate-limit update --description type=string
+FLAG vector waf rate-limit update --name type=string
+FLAG vector waf rate-limit update --operator type=string
+FLAG vector waf rate-limit update --request-count type=int
+FLAG vector waf rate-limit update --timeframe type=int
+FLAG vector waf rate-limit update --transformations type=string
+FLAG vector waf rate-limit update --value type=string
+FLAG vector waf rate-limit update --variables type=string
+FLAG vector webhook create --events type=string
+FLAG vector webhook create --type type=string
+FLAG vector webhook create --url type=string
+FLAG vector webhook list --page type=int
+FLAG vector webhook list --per-page type=int
+FLAG vector webhook update --enabled type=bool
+FLAG vector webhook update --events type=string
+FLAG vector webhook update --url type=string

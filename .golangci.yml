@@ -1,0 +1,20 @@
+version: "2"
+
+run:
+  timeout: 3m
+  go: "1.26.1"
+
+linters:
+  # These are enabled by default in v2, listed explicitly for clarity.
+  # Note: gosimple is merged into staticcheck in golangci-lint v2.
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck

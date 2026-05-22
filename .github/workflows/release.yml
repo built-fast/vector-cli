@@ -6,103 +6,36 @@ on:
       - 'v*'
 
 permissions:
-  actions: write
   contents: write
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  build:
-    name: Build / ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            archive: tar.gz
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            archive: tar.gz
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            archive: tar.gz
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            archive: tar.gz
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            archive: zip
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install cross-compilation tools
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-        env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-
-      - name: Package (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          staging="vector-${{ matrix.target }}"
-          mkdir -p "$staging/man/man1"
-          cp target/${{ matrix.target }}/release/vector "$staging/"
-          cp man/man1/vector.1 "$staging/man/man1/"
-          tar czvf "$staging.tar.gz" -C "$staging" .
-          rm -rf "$staging"
-
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          7z a ../../../vector-${{ matrix.target }}.zip vector.exe
-          cd ../../..
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: vector-${{ matrix.target }}
-          path: vector-${{ matrix.target }}.${{ matrix.archive }}
-
   release:
     name: Release
-    needs: build
     runs-on: ubuntu-latest
+    environment: release
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: artifacts
-          merge-multiple: true
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          files: artifacts/*
-          generate_release_notes: true
+          go-version-file: go.mod
+          cache: false
 
-      - name: Update homebrew tap
-        run: |
-          gh workflow run bump-formula.yml \
-            -f formula=vector \
-            -f version=${GITHUB_REF##refs/tags/} \
-            -f type=rust \
-            -R built-fast/homebrew-devtools
+      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh workflow run bump-formula.yml \
+            -f version="${GITHUB_REF_NAME}" \
+            -f formula=vector \
+            -f type=go \
+            -R built-fast/homebrew-devtools

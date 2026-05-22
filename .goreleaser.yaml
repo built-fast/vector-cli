@@ -1,0 +1,61 @@
+version: 2
+
+project_name: vector
+
+builds:
+  - main: ./cmd/vector
+    binary: vector
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/built-fast/vector-cli/internal/version.Version={{.Version}}
+      - -X github.com/built-fast/vector-cli/internal/version.Commit={{.Commit}}
+      - -X github.com/built-fast/vector-cli/internal/version.Date={{.Date}}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - src: man/man1/vector.1
+        dst: man/man1/
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+changelog:
+  # Use GitHub's auto-generated release notes (categories configured in .github/release.yml)
+  use: github-native
+
+release:
+  github:
+    owner: built-fast
+    name: vector-cli
+  draft: false
+  prerelease: auto
+  replace_existing_artifacts: true
+  name_template: "{{.ProjectName}} v{{.Version}}"

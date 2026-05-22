@@ -10,51 +10,124 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: read
 
 jobs:
-  lint:
-    name: Lint
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: v2.11.3
+          args: --help
+
+      - name: Quality - formatting
+        run: make fmt-check
+
+      - name: Quality - go vet
+        run: make vet
+
+      - name: Quality - linting
+        run: make lint
+
+      - name: Quality - go tidy
+        run: make tidy-check
+
+      - name: Regressions - CLI surface changes
+        run: make check-surface
+
+      - name: Regressions - AI skill drift
+        run: make check-skill-drift
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Tests - go unit tests
+        run: make test
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24'
+
+      - name: Install Prism
+        run: npm install -g @stoplight/prism-cli
+
+      - name: Cache BATS
+        id: cache-bats
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: /usr/local/libexec/bats-core
+          key: bats-1.13.0
+
+      - name: Install BATS
+        if: steps.cache-bats.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Tests - BATS e2e tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: make test-e2e
+
+  security:
+    name: Security
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy -- -D warnings
+          persist-credentials: false
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test
-
-  build:
-    name: Build / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact: vector
-          - os: macos-latest
-            artifact: vector
-          - os: windows-latest
-            artifact: vector.exe
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release
-      - uses: actions/upload-artifact@v7
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          name: vector-${{ matrix.os }}
-          path: target/release/${{ matrix.artifact }}
-          retention-days: 3
+          go-version-file: 'go.mod'
+
+      - name: Run govulncheck
+        # @latest intentional — pinning delays scanning improvements and
+        # new Go version support for no meaningful reproducibility gain.
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck -tags dev ./...

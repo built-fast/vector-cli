@@ -23,31 +23,65 @@ Download from [Releases](https://github.com/built-fast/vector-cli/releases):
 
 | Platform | Architecture | File |
 |----------|--------------|------|
-| Linux | x86_64 | `vector-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux | ARM64 | `vector-aarch64-unknown-linux-gnu.tar.gz` |
-| macOS | x86_64 (Intel) | `vector-x86_64-apple-darwin.tar.gz` |
-| macOS | ARM64 (Apple Silicon) | `vector-aarch64-apple-darwin.tar.gz` |
-| Windows | x86_64 | `vector-x86_64-pc-windows-msvc.zip` |
+| Linux | x86_64 | `vector_VERSION_linux_amd64.tar.gz` |
+| Linux | ARM64 | `vector_VERSION_linux_arm64.tar.gz` |
+| macOS | x86_64 (Intel) | `vector_VERSION_darwin_amd64.tar.gz` |
+| macOS | ARM64 (Apple Silicon) | `vector_VERSION_darwin_arm64.tar.gz` |
+| Windows | x86_64 | `vector_VERSION_windows_amd64.zip` |
 
 ```bash
 # Example: Linux x86_64
-curl -LO https://github.com/built-fast/vector-cli/releases/latest/download/vector-x86_64-unknown-linux-gnu.tar.gz
-tar xzf vector-x86_64-unknown-linux-gnu.tar.gz
+curl -LO https://github.com/built-fast/vector-cli/releases/latest/download/vector_VERSION_linux_amd64.tar.gz
+tar xzf vector_VERSION_linux_amd64.tar.gz
 sudo mv vector /usr/local/bin/
-```
-
-**macOS Gatekeeper:** If you get a security warning, run:
-```bash
-xattr -d com.apple.quarantine ./vector
 ```
 
 ### From source
 
+Requires [Go](https://go.dev/) 1.26+.
+
 ```bash
-cargo install --path .
+go install github.com/built-fast/vector-cli/cmd/vector@latest
 ```
 
+Or build from a local clone:
+
+```bash
+make build
+# Binary is at ./bin/vector
+```
+
+### Shell Completions
+
+```bash
+# Bash (add to ~/.bashrc)
+eval "$(vector completion bash)"
+
+# Zsh (add to ~/.zshrc)
+eval "$(vector completion zsh)"
+
+# Fish
+vector completion fish | source
+# To load on startup:
+vector completion fish > ~/.config/fish/completions/vector.fish
+
+# PowerShell (add to $PROFILE)
+vector completion powershell | Out-String | Invoke-Expression
+```
+
+Homebrew installs completions automatically.
+
 ## Usage
+
+### Global Flags
+
+```bash
+vector --token YOUR_TOKEN <command>  # Use a specific API token for this invocation
+vector --json <command>              # Force JSON output
+vector --no-json <command>           # Force table output
+vector --jq <expr> <command>         # Filter JSON output with a jq expression
+vector --version                     # Print version
+```
 
 ### Authentication
 
@@ -293,18 +327,54 @@ vector site list --no-json       # Force table
 vector site list | jq '.data'    # Auto JSON when piped
 ```
 
+### JQ Filtering
+
+The `--jq` flag filters JSON output using a built-in jq processor (no external `jq` binary required). It automatically forces JSON output.
+
+```bash
+# Extract specific fields
+vector site list --jq '.[].id'
+vector site show 456 --jq '.dev_domain'
+
+# Filter with select
+vector env list --site-id 123 --jq '[.[] | select(.status == "active")]'
+
+# Count items
+vector webhook list --jq 'length'
+```
+
+#### Format Strings
+
+The `--jq` flag supports jq format strings for converting values:
+
+```bash
+# CSV output
+vector site list --jq '[.[] | [.id, .name]] | .[] | @csv'
+
+# TSV output
+vector site list --jq '[.[] | [.id, .name]] | .[] | @tsv'
+
+# URL-encode a value
+vector site show 456 --jq '.name | @uri'
+
+# Base64-encode a value
+vector site show 456 --jq '.name | @base64'
+```
+
+Supported format strings: `@csv`, `@tsv`, `@html`, `@uri`, `@base64`.
+
 ## Configuration
 
 Configuration is stored in `~/.config/vector/` (XDG-compliant):
 
-- `credentials.json` - API token (0600 permissions)
 - `config.json` - Optional settings
+- API token is stored in the system keyring (macOS Keychain, Windows Credential Manager, Linux Secret Service)
 
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `VECTOR_API_KEY` | API token (overrides stored credentials) |
+| `VECTOR_API_KEY` | API token (overrides keyring) |
 | `VECTOR_API_URL` | API base URL (default: `https://api.builtfast.com`) |
 | `VECTOR_CONFIG_DIR` | Config directory (default: `~/.config/vector`) |
 
@@ -321,13 +391,14 @@ Configuration is stored in `~/.config/vector/` (XDG-compliant):
 
 ## Development
 
+Requires [Go](https://go.dev/) 1.26+ and [golangci-lint](https://golangci-lint.run/).
+
 ```bash
-make build      # Debug build
-make release    # Optimized release build
-make test       # Run tests
-make check      # Cargo check
-make fmt        # Format code
-make clippy     # Run lints
+make build      # Build binary to ./bin/vector
+make test       # Run unit tests
+make lint       # Run golangci-lint
+make test-e2e   # Run end-to-end tests
+make check      # Run lint + test + test-e2e
 make clean      # Remove build artifacts
 ```
 

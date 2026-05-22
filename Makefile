@@ -1,43 +1,84 @@
-.DEFAULT_GOAL := help
+VERSION ?= dev
+COMMIT  := $(shell git rev-parse --short HEAD)
+DATE    := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
-##@ Development
+VERSION_PKG := github.com/built-fast/vector-cli/internal/version
+LDFLAGS := -s -w \
+           -X $(VERSION_PKG).Version=$(VERSION) \
+           -X $(VERSION_PKG).Commit=$(COMMIT) \
+           -X $(VERSION_PKG).Date=$(DATE)
 
-.PHONY: build
-build: ## Build debug binary
-	cargo build
+.PHONY: build test lint clean check test-e2e surface check-surface check-skill-drift \
+        fmt fmt-check vet tidy tidy-check race-test vuln replace-check release-check
 
-.PHONY: test
-test: ## Run tests
-	cargo test
+build:
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/vector ./cmd/vector
 
-.PHONY: check
-check: ## Run cargo check
-	cargo check
+test:
+	go test ./...
 
-.PHONY: fmt
-fmt: ## Format code with rustfmt
-	cargo fmt
+lint:
+	golangci-lint run
 
-.PHONY: clippy
-clippy: ## Run clippy lints
-	cargo clippy -- -D warnings
+vet:
+	go vet ./...
 
-##@ Release
+fmt:
+	gofmt -s -w .
 
-.PHONY: release
-release: ## Build optimized release binary
-	cargo build --release
+fmt-check:
+	@test -z "$$(gofmt -s -l . | tee /dev/stderr)" || (echo "Code is not formatted. Run 'make fmt'" && exit 1)
 
-##@ Maintenance
+race-test:
+	go test -race -count=1 ./...
 
-.PHONY: clean
-clean: ## Remove build artifacts
-	cargo clean
+tidy:
+	go mod tidy
 
-##@ Info
+tidy-check:
+	@set -e; cp go.mod go.mod.tidycheck; cp go.sum go.sum.tidycheck; \
+	restore() { mv go.mod.tidycheck go.mod; mv go.sum.tidycheck go.sum; }; \
+	if ! go mod tidy; then \
+		restore; \
+		echo "'go mod tidy' failed. Restored original go.mod/go.sum."; \
+		exit 1; \
+	fi; \
+	if ! git diff --quiet -- go.mod go.sum; then \
+		restore; \
+		echo "go.mod/go.sum are not tidy. Run 'make tidy' and commit the result."; \
+		exit 1; \
+	fi; \
+	rm -f go.mod.tidycheck go.sum.tidycheck
 
-.PHONY: help
-help: ## Show this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
-		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } \
-		/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+vuln:
+	@echo "Running govulncheck..."
+	govulncheck ./...
+
+replace-check:
+	@if grep -q '^[[:space:]]*replace[[:space:]]' go.mod; then \
+		echo "ERROR: go.mod contains replace directives"; \
+		grep '^[[:space:]]*replace[[:space:]]' go.mod; \
+		echo ""; \
+		echo "Remove replace directives before releasing."; \
+		exit 1; \
+	fi
+	@echo "Replace check passed (no local replace directives)"
+
+clean:
+	rm -rf bin/
+
+test-e2e:
+	./e2e/run.sh
+
+surface:
+	go test ./internal/cli/ -run TestSurface -update
+
+check-surface:
+	go test ./internal/cli/ -run TestSurface -v
+
+check-skill-drift:
+	./scripts/check-skill-drift.sh
+
+check: fmt-check vet lint test test-e2e check-surface check-skill-drift tidy-check
+
+release-check: check replace-check vuln race-test
