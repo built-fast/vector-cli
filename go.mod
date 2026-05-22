@@ -1,6 +1,6 @@
 module github.com/built-fast/vector-cli
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/itchyny/gojq v0.12.18

@@ -38,6 +38,7 @@ archives:
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
+
 changelog:
   sort: asc
   filters:
@@ -45,3 +46,16 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^ci:"
+
+changelog:
+  # Use GitHub's auto-generated release notes (categories configured in .github/release.yml)
+  use: github-native
+
+release:
+  github:
+    owner: built-fast
+    name: vector-cli
+  draft: false
+  prerelease: auto
+  replace_existing_artifacts: true
+  name_template: "{{.ProjectName}} v{{.Version}}"
