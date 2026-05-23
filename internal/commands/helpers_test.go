@@ -259,9 +259,9 @@ func TestGetString(t *testing.T) {
 	m := map[string]any{"name": "test", "count": 42, "nil": nil}
 
 	assert.Equal(t, "test", getString(m, "name"))
-	assert.Equal(t, "", getString(m, "missing"))
-	assert.Equal(t, "", getString(m, "count"))
-	assert.Equal(t, "", getString(m, "nil"))
+	assert.Empty(t, getString(m, "missing"))
+	assert.Empty(t, getString(m, "count"))
+	assert.Empty(t, getString(m, "nil"))
 }
 
 func TestGetFloat(t *testing.T) {
@@ -276,10 +276,10 @@ func TestGetFloat(t *testing.T) {
 func TestGetBool(t *testing.T) {
 	m := map[string]any{"active": true, "name": "test", "nil": nil}
 
-	assert.Equal(t, true, getBool(m, "active"))
-	assert.Equal(t, false, getBool(m, "missing"))
-	assert.Equal(t, false, getBool(m, "name"))
-	assert.Equal(t, false, getBool(m, "nil"))
+	assert.True(t, getBool(m, "active"))
+	assert.False(t, getBool(m, "missing"))
+	assert.False(t, getBool(m, "name"))
+	assert.False(t, getBool(m, "nil"))
 }
 
 func TestGetSlice(t *testing.T) {

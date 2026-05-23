@@ -59,7 +59,7 @@ func newSSHKeyListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list SSH keys: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -135,7 +135,7 @@ func newSSHKeyAddCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -193,7 +193,7 @@ func newSSHKeyRemoveCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			app.Output.Message("SSH key removed successfully.")

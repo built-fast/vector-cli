@@ -60,7 +60,7 @@ func newWafAllowedReferrerListCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var items []map[string]any
@@ -117,7 +117,7 @@ func newWafAllowedReferrerAddCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			app.Output.Message(fmt.Sprintf("Hostname %s added to allowed referrers.", args[1]))
@@ -157,7 +157,7 @@ func newWafAllowedReferrerRemoveCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			app.Output.Message(fmt.Sprintf("Hostname %s removed from allowed referrers.", args[1]))

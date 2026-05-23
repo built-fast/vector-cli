@@ -12,13 +12,13 @@ const defaultAPIURL = "https://api.builtfast.com"
 
 // Config holds the CLI configuration.
 type Config struct {
-	ApiURL string `json:"api_url"`
+	APIURL string `json:"api_url"`
 }
 
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() *Config {
 	return &Config{
-		ApiURL: defaultAPIURL,
+		APIURL: defaultAPIURL,
 	}
 }
 

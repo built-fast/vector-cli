@@ -63,7 +63,7 @@ func newWebhookListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list webhooks: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -129,7 +129,7 @@ func newWebhookShowCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -197,7 +197,7 @@ func newWebhookCreateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -291,7 +291,7 @@ func newWebhookUpdateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -350,7 +350,7 @@ func newWebhookDeleteCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "Webhook deleted successfully.")

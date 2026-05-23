@@ -56,7 +56,7 @@ func newSSLStatusCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -119,7 +119,7 @@ func newSSLNudgeCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			// Extract message from response

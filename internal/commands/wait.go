@@ -141,7 +141,7 @@ func renderWaitDisplay(w io.Writer, cfg *waitConfig, pollCount, estimatedPolls i
 }
 
 // waitForResource polls the API until the resource reaches a terminal or failed
-// status, the timeout expires, or the context is cancelled (e.g., Ctrl+C).
+// status, the timeout expires, or the context is canceled (e.g., Ctrl+C).
 func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*waitResult, error) {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer stop()
@@ -166,7 +166,7 @@ func waitForResource(ctx context.Context, app *appctx.App, cfg *waitConfig) (*wa
 		select {
 		case <-ctx.Done():
 			return nil, &api.APIError{
-				Message:  fmt.Sprintf("%s wait cancelled", cfg.Noun),
+				Message:  fmt.Sprintf("%s wait canceled", cfg.Noun),
 				ExitCode: 1,
 			}
 		case <-deadline:

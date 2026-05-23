@@ -265,7 +265,7 @@ func newAuthStatusCmd() *cobra.Command {
 					"account":       whoami.Data.Account,
 					"token_source":  app.TokenSource,
 					"config_dir":    configDir,
-					"api_url":       app.Config.ApiURL,
+					"api_url":       app.Config.APIURL,
 				})
 			}
 
@@ -276,7 +276,7 @@ func newAuthStatusCmd() *cobra.Command {
 				{Key: "Abilities", Value: strings.Join(whoami.Data.Token.Abilities, ", ")},
 				{Key: "Expires", Value: expires},
 				{Key: "Token source", Value: app.TokenSource},
-				{Key: "API URL", Value: app.Config.ApiURL},
+				{Key: "API URL", Value: app.Config.APIURL},
 				{Key: "Config directory", Value: configDir},
 			})
 			return nil

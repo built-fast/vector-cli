@@ -78,7 +78,7 @@ func newSiteListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list sites: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -146,7 +146,7 @@ func newSiteShowCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -288,7 +288,7 @@ func newSiteCreateCmd() *cobra.Command {
 
 			if !waitEnabled {
 				if app.Output.Format() == output.JSON {
-					return app.Output.JSON(json.RawMessage(data))
+					return app.Output.JSON(data)
 				}
 
 				var item map[string]any
@@ -491,7 +491,7 @@ func newSiteUpdateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -559,7 +559,7 @@ func newSiteDeleteCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -630,7 +630,7 @@ func newSiteCloneCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -721,7 +721,7 @@ func newSiteResetSFTPPasswordCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -777,7 +777,7 @@ func newSiteResetDBPasswordCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -837,7 +837,7 @@ func newSitePurgeCacheCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to purge cache: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			// Extract message from response
@@ -895,7 +895,7 @@ func newSiteLogsCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var logData map[string]any
@@ -969,7 +969,7 @@ func siteActionRunE(action, method string) func(*cobra.Command, []string) error 
 		}
 
 		if app.Output.Format() == output.JSON {
-			return app.Output.JSON(json.RawMessage(data))
+			return app.Output.JSON(data)
 		}
 
 		var item map[string]any
@@ -1011,7 +1011,7 @@ func sitePostActionRunE(subPath, successMsg string) func(*cobra.Command, []strin
 		}
 
 		if app.Output.Format() == output.JSON {
-			return app.Output.JSON(json.RawMessage(data))
+			return app.Output.JSON(data)
 		}
 
 		// Extract message from full response

@@ -58,19 +58,19 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			// 3. Build API client
-			client := api.NewClient(cfg.ApiURL, token, "")
+			client := api.NewClient(cfg.APIURL, token, "")
 
 			// 4. Detect output format from --json/--no-json flags
 			jsonFlag, _ := cmd.Flags().GetBool("json")
-			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
-			format := output.DetectFormat(jsonFlag, noJsonFlag)
+			noJSONFlag, _ := cmd.Flags().GetBool("no-json")
+			format := output.DetectFormat(jsonFlag, noJSONFlag)
 
 			// 5. Handle --jq flag
 			jqExpr, _ := cmd.Flags().GetString("jq")
 			var writerOpts []output.WriterOption
 
 			if jqExpr != "" {
-				if noJsonFlag {
+				if noJSONFlag {
 					return fmt.Errorf("--jq and --no-json cannot be used together")
 				}
 
@@ -125,7 +125,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewBackupCmd())
 	cmd.AddCommand(commands.NewRestoreCmd())
 	cmd.AddCommand(commands.NewWafCmd())
-	cmd.AddCommand(commands.NewDbCmd())
+	cmd.AddCommand(commands.NewDBCmd())
 	cmd.AddCommand(commands.NewArchiveCmd())
 	cmd.AddCommand(commands.NewMcpCmd())
 	cmd.AddCommand(commands.NewSkillCmd())

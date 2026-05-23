@@ -113,12 +113,12 @@ func newImportSessionTestServer(validToken string) *httptest.Server {
 	}))
 }
 
-func buildDbCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+func buildDBCmd(baseURL, token string, format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 
 	root := &cobra.Command{Use: "vector"}
-	root.AddCommand(NewDbCmd())
+	root.AddCommand(NewDBCmd())
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient(baseURL, token, "")
@@ -134,12 +134,12 @@ func buildDbCmd(baseURL, token string, format output.Format) (*cobra.Command, *b
 	return root, stdout, stderr
 }
 
-func buildDbCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
+func buildDBCmdNoAuth(format output.Format) (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 
 	root := &cobra.Command{Use: "vector"}
-	root.AddCommand(NewDbCmd())
+	root.AddCommand(NewDBCmd())
 
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		client := api.NewClient("", "", "")
@@ -161,7 +161,7 @@ func TestDbImportSessionCreateCmd_TableOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
@@ -179,7 +179,7 @@ func TestDbImportSessionCreateCmd_JSONOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
@@ -205,7 +205,7 @@ func TestDbImportSessionCreateCmd_HTTPPath(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "52428800"})
 
 	err := cmd.Execute()
@@ -227,7 +227,7 @@ func TestDbImportSessionCreateCmd_WithOptions(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{
 		"db", "import-session", "create", "site-001",
 		"--filename", "dump.sql.gz",
@@ -259,7 +259,7 @@ func TestDbImportSessionCreateCmd_MissingArg(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create"})
 
 	err := cmd.Execute()
@@ -271,7 +271,7 @@ func TestDbImportSessionCreateCmd_AuthError(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "bad-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "1024"})
 
 	err := cmd.Execute()
@@ -283,7 +283,7 @@ func TestDbImportSessionCreateCmd_AuthError(t *testing.T) {
 }
 
 func TestDbImportSessionCreateCmd_NoAuth(t *testing.T) {
-	cmd, _, _ := buildDbCmdNoAuth(output.Table)
+	cmd, _, _ := buildDBCmdNoAuth(output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "1024"})
 
 	err := cmd.Execute()
@@ -300,7 +300,7 @@ func TestDbImportSessionRunCmd_TableOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -315,7 +315,7 @@ func TestDbImportSessionRunCmd_JSONOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -338,7 +338,7 @@ func TestDbImportSessionRunCmd_HTTPPath(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -351,7 +351,7 @@ func TestDbImportSessionRunCmd_MissingArgs(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001"})
 
 	err := cmd.Execute()
@@ -363,7 +363,7 @@ func TestDbImportSessionRunCmd_AuthError(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "bad-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -375,7 +375,7 @@ func TestDbImportSessionRunCmd_AuthError(t *testing.T) {
 }
 
 func TestDbImportSessionRunCmd_NoAuth(t *testing.T) {
-	cmd, _, _ := buildDbCmdNoAuth(output.Table)
+	cmd, _, _ := buildDBCmdNoAuth(output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -392,7 +392,7 @@ func TestDbImportSessionStatusCmd_TableOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "status", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -411,7 +411,7 @@ func TestDbImportSessionStatusCmd_JSONOutput(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "import-session", "status", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -434,7 +434,7 @@ func TestDbImportSessionStatusCmd_HTTPPath(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "status", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -447,7 +447,7 @@ func TestDbImportSessionStatusCmd_MissingArgs(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "status", "site-001"})
 
 	err := cmd.Execute()
@@ -459,7 +459,7 @@ func TestDbImportSessionStatusCmd_AuthError(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "bad-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "status", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -531,7 +531,7 @@ func TestDbImportSessionCreateCmd_MultipartTableOutput(t *testing.T) {
 	ts := newImportSessionMultipartTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "16106127360"})
 
 	err := cmd.Execute()
@@ -554,7 +554,7 @@ func TestDbImportSessionCreateCmd_MultipartJSONOutput(t *testing.T) {
 	ts := newImportSessionMultipartTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "import-session", "create", "site-001", "--content-length", "16106127360"})
 
 	err := cmd.Execute()
@@ -582,7 +582,7 @@ func TestDbImportSessionRunCmd_WithParts(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{
 		"db", "import-session", "run", "site-001", "imp-001",
 		"--parts", `[{"part_number":1,"etag":"\"etag1\""},{"part_number":2,"etag":"\"etag2\""}]`,
@@ -618,7 +618,7 @@ func TestDbImportSessionRunCmd_WithoutParts(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "import-session", "run", "site-001", "imp-001"})
 
 	err := cmd.Execute()
@@ -632,7 +632,7 @@ func TestDbImportSessionRunCmd_InvalidPartsJSON(t *testing.T) {
 	ts := newImportSessionTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{
 		"db", "import-session", "run", "site-001", "imp-001",
 		"--parts", "not-valid-json",
@@ -646,7 +646,7 @@ func TestDbImportSessionRunCmd_InvalidPartsJSON(t *testing.T) {
 // --- Help Tests ---
 
 func TestDbImportSessionCmd_Help(t *testing.T) {
-	cmd := NewDbImportSessionCmd()
+	cmd := NewDBImportSessionCmd()
 
 	stdout := new(bytes.Buffer)
 	cmd.SetOut(stdout)

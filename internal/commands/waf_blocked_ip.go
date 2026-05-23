@@ -60,7 +60,7 @@ func newWafBlockedIPListCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var items []map[string]any
@@ -117,7 +117,7 @@ func newWafBlockedIPAddCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			app.Output.Message(fmt.Sprintf("IP %s added to blocklist.", args[1]))
@@ -157,7 +157,7 @@ func newWafBlockedIPRemoveCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			app.Output.Message(fmt.Sprintf("IP %s removed from blocklist.", args[1]))

@@ -89,7 +89,7 @@ func newRestoreListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list restores: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -161,7 +161,7 @@ func newRestoreShowCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -254,7 +254,7 @@ func newRestoreCreateCmd() *cobra.Command {
 
 			if !waitEnabled {
 				if app.Output.Format() == output.JSON {
-					return app.Output.JSON(json.RawMessage(data))
+					return app.Output.JSON(data)
 				}
 
 				var item map[string]any

@@ -136,7 +136,7 @@ func TestSkillInstallCopyFallback(t *testing.T) {
 	// Verify the Claude skills file is a regular file (not a symlink).
 	linkPath := filepath.Join(claudeDir, "vector", "SKILL.md")
 	_, err := os.Readlink(linkPath)
-	assert.Error(t, err, "expected a regular file, not a symlink")
+	require.Error(t, err, "expected a regular file, not a symlink")
 
 	// Verify content matches.
 	expected, err := skills.Content.ReadFile("vector/SKILL.md")

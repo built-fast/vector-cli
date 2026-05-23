@@ -1,20 +1,128 @@
 version: "2"
 
-run:
-  timeout: 3m
-  go: "1.26.1"
-
 linters:
-  # These are enabled by default in v2, listed explicitly for clarity.
-  # Note: gosimple is merged into staticcheck in golangci-lint v2.
   enable:
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - ineffassign
+    # Defaults — golangci-lint's standard set; the correctness backbone
+    - errcheck       # Report unchecked errors (the #1 Go bug source)
+    - govet          # Stdlib vet suite: printf, copylocks, struct tags, …
+    - ineffassign    # Detect assignments whose value is never used
+    - staticcheck    # Large bundle of correctness + simplification checks
+    - unused         # Find unused code (funcs, vars, types, consts)
+
+    # Complexity and test-discipline linters
+    - cyclop         # Cap per-function cyclomatic complexity (max in settings)
+    - gocritic       # Opinionated correctness/style/perf diagnostics
+    - tparallel      # Catch misuse of t.Parallel() (defer-vs-Cleanup, setup races)
+    - testifylint    # Enforce correct testify usage (assert/require, arg order)
+    - thelper        # Require t.Helper() in test helpers (buildXxx, newXxxServer)
+    - usetesting     # Prefer t.Context()/t.Setenv() over context/os equivalents
+
+    # HTTP/Context linters
+    - bodyclose      # Checks whether HTTP response body is closed
+    - noctx          # Find HTTP requests without context.Context
+
+    # Error handling linters
+    - errorlint      # Find code that will cause problems with error wrapping
+    - nilerr         # Find code that returns nil even if it checks error is not nil
+
+    # Code quality linters
+    - misspell       # Check for misspelled English words
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Report unused function parameters
+    - wastedassign   # Find wasted assignment statements
+
+    # Security linter
+    - gosec          # Security checker
+
+    # Context and duration linters
+    - contextcheck   # Check function context parameter usage
+    - durationcheck  # Check for two durations multiplied together
+
+    # Naming and completeness linters
+    - errname        # Check error type naming conventions
+    - predeclared    # Find shadowing of Go's predeclared identifiers
+
+  settings:
+    cyclop:
+      # A backstop, not a style gate: today's worst function is 23, so this
+      # allows current code but trips on anything growing meaningfully worse.
+      max-complexity: 25
+
+    errcheck:
+      check-type-assertions: true
+      check-blank: false  # Don't check explicitly ignored errors with _
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*os.File).Close
+        - (net/http.ResponseWriter).Write
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment  # Too noisy for minimal gains
+        - shadow          # Too noisy - variable shadowing is common in Go
+
+    errorlint:
+      asserts: false
+      comparison: false
+
+    gosec:
+      excludes:
+        - G101  # Hardcoded credentials — false positives on *SecretsBasePath /
+                # *KeysBasePath URL constants; tokens come from keyring/env/flag,
+                # never hardcoded.
+        - G104  # Unhandled errors (covered by errcheck)
+        - G115  # Integer overflow conversion — standard Go pattern
+        - G204  # Subprocess with variable — expected in CLI tools
+        - G301  # Directory permissions 0755 — standard for user config dirs
+        - G304  # File path provided as taint input — common in CLI tools
+        - G306  # WriteFile permissions 0644 — fine for non-secret files
+        - G703  # Path traversal via taint — same class as G304; paths derive
+                # from the user's own home/config dir, filenames are constants.
+
+    misspell:
+      locale: US
+
+    staticcheck:
+      checks:
+        - all
+        - -SA1019  # Ignore deprecation warnings (handle separately)
+        - -ST1000  # Package comments — low value for internal CLI
+
+    testifylint:
+      disable:
+        # Tests assert exact JSON-decoded whole numbers (IDs, byte sizes, counts)
+        # which decode as float64; InEpsilon/InDelta would weaken these identity
+        # checks. No test compares results of actual float arithmetic.
+        - float-compare
+
   exclusions:
     rules:
+      # gosec false-positives on test fixtures (e.g. hardcoded fake tokens);
+      # cyclop is noisy on table/dispatch test servers (newSiteTestServer is 33);
+      # bodyclose findings in tests are synthetic NopCloser bodies or nil-response
+      # false positives (the client returns nil on error) — production code is clean.
+      # errcheck stays on for tests — unchecked errors there can mask bugs.
+      - path: _test\.go
+        linters:
+          - gosec
+          - cyclop
+          - bodyclose
+          # unparam flags the uniform test-helper signatures STYLE.md mandates
+          # (buildXxxCmd returning cmd/stdout/stderr, newXxxTestServer(validToken))
+          # even when a given test ignores a return or passes the standard token.
+          - unparam
+      # In tests, bare type assertions on known fixtures (m["k"].(map[string]any))
+      # panic loudly as a test failure rather than masking bugs, so check-type-
+      # assertions noise is excluded here. check-type-assertions still guards
+      # production code, and real unchecked function errors in tests still fire.
       - path: _test\.go
         linters:
           - errcheck
+        text: "Error return value is not checked"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

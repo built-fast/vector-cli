@@ -69,7 +69,7 @@ var dbExportStatusPendingResponse = map[string]any{
 	"http_status": 200,
 }
 
-func newDbExportTestServer(validToken string) *httptest.Server {
+func newDBExportTestServer(validToken string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth != "Bearer "+validToken {
@@ -111,10 +111,10 @@ func newDbExportTestServer(validToken string) *httptest.Server {
 // --- Export Create Tests ---
 
 func TestDbExportCreateCmd_TableOutput(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001"})
 
 	err := cmd.Execute()
@@ -126,10 +126,10 @@ func TestDbExportCreateCmd_TableOutput(t *testing.T) {
 }
 
 func TestDbExportCreateCmd_JSONOutput(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001"})
 
 	err := cmd.Execute()
@@ -155,7 +155,7 @@ func TestDbExportCreateCmd_HTTPPath(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001"})
 
 	err := cmd.Execute()
@@ -176,7 +176,7 @@ func TestDbExportCreateCmd_WithFormat(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001", "--format", "csv"})
 
 	err := cmd.Execute()
@@ -185,10 +185,10 @@ func TestDbExportCreateCmd_WithFormat(t *testing.T) {
 }
 
 func TestDbExportCreateCmd_MissingArg(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "create"})
 
 	err := cmd.Execute()
@@ -197,10 +197,10 @@ func TestDbExportCreateCmd_MissingArg(t *testing.T) {
 }
 
 func TestDbExportCreateCmd_AuthError(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "bad-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001"})
 
 	err := cmd.Execute()
@@ -212,7 +212,7 @@ func TestDbExportCreateCmd_AuthError(t *testing.T) {
 }
 
 func TestDbExportCreateCmd_NoAuth(t *testing.T) {
-	cmd, _, _ := buildDbCmdNoAuth(output.Table)
+	cmd, _, _ := buildDBCmdNoAuth(output.Table)
 	cmd.SetArgs([]string{"db", "export", "create", "site-001"})
 
 	err := cmd.Execute()
@@ -226,10 +226,10 @@ func TestDbExportCreateCmd_NoAuth(t *testing.T) {
 // --- Export Status Tests ---
 
 func TestDbExportStatusCmd_CompletedOutput(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001", "exp-001"})
 
 	err := cmd.Execute()
@@ -248,10 +248,10 @@ func TestDbExportStatusCmd_CompletedOutput(t *testing.T) {
 }
 
 func TestDbExportStatusCmd_PendingOutput(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001", "exp-pending"})
 
 	err := cmd.Execute()
@@ -265,10 +265,10 @@ func TestDbExportStatusCmd_PendingOutput(t *testing.T) {
 }
 
 func TestDbExportStatusCmd_JSONOutput(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, stdout, _ := buildDbCmd(ts.URL, "valid-token", output.JSON)
+	cmd, stdout, _ := buildDBCmd(ts.URL, "valid-token", output.JSON)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001", "exp-001"})
 
 	err := cmd.Execute()
@@ -291,7 +291,7 @@ func TestDbExportStatusCmd_HTTPPath(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001", "exp-001"})
 
 	err := cmd.Execute()
@@ -301,10 +301,10 @@ func TestDbExportStatusCmd_HTTPPath(t *testing.T) {
 }
 
 func TestDbExportStatusCmd_MissingArgs(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "valid-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "valid-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001"})
 
 	err := cmd.Execute()
@@ -313,10 +313,10 @@ func TestDbExportStatusCmd_MissingArgs(t *testing.T) {
 }
 
 func TestDbExportStatusCmd_AuthError(t *testing.T) {
-	ts := newDbExportTestServer("valid-token")
+	ts := newDBExportTestServer("valid-token")
 	defer ts.Close()
 
-	cmd, _, _ := buildDbCmd(ts.URL, "bad-token", output.Table)
+	cmd, _, _ := buildDBCmd(ts.URL, "bad-token", output.Table)
 	cmd.SetArgs([]string{"db", "export", "status", "site-001", "exp-001"})
 
 	err := cmd.Execute()
@@ -330,7 +330,7 @@ func TestDbExportStatusCmd_AuthError(t *testing.T) {
 // --- Help Tests ---
 
 func TestDbExportCmd_Help(t *testing.T) {
-	cmd := NewDbExportCmd()
+	cmd := NewDBExportCmd()
 
 	stdout := new(bytes.Buffer)
 	cmd.SetOut(stdout)

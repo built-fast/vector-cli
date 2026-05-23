@@ -9,7 +9,7 @@ import (
 )
 
 func TestDbCmd_HelpText(t *testing.T) {
-	cmd := NewDbCmd()
+	cmd := NewDBCmd()
 
 	stdout := new(bytes.Buffer)
 	cmd.SetOut(stdout)

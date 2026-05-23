@@ -78,7 +78,7 @@ func TestClient_Get(t *testing.T) {
 	query := url.Values{"page": []string{"1"}, "limit": []string{"10"}}
 	resp, err := c.Get(context.Background(), "/api/v1/items", query)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.MethodGet, gotMethod)
 	assert.Equal(t, "/api/v1/items", gotPath)
@@ -98,7 +98,7 @@ func TestClient_GetWithoutQuery(t *testing.T) {
 	c := NewClient(srv.URL, "tok", "")
 	resp, err := c.Get(context.Background(), "/test", nil)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Empty(t, gotQuery)
 }
@@ -119,7 +119,7 @@ func TestClient_Post(t *testing.T) {
 	body := map[string]string{"name": "test", "email": "test@example.com"}
 	resp, err := c.Post(context.Background(), "/api/v1/items", body)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.MethodPost, gotMethod)
 	assert.Equal(t, "application/json", gotContentType)
@@ -143,7 +143,7 @@ func TestClient_Put(t *testing.T) {
 	body := map[string]string{"name": "updated"}
 	resp, err := c.Put(context.Background(), "/api/v1/items/1", body)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.MethodPut, gotMethod)
 	assert.Equal(t, "updated", gotBody["name"])
@@ -161,7 +161,7 @@ func TestClient_Delete(t *testing.T) {
 	c := NewClient(srv.URL, "tok", "")
 	resp, err := c.Delete(context.Background(), "/api/v1/items/1")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.MethodDelete, gotMethod)
 	assert.Equal(t, "/api/v1/items/1", gotPath)
@@ -193,7 +193,7 @@ func TestClient_PutFile(t *testing.T) {
 	// PutFile uses the full URL directly (presigned S3 URL), not BaseURL+path.
 	resp, err := c.PutFile(context.Background(), srv.URL+"/upload", f)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.MethodPut, gotMethod)
 	assert.Equal(t, "vector-cli/test", gotUserAgent)

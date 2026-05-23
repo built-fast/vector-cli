@@ -27,11 +27,11 @@ var isTerminalFunc = func() bool {
 // --json flag forces JSON output, --no-json flag forces Table output.
 // When neither flag is set, it checks whether stdout is a terminal:
 // TTY → Table, non-TTY (piped) → JSON.
-func DetectFormat(jsonFlag, noJsonFlag bool) Format {
+func DetectFormat(jsonFlag, noJSONFlag bool) Format {
 	if jsonFlag {
 		return JSON
 	}
-	if noJsonFlag {
+	if noJSONFlag {
 		return Table
 	}
 	if isTerminalFunc() {

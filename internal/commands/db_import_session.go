@@ -14,22 +14,22 @@ func importsPath(siteID string) string {
 	return sitesBasePath + "/" + siteID + "/imports"
 }
 
-// NewDbImportSessionCmd creates the db import-session command group.
-func NewDbImportSessionCmd() *cobra.Command {
+// NewDBImportSessionCmd creates the db import-session command group.
+func NewDBImportSessionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import-session",
 		Short: "Manage database import sessions",
 		Long:  "Manage database import sessions to import SQL dumps into your sites via a presigned upload URL.",
 	}
 
-	cmd.AddCommand(newDbImportSessionCreateCmd())
-	cmd.AddCommand(newDbImportSessionRunCmd())
-	cmd.AddCommand(newDbImportSessionStatusCmd())
+	cmd.AddCommand(newDBImportSessionCreateCmd())
+	cmd.AddCommand(newDBImportSessionRunCmd())
+	cmd.AddCommand(newDBImportSessionStatusCmd())
 
 	return cmd
 }
 
-func newDbImportSessionCreateCmd() *cobra.Command {
+func newDBImportSessionCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create a database import session",
@@ -104,7 +104,7 @@ func newDbImportSessionCreateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -154,7 +154,7 @@ func newDbImportSessionCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newDbImportSessionRunCmd() *cobra.Command {
+func newDBImportSessionRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run <site-id> <import-id>",
 		Short: "Run a database import",
@@ -202,7 +202,7 @@ func newDbImportSessionRunCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -224,7 +224,7 @@ func newDbImportSessionRunCmd() *cobra.Command {
 	return cmd
 }
 
-func newDbImportSessionStatusCmd() *cobra.Command {
+func newDBImportSessionStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <site-id> <import-id>",
 		Short: "Check database import status",
@@ -259,7 +259,7 @@ func newDbImportSessionStatusCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any

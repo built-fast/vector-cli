@@ -13,7 +13,7 @@ import (
 	"github.com/built-fast/vector-cli/internal/output"
 )
 
-func uploadMultipart(cmd *cobra.Command, app *appctx.App, file *os.File, fileSize int64, filename string, importID string, uploadParts []any) ([]map[string]any, error) {
+func uploadMultipart(cmd *cobra.Command, app *appctx.App, file *os.File, fileSize int64, filename string, uploadParts []any) ([]map[string]any, error) {
 	w := cmd.ErrOrStderr()
 	partCount := int64(len(uploadParts))
 	baseSize := fileSize / partCount
@@ -177,7 +177,7 @@ func newArchiveImportCmd() *cobra.Command {
 					return fmt.Errorf("multipart import session response missing upload parts")
 				}
 
-				completedParts, uploadErr := uploadMultipart(cmd, app, file, fileSize, filename, importID, uploadParts)
+				completedParts, uploadErr := uploadMultipart(cmd, app, file, fileSize, filename, uploadParts)
 				if uploadErr != nil {
 					return uploadErr
 				}
@@ -224,7 +224,7 @@ func newArchiveImportCmd() *cobra.Command {
 			_, _ = fmt.Fprintln(w, "Import started.")
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(runData))
+				return app.Output.JSON(runData)
 			}
 
 			var runItem map[string]any
