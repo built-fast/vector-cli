@@ -126,6 +126,20 @@ Displays: user name/email, account name, token name, abilities, expiration,
 token source (flag/env/keyring), and config directory.
 Exits with code 2 if not authenticated.
 
+### vector doctor
+
+Diagnose CLI setup, authentication, and live API connectivity.
+
+```
+vector doctor --json
+```
+
+Runs three checks (`cli`, `auth`, `api`), each reporting a `status` of `pass`,
+`warn`, `skip`, or `fail` with a `detail` and optional `hint`. The JSON output
+also carries a top-level `ok` boolean. Unlike other commands, `doctor` always
+exits 0 — read the per-check `status`, not the exit code. This command backs the
+Claude Code `/vector:doctor` plugin command.
+
 ---
 
 ## Configuration

@@ -1,0 +1,14 @@
+{
+  "name": "built-fast",
+  "owner": {
+    "name": "BuiltFast",
+    "email": "support@builtfast.com"
+  },
+  "plugins": [
+    {
+      "name": "vector",
+      "source": "./",
+      "description": "Vector Pro integration for Claude Code: manage sites, environments, deployments, backups, WAF, and SSL via the vector CLI."
+    }
+  ]
+}

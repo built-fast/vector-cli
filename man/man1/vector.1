@@ -55,6 +55,16 @@ Log out and clear stored credentials.
 .TP
 .B auth status
 Check the current authentication status.
+.SS doctor \- Diagnose CLI setup
+.TP
+.B doctor
+Run health checks on the CLI binary, configured authentication, and live API
+connectivity. Backs the Claude Code
+.B /vector:doctor
+command. Always exits 0; each check reports a status of pass, warn, skip, or
+fail. Use
+.B \-\-json
+for machine-readable output.
 .SS site \- Manage sites
 .TP
 .B site list \fR[\fB\-\-page\fR \fIN\fR] [\fB\-\-per\-page\fR \fIN\fR]

@@ -306,12 +306,43 @@ vector webhook delete <webhook_id>
 vector php-versions
 ```
 
+### Doctor
+
+Diagnose CLI setup, authentication, and live API connectivity:
+
+```bash
+vector doctor          # table of checks (cli / auth / api)
+vector doctor --json   # machine-readable; backs /vector:doctor
+```
+
+`doctor` always exits 0 — read each check's status (`pass`/`warn`/`skip`/`fail`)
+rather than the exit code.
+
 ### MCP Integration
 
 Configure [Claude Desktop](https://claude.ai/download) to use Vector CLI as an MCP server:
 
 ```bash
 vector mcp setup
+```
+
+### Claude Code Plugin
+
+Install the Vector plugin to give Claude Code the bundled skill and a
+`/vector:doctor` health-check command. Inside Claude Code:
+
+```text
+/plugin marketplace add built-fast/vector-cli
+/plugin install vector@built-fast
+```
+
+The plugin reuses the same `SKILL.md` reference that `vector skill install`
+provides — install it via the plugin or the standalone command, not both. For
+other agents, point them directly at the embedded skill:
+
+```bash
+vector skill               # print SKILL.md to stdout
+vector skill install       # install to ~/.agents/skills + ~/.claude/skills
 ```
 
 ## Output Format

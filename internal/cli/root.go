@@ -114,6 +114,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().String("jq", "", `Filter JSON output with a jq expression (built-in, no external jq required)`)
 
 	cmd.AddCommand(commands.NewAuthCmd())
+	cmd.AddCommand(commands.NewDoctorCmd())
 	cmd.AddCommand(commands.NewSiteCmd())
 	cmd.AddCommand(commands.NewEnvCmd())
 	cmd.AddCommand(commands.NewDeployCmd())
