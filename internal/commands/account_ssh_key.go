@@ -61,7 +61,7 @@ func newAccountSSHKeyListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list SSH keys: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -127,7 +127,7 @@ func newAccountSSHKeyShowCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -187,7 +187,7 @@ func newAccountSSHKeyCreateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -246,7 +246,7 @@ func newAccountSSHKeyDeleteCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			output.PrintMessage(cmd.OutOrStdout(), "SSH key deleted successfully.")

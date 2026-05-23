@@ -886,7 +886,7 @@ func TestDeployRollbackCmd_WaitFailure(t *testing.T) {
 
 	ts := newDeployWaitTestServer("valid-token", []countingResponse{
 		makeDeployPollResponse("dep-006", "pending"),
-		makeDeployPollResponse("dep-006", "cancelled"),
+		makeDeployPollResponse("dep-006", "canceled"),
 	})
 	defer ts.Close()
 
@@ -900,7 +900,7 @@ func TestDeployRollbackCmd_WaitFailure(t *testing.T) {
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 1, apiErr.ExitCode)
 	assert.Contains(t, apiErr.Message, "failed status")
-	assert.Contains(t, apiErr.Message, "cancelled")
+	assert.Contains(t, apiErr.Message, "canceled")
 }
 
 func TestDeployRollbackCmd_WaitJSON(t *testing.T) {

@@ -83,7 +83,7 @@ func newEventListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list events: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)

@@ -118,7 +118,7 @@ func TestPersistentPreRunE_LoadsDefaultConfig(t *testing.T) {
 	err := cmd.Execute()
 	require.NoError(t, err)
 	require.NotNil(t, captured)
-	assert.Equal(t, "https://api.builtfast.com", captured.Config.ApiURL)
+	assert.Equal(t, "https://api.builtfast.com", captured.Config.APIURL)
 }
 
 func TestPersistentPreRunE_TokenFromFlag(t *testing.T) {
@@ -342,7 +342,7 @@ func TestPersistentPreRunE_CustomAPIURL(t *testing.T) {
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 
 	// Write custom config
-	cfg := config.Config{ApiURL: "https://custom.api.com"}
+	cfg := config.Config{APIURL: "https://custom.api.com"}
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "config.json"), data, 0o644))

@@ -10,21 +10,21 @@ import (
 	"github.com/built-fast/vector-cli/internal/output"
 )
 
-// NewDbExportCmd creates the db export command group.
-func NewDbExportCmd() *cobra.Command {
+// NewDBExportCmd creates the db export command group.
+func NewDBExportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Manage database exports",
 		Long:  "Create and check database export requests to download SQL dumps of site databases.",
 	}
 
-	cmd.AddCommand(newDbExportCreateCmd())
-	cmd.AddCommand(newDbExportStatusCmd())
+	cmd.AddCommand(newDBExportCreateCmd())
+	cmd.AddCommand(newDBExportStatusCmd())
 
 	return cmd
 }
 
-func newDbExportCreateCmd() *cobra.Command {
+func newDBExportCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <site-id>",
 		Short: "Create a database export",
@@ -63,7 +63,7 @@ func newDbExportCreateCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -87,7 +87,7 @@ func newDbExportCreateCmd() *cobra.Command {
 	return cmd
 }
 
-func newDbExportStatusCmd() *cobra.Command {
+func newDBExportStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <site-id> <export-id>",
 		Short: "Check database export status",
@@ -122,7 +122,7 @@ func newDbExportStatusCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any

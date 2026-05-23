@@ -41,7 +41,7 @@ func TestAPIError_Error_MultipleValidationErrors(t *testing.T) {
 
 func TestAPIError_ImplementsErrorInterface(t *testing.T) {
 	var err error = &APIError{Message: "test"}
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "test", err.Error())
 }
 

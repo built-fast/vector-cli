@@ -247,9 +247,7 @@ func TestMcpSetupCmd_CodeProjectLevel(t *testing.T) {
 	configPath := filepath.Join(tmpDir, ".mcp.json")
 
 	// Change to temp dir so .mcp.json is created there
-	origDir, _ := os.Getwd()
-	require.NoError(t, os.Chdir(tmpDir))
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	cmd, stdout, _ := buildMcpCmd("test-token-456", output.Table)
 	cmd.SetArgs([]string{"mcp", "setup", "--target", "code"})
@@ -284,9 +282,7 @@ func TestMcpSetupCmd_CodeGlobal(t *testing.T) {
 	configPath := filepath.Join(tmpDir, ".claude.json")
 
 	// Override HOME for the test
-	origHome := os.Getenv("HOME")
-	require.NoError(t, os.Setenv("HOME", tmpDir))
-	defer func() { _ = os.Setenv("HOME", origHome) }()
+	t.Setenv("HOME", tmpDir)
 
 	cmd, stdout, _ := buildMcpCmd("test-token-789", output.Table)
 	cmd.SetArgs([]string{"mcp", "setup", "--target", "code", "--global"})
@@ -315,9 +311,7 @@ func TestMcpSetupCmd_CodeAlreadyConfigured(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".mcp.json")
 
-	origDir, _ := os.Getwd()
-	require.NoError(t, os.Chdir(tmpDir))
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	existing := map[string]any{
 		"mcpServers": map[string]any{
@@ -343,9 +337,7 @@ func TestMcpSetupCmd_CodeForceOverwrite(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, ".mcp.json")
 
-	origDir, _ := os.Getwd()
-	require.NoError(t, os.Chdir(tmpDir))
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Chdir(tmpDir)
 
 	existing := map[string]any{
 		"mcpServers": map[string]any{

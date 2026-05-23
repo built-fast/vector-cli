@@ -81,11 +81,11 @@ func TestGenerateExcludesCompletion(t *testing.T) {
 	completion := &cobra.Command{Use: "completion", Short: "Generate completions"}
 	root.AddCommand(completion)
 
-	real := &cobra.Command{
+	realCmd := &cobra.Command{
 		Use:  "status",
 		RunE: func(cmd *cobra.Command, args []string) error { return nil },
 	}
-	root.AddCommand(real)
+	root.AddCommand(realCmd)
 
 	got := Generate(root)
 

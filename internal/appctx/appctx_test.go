@@ -13,7 +13,7 @@ import (
 )
 
 func TestNewApp(t *testing.T) {
-	cfg := &config.Config{ApiURL: "https://example.com"}
+	cfg := &config.Config{APIURL: "https://example.com"}
 	client := api.NewClient("https://example.com", "test-key", "")
 
 	app := appctx.NewApp(cfg, client, "")
@@ -24,7 +24,7 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestContextRoundTrip(t *testing.T) {
-	cfg := &config.Config{ApiURL: "https://example.com"}
+	cfg := &config.Config{APIURL: "https://example.com"}
 	client := api.NewClient("https://example.com", "test-key", "")
 	app := appctx.NewApp(cfg, client, "")
 

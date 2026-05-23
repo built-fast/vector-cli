@@ -83,6 +83,7 @@ func (c *Client) PutFile(ctx context.Context, url string, file *os.File) (*http.
 		return nil, fmt.Errorf("executing file upload: %w", err)
 	}
 	if resp.StatusCode >= 300 || resp.StatusCode < 200 {
+		defer func() { _ = resp.Body.Close() }()
 		return nil, ParseErrorResponse(resp)
 	}
 	return resp, nil
@@ -155,6 +156,7 @@ func (c *Client) do(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		defer func() { _ = resp.Body.Close() }()
 		return nil, ParseErrorResponse(resp)
 	}
 	return resp, nil

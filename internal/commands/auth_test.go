@@ -327,7 +327,7 @@ func TestAuthLogin_Integration_ValidToken(t *testing.T) {
 	defer ts.Close()
 
 	// Write config with test server URL
-	cfg := &config.Config{ApiURL: ts.URL}
+	cfg := &config.Config{APIURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
 	root, stdout := buildRootWithAuth()
@@ -352,7 +352,7 @@ func TestAuthLogin_Integration_InvalidToken(t *testing.T) {
 	ts := newTestServer("valid-token")
 	defer ts.Close()
 
-	cfg := &config.Config{ApiURL: ts.URL}
+	cfg := &config.Config{APIURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
 	root, _ := buildRootWithAuth()
@@ -381,7 +381,7 @@ func TestAuthLogin_Integration_EnvToken(t *testing.T) {
 	ts := newTestServer("env-integration-token")
 	defer ts.Close()
 
-	cfg := &config.Config{ApiURL: ts.URL}
+	cfg := &config.Config{APIURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
 	root, _ := buildRootWithAuth()
@@ -512,7 +512,7 @@ func TestAuthLogout_Integration_RemovesToken(t *testing.T) {
 	t.Setenv("VECTOR_NO_KEYRING", "")
 
 	// Save config and token
-	require.NoError(t, config.SaveConfig(&config.Config{ApiURL: "http://localhost"}))
+	require.NoError(t, config.SaveConfig(&config.Config{APIURL: "http://localhost"}))
 	require.NoError(t, config.Save("test-token"))
 
 	// Verify token exists in keyring
@@ -559,10 +559,10 @@ func buildRootWithAuth() (*cobra.Command, *bytes.Buffer) {
 					tokenSource = "keyring"
 				}
 			}
-			client := api.NewClient(cfg.ApiURL, token, "")
+			client := api.NewClient(cfg.APIURL, token, "")
 			jsonFlag, _ := cmd.Flags().GetBool("json")
-			noJsonFlag, _ := cmd.Flags().GetBool("no-json")
-			format := output.DetectFormat(jsonFlag, noJsonFlag)
+			noJSONFlag, _ := cmd.Flags().GetBool("no-json")
+			format := output.DetectFormat(jsonFlag, noJSONFlag)
 			app := appctx.NewApp(cfg, client, tokenSource)
 			app.Output = output.NewWriter(stdout, format)
 			cmd.SetContext(appctx.WithApp(cmd.Context(), app))
@@ -590,7 +590,7 @@ func buildAuthStatusCmd(baseURL, token, tokenSource string, format output.Format
 		Use: "vector",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.DefaultConfig()
-			cfg.ApiURL = baseURL
+			cfg.APIURL = baseURL
 			client := api.NewClient(baseURL, token, "test-agent")
 			app := appctx.NewApp(
 				cfg,
@@ -707,7 +707,7 @@ func TestAuthStatus_Integration_FullFlow(t *testing.T) {
 	defer ts.Close()
 
 	// Save config with test server URL
-	cfg := &config.Config{ApiURL: ts.URL}
+	cfg := &config.Config{APIURL: ts.URL}
 	require.NoError(t, config.SaveConfig(cfg))
 
 	// Step 1: Login

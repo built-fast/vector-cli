@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -306,7 +305,7 @@ func TestWaitForResource_RespectsContextCancellation(t *testing.T) {
 	var apiErr *api.APIError
 	require.ErrorAs(t, err, &apiErr)
 	assert.Equal(t, 1, apiErr.ExitCode)
-	assert.Contains(t, apiErr.Message, "cancelled")
+	assert.Contains(t, apiErr.Message, "canceled")
 }
 
 func TestWaitForResource_TimesOut(t *testing.T) {
@@ -421,6 +420,6 @@ func TestWaitForResource_TTYWritesANSI(t *testing.T) {
 
 	altOutput := altBuf.String()
 	// TTY mode should have alt screen enter and exit sequences.
-	assert.True(t, strings.Contains(altOutput, ansiAltScreenEnter), "expected alt screen enter sequence")
-	assert.True(t, strings.Contains(altOutput, ansiAltScreenExit), "expected alt screen exit sequence")
+	assert.Contains(t, altOutput, ansiAltScreenEnter, "expected alt screen enter sequence")
+	assert.Contains(t, altOutput, ansiAltScreenExit, "expected alt screen exit sequence")
 }

@@ -11,7 +11,7 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
-	assert.Equal(t, "https://api.builtfast.com", cfg.ApiURL)
+	assert.Equal(t, "https://api.builtfast.com", cfg.APIURL)
 }
 
 func TestLoadConfig_FileMissing(t *testing.T) {
@@ -20,7 +20,7 @@ func TestLoadConfig_FileMissing(t *testing.T) {
 
 	cfg, err := LoadConfig()
 	require.NoError(t, err)
-	assert.Equal(t, "https://api.builtfast.com", cfg.ApiURL)
+	assert.Equal(t, "https://api.builtfast.com", cfg.APIURL)
 }
 
 func TestLoadConfig_ValidFile(t *testing.T) {
@@ -33,7 +33,7 @@ func TestLoadConfig_ValidFile(t *testing.T) {
 
 	cfg, err := LoadConfig()
 	require.NoError(t, err)
-	assert.Equal(t, "https://custom.example.com", cfg.ApiURL)
+	assert.Equal(t, "https://custom.example.com", cfg.APIURL)
 }
 
 func TestLoadConfig_InvalidJSON(t *testing.T) {
@@ -46,7 +46,7 @@ func TestLoadConfig_InvalidJSON(t *testing.T) {
 
 	cfg, err := LoadConfig()
 	assert.Nil(t, cfg)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid JSON in config file")
 }
 
@@ -55,7 +55,7 @@ func TestSaveConfig(t *testing.T) {
 	configDir := filepath.Join(tmpDir, "vector")
 	t.Setenv("VECTOR_CONFIG_DIR", configDir)
 
-	cfg := &Config{ApiURL: "https://custom.example.com"}
+	cfg := &Config{APIURL: "https://custom.example.com"}
 	err := SaveConfig(cfg)
 	require.NoError(t, err)
 
@@ -74,11 +74,11 @@ func TestSaveConfig_RoundTrip(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("VECTOR_CONFIG_DIR", tmpDir)
 
-	original := &Config{ApiURL: "https://roundtrip.example.com"}
+	original := &Config{APIURL: "https://roundtrip.example.com"}
 	err := SaveConfig(original)
 	require.NoError(t, err)
 
 	loaded, err := LoadConfig()
 	require.NoError(t, err)
-	assert.Equal(t, original.ApiURL, loaded.ApiURL)
+	assert.Equal(t, original.APIURL, loaded.APIURL)
 }

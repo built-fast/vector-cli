@@ -63,7 +63,7 @@ func newDeployListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to list deployments: %w", err)
 				}
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			data, meta, err := parseResponseWithMeta(body)
@@ -129,7 +129,7 @@ func newDeployShowCmd() *cobra.Command {
 			}
 
 			if app.Output.Format() == output.JSON {
-				return app.Output.JSON(json.RawMessage(data))
+				return app.Output.JSON(data)
 			}
 
 			var item map[string]any
@@ -221,7 +221,7 @@ func newDeployTriggerCmd() *cobra.Command {
 
 			if !waitEnabled {
 				if app.Output.Format() == output.JSON {
-					return app.Output.JSON(json.RawMessage(data))
+					return app.Output.JSON(data)
 				}
 
 				var item map[string]any
@@ -255,7 +255,7 @@ func newDeployTriggerCmd() *cobra.Command {
 				Interval:         interval,
 				Timeout:          timeout,
 				TerminalStatuses: map[string]bool{"deployed": true},
-				FailedStatuses:   map[string]bool{"failed": true, "cancelled": true},
+				FailedStatuses:   map[string]bool{"failed": true, "canceled": true},
 				Noun:             "Deployment",
 				FormatDisplay:    deployFormatDisplay,
 			}
@@ -357,7 +357,7 @@ func newDeployRollbackCmd() *cobra.Command {
 
 			if !waitEnabled {
 				if app.Output.Format() == output.JSON {
-					return app.Output.JSON(json.RawMessage(data))
+					return app.Output.JSON(data)
 				}
 
 				var item map[string]any
@@ -391,7 +391,7 @@ func newDeployRollbackCmd() *cobra.Command {
 				Interval:         interval,
 				Timeout:          timeout,
 				TerminalStatuses: map[string]bool{"deployed": true},
-				FailedStatuses:   map[string]bool{"failed": true, "cancelled": true},
+				FailedStatuses:   map[string]bool{"failed": true, "canceled": true},
 				Noun:             "Deployment",
 				FormatDisplay:    deployFormatDisplay,
 			}
