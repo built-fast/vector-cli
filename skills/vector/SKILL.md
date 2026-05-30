@@ -676,6 +676,10 @@ Flags:
   query parameters.
 - `--input` — send a raw request body from a file, or from stdin when set to
   `-`. Mutually exclusive with `-f`/`-F`.
+- `--include`, `-i` — print the response status line and headers before the
+  body.
+- `--verbose` — echo the resolved request (method, URL, body) to stderr before
+  sending; stdout is unchanged.
 
 ```bash
 # GET an endpoint with no dedicated subcommand
@@ -693,6 +697,12 @@ vector api sites -f your_customer_id=cust_123 -F dev_php_version=8.3
 # Send a raw JSON body from a file or stdin
 vector api sites --method POST --input body.json
 echo '{"your_customer_id":"cust_123"}' | vector api sites -X POST --input -
+
+# Inspect the response status line and headers
+vector api sites -i
+
+# Echo the resolved request to stderr before sending
+vector api sites --verbose
 ```
 
 #### vector php-versions

@@ -480,6 +480,13 @@ and
 .B \-H, \-\-header
 Add a request header in \fIkey:value\fR format (repeatable). A custom header
 overrides the matching default header.
+.TP
+.B \-i, \-\-include
+Print the response status line and headers before the body.
+.TP
+.B \-\-verbose
+Echo the resolved request (method, URL, and body) to stderr before sending it;
+stdout is unchanged.
 .SS php\-versions \- List available PHP versions
 .TP
 .B php\-versions
