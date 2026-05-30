@@ -680,6 +680,11 @@ Flags:
   body.
 - `--verbose` — echo the resolved request (method, URL, body) to stderr before
   sending; stdout is unchanged.
+- `--paginate` — follow `meta.current_page`/`meta.last_page`, merging every
+  page's `data` array into a single JSON array (so `--jq` applies after the
+  merge). Stops after a 100-page cap with a warning to stderr; a response
+  without the `{data, meta}` shape is a single request returned unchanged.
+  Mutually exclusive with `-i/--include`.
 
 ```bash
 # GET an endpoint with no dedicated subcommand
@@ -703,6 +708,9 @@ vector api sites -i
 
 # Echo the resolved request to stderr before sending
 vector api sites --verbose
+
+# Fetch every page of a list, merged into one array
+vector api sites --paginate --jq '.[].id'
 ```
 
 #### vector php-versions
