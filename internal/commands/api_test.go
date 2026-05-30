@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -786,6 +787,167 @@ func TestCollectFields(t *testing.T) {
 
 func TestCollectFields_ReusedScalarKey(t *testing.T) {
 	_, err := collectFields(nil, []string{"k=1", "k=2"})
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
+// --- Auto-pagination: --paginate (US-006) ---
+
+// newAPIPaginateServer returns a server that serves totalPages pages of a
+// paginated {data, meta} collection. Each page's data holds a single object
+// identifying its page number. It records the highest page requested in
+// maxPageSeen so the cap test can assert how many requests were made.
+func newAPIPaginateServer(t *testing.T, validToken string, totalPages int, maxPageSeen *int) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Unauthenticated.", "http_status": 401})
+			return
+		}
+
+		page := 1
+		if p := r.URL.Query().Get("page"); p != "" {
+			if n, err := strconv.Atoi(p); err == nil {
+				page = n
+			}
+		}
+		if maxPageSeen != nil && page > *maxPageSeen {
+			*maxPageSeen = page
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{{"id": "item", "page": page}},
+			"meta": map[string]any{
+				"current_page": page,
+				"last_page":    totalPages,
+				"total":        totalPages,
+			},
+		})
+	}))
+}
+
+func TestAPICmd_PaginateMergesPages(t *testing.T) {
+	ts := newAPIPaginateServer(t, "valid-token", 3, nil)
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+
+	var merged []map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &merged))
+	require.Len(t, merged, 3)
+	assert.EqualValues(t, 1, merged[0]["page"])
+	assert.EqualValues(t, 2, merged[1]["page"])
+	assert.EqualValues(t, 3, merged[2]["page"])
+}
+
+func TestAPICmd_PaginateSinglePage(t *testing.T) {
+	ts := newAPIPaginateServer(t, "valid-token", 1, nil)
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+
+	var merged []map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &merged))
+	require.Len(t, merged, 1)
+}
+
+func TestAPICmd_PaginatePreservesExistingQuery(t *testing.T) {
+	var lastReq *http.Request
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lastReq = r
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{{"id": "item"}},
+			"meta": map[string]any{"current_page": 1, "last_page": 1},
+		})
+	}))
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	// A query string embedded in the endpoint must be preserved alongside the
+	// injected page parameter.
+	cmd.SetArgs([]string{"api", "/api/v1/vector/sites?status=active", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+	require.NotNil(t, lastReq)
+	assert.Equal(t, "active", lastReq.URL.Query().Get("status"))
+	assert.Equal(t, "1", lastReq.URL.Query().Get("page"))
+}
+
+func TestAPICmd_PaginateStopsAtCap(t *testing.T) {
+	maxPageSeen := 0
+	// last_page is far beyond the cap, so the loop must stop at maxAPIPages.
+	ts := newAPIPaginateServer(t, "valid-token", 10000, &maxPageSeen)
+	defer ts.Close()
+
+	cmd, stdout, stderr := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+
+	assert.Equal(t, maxAPIPages, maxPageSeen, "should fetch exactly the page cap")
+
+	var merged []map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &merged))
+	assert.Len(t, merged, maxAPIPages)
+
+	assert.Contains(t, stderr.String(), "warning")
+	assert.Contains(t, stderr.String(), strconv.Itoa(maxAPIPages))
+}
+
+func TestAPICmd_PaginateSingleRequestFallback(t *testing.T) {
+	requests := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		// No {data, meta} shape: a bare object.
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "single", "name": "no-envelope"})
+	}))
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, 1, requests, "non-paginated response should issue a single request")
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &result))
+	assert.Equal(t, "single", result["id"])
+}
+
+func TestAPICmd_PaginateAppliesJQAfterMerge(t *testing.T) {
+	ts := newAPIPaginateServer(t, "valid-token", 2, nil)
+	defer ts.Close()
+
+	code := mustCompileJQ(t, ".[].page")
+	cmd, stdout, _ := buildAPICmd(ts.URL, "valid-token", output.JSON, output.WithJQ(".[].page", code))
+	cmd.SetArgs([]string{"api", "sites", "--paginate"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "1\n2\n", stdout.String())
+}
+
+func TestAPICmd_PaginateAndIncludeMutuallyExclusive(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--paginate", "-i"})
+
+	err := cmd.Execute()
 	require.Error(t, err)
 
 	var apiErr *api.APIError

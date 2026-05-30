@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/built-fast/vector-cli/internal/api"
+	"github.com/built-fast/vector-cli/internal/appctx"
 	"github.com/built-fast/vector-cli/internal/output"
 )
 
@@ -44,6 +45,7 @@ func NewAPICmd() *cobra.Command {
 		reqHeaders []string
 		include    bool
 		verbose    bool
+		paginate   bool
 	)
 
 	cmd := &cobra.Command{
@@ -86,7 +88,7 @@ func NewAPICmd() *cobra.Command {
   # Echo the resolved request to stderr before sending
   vector api sites --verbose`,
 		Args: cobra.ExactArgs(1),
-		RunE: apiRunE(&method, &rawFields, &fields, &input, &reqHeaders, &include, &verbose),
+		RunE: apiRunE(&method, &rawFields, &fields, &input, &reqHeaders, &include, &verbose, &paginate),
 	}
 
 	cmd.Flags().StringVarP(&method, "method", "X", http.MethodGet,
@@ -103,12 +105,14 @@ func NewAPICmd() *cobra.Command {
 		"print the response status line and headers before the body")
 	cmd.Flags().BoolVar(&verbose, "verbose", false,
 		"echo the resolved request (method, URL, body) to stderr before sending")
+	cmd.Flags().BoolVar(&paginate, "paginate", false,
+		"fetch every page of a paginated collection, merging results into one JSON array")
 
 	return cmd
 }
 
 // apiRunE returns the RunE for the api passthrough command.
-func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHeaders *[]string, include, verbose *bool) func(cmd *cobra.Command, args []string) error {
+func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHeaders *[]string, include, verbose, paginate *bool) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		app, err := requireApp(cmd)
 		if err != nil {
@@ -126,6 +130,13 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 		if hasInput && hasFields {
 			return &api.APIError{
 				Message:  "--input cannot be combined with -f/--raw-field or -F/--field",
+				ExitCode: 3,
+			}
+		}
+
+		if *paginate && *include {
+			return &api.APIError{
+				Message:  "--paginate cannot be combined with -i/--include",
 				ExitCode: 3,
 			}
 		}
@@ -174,6 +185,10 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 
 		if *verbose {
 			writeVerboseRequest(cmd.ErrOrStderr(), resolvedMethod, app.Client.BaseURL+path, bodyBytes)
+		}
+
+		if *paginate {
+			return runAPIPaginate(cmd, app, resolvedMethod, path, headers, bodyBytes)
 		}
 
 		var reqBody io.Reader
@@ -456,4 +471,106 @@ func writeAPIResponse(w *output.Writer, body []byte) error {
 		return fmt.Errorf("failed to write response: %w", err)
 	}
 	return nil
+}
+
+// maxAPIPages caps how many pages --paginate fetches, guarding against an
+// unbounded loop when a server never reports a final page. Server rate limits
+// are the backstop for legitimately larger result sets.
+const maxAPIPages = 100
+
+// apiPageEnvelope is the {data, meta} shape that --paginate follows. A response
+// that does not match this shape is treated as a single, non-paginated result.
+type apiPageEnvelope struct {
+	Data json.RawMessage `json:"data"`
+	Meta *struct {
+		CurrentPage int `json:"current_page"`
+		LastPage    int `json:"last_page"`
+	} `json:"meta"`
+}
+
+// runAPIPaginate follows pagination (meta.current_page / meta.last_page),
+// incrementing the page query parameter until the last page is reached, and
+// emits every page's data array merged into a single JSON array. A response
+// without the {data, meta} shape yields a single request returned unchanged.
+// Fetching stops after maxAPIPages with a warning to stderr.
+func runAPIPaginate(cmd *cobra.Command, app *appctx.App, method, path string, headers http.Header, bodyBytes []byte) error {
+	merged := []json.RawMessage{}
+
+	for page := 1; ; page++ {
+		pagePath, err := withPageParam(path, page)
+		if err != nil {
+			return err
+		}
+
+		var reqBody io.Reader
+		if bodyBytes != nil {
+			reqBody = bytes.NewReader(bodyBytes)
+		}
+
+		resp, err := app.Client.Do(cmd.Context(), method, pagePath, headers, reqBody)
+		if err != nil {
+			return fmt.Errorf("failed to make API request: %w", err)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return fmt.Errorf("failed to make API request: %w", err)
+		}
+
+		var envelope apiPageEnvelope
+		if err := json.Unmarshal(body, &envelope); err != nil || envelope.Meta == nil {
+			// Not a paginated {data, meta} collection: return the first response
+			// unchanged. A later page lacking the shape just stops the loop.
+			if page == 1 {
+				return writeAPIResponse(app.Output, body)
+			}
+			break
+		}
+
+		if len(envelope.Data) > 0 {
+			items, err := pageItems(envelope.Data)
+			if err != nil {
+				return err
+			}
+			merged = append(merged, items...)
+		}
+
+		if envelope.Meta.CurrentPage >= envelope.Meta.LastPage {
+			break
+		}
+
+		if page >= maxAPIPages {
+			fmt.Fprintf(cmd.ErrOrStderr(),
+				"warning: --paginate stopped after %d pages before reaching the last page\n", maxAPIPages)
+			break
+		}
+	}
+
+	return app.Output.JSON(merged)
+}
+
+// withPageParam returns path with its "page" query parameter set to page,
+// preserving any other query parameters already present.
+func withPageParam(path string, page int) (string, error) {
+	u, err := url.Parse(path)
+	if err != nil {
+		return "", &api.APIError{
+			Message:  fmt.Sprintf("invalid path %q: %v", path, err),
+			ExitCode: 3,
+		}
+	}
+	q := u.Query()
+	q.Set("page", strconv.Itoa(page))
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+// pageItems decodes a page's data array into individual JSON elements.
+func pageItems(data json.RawMessage) ([]json.RawMessage, error) {
+	var items []json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
+		return nil, fmt.Errorf("failed to parse paginated response: %w", err)
+	}
+	return items, nil
 }

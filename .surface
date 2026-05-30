@@ -225,6 +225,7 @@ FLAG vector api --header type=stringArray
 FLAG vector api --include type=bool
 FLAG vector api --input type=string
 FLAG vector api --method type=string
+FLAG vector api --paginate type=bool
 FLAG vector api --raw-field type=stringArray
 FLAG vector api --verbose type=bool
 FLAG vector archive import --disable-foreign-keys type=bool

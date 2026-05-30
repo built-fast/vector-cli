@@ -96,6 +96,26 @@ load test_helper
 }
 
 
+# --- pagination ---
+
+@test "api --paginate returns a merged JSON array" {
+  create_credentials "test-token"
+  run vector api sites --paginate
+  assert_success
+  is_valid_json
+  # The merged result is a top-level array, filterable as such.
+  run vector api sites --paginate --jq '. | length'
+  assert_success
+}
+
+@test "api with both --paginate and -i fails with exit code 3" {
+  create_credentials "test-token"
+  run vector api sites --paginate -i
+  assert_failure
+  assert_exit_code 3
+}
+
+
 # --- auth required ---
 
 @test "api without auth fails with exit code 2" {
