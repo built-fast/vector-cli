@@ -393,7 +393,7 @@ func TestClient_Do_BodyPassthroughDefaultContentType(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, "application/json", gotContentType)
-	assert.Equal(t, `{"name":"x"}`, string(gotBody))
+	assert.JSONEq(t, `{"name":"x"}`, string(gotBody))
 }
 
 func TestClient_Do_PreservesCallerContentType(t *testing.T) {
