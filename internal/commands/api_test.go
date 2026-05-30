@@ -708,6 +708,66 @@ func TestParseHeaders_Malformed(t *testing.T) {
 	assert.Equal(t, 3, apiErr.ExitCode)
 }
 
+// --- Response inspection: -i/--include and --verbose (US-005) ---
+
+func TestAPICmd_IncludePrintsStatusAndHeaders(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Request-Id", "req-123")
+		_ = json.NewEncoder(w).Encode(apiSitesResponse)
+	}))
+	defer ts.Close()
+
+	cmd, stdout, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-i"})
+
+	require.NoError(t, cmd.Execute())
+
+	out := stdout.String()
+	// Status line and headers precede the body on stdout.
+	assert.Contains(t, out, "HTTP/1.1 200 OK")
+	assert.Contains(t, out, "X-Request-Id: req-123")
+	assert.Contains(t, out, "Content-Type: application/json")
+	assert.Contains(t, out, `"data"`)
+
+	// Headers come before the JSON body.
+	assert.Less(t, strings.Index(out, "X-Request-Id"), strings.Index(out, `"data"`))
+}
+
+func TestAPICmd_VerboseWritesRequestToStderr(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, stdout, stderr := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "name=a", "--verbose"})
+
+	require.NoError(t, cmd.Execute())
+
+	errOut := stderr.String()
+	assert.Contains(t, errOut, "POST "+ts.URL+"/api/v1/vector/sites")
+	assert.Contains(t, errOut, `{"name":"a"}`)
+
+	// --verbose must not leak the request echo into stdout.
+	out := stdout.String()
+	assert.NotContains(t, out, "POST "+ts.URL)
+	// stdout still carries the response body.
+	assert.Contains(t, out, `"ok"`)
+}
+
+func TestAPICmd_VerboseGETHasNoBodyLine(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, stderr := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--verbose"})
+
+	require.NoError(t, cmd.Execute())
+
+	errOut := stderr.String()
+	assert.Equal(t, "> GET "+ts.URL+"/api/v1/vector/sites\n", errOut)
+}
+
 // --- collectFields (unit) ---
 
 func TestCollectFields(t *testing.T) {

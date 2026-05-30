@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -41,6 +42,8 @@ func NewAPICmd() *cobra.Command {
 		fields     []string
 		input      string
 		reqHeaders []string
+		include    bool
+		verbose    bool
 	)
 
 	cmd := &cobra.Command{
@@ -54,7 +57,10 @@ func NewAPICmd() *cobra.Command {
 			"The method defaults to GET, or POST when any field or --input is given. " +
 			"Fields supplied with -f/-F are encoded as a JSON body for " +
 			"POST/PUT/PATCH/DELETE, or as query parameters for GET/HEAD. Use the " +
-			"key[]=value suffix to build arrays; reusing a plain key is an error.",
+			"key[]=value suffix to build arrays; reusing a plain key is an error.\n\n" +
+			"Use -i/--include to print the response status line and headers before " +
+			"the body, and --verbose to echo the resolved request to stderr before " +
+			"sending it.",
 		Example: `  # GET a resource that has no dedicated subcommand
   vector api php-versions
 
@@ -72,9 +78,15 @@ func NewAPICmd() *cobra.Command {
   echo '{"customer_id":"cust_123"}' | vector api sites -X POST --input -
 
   # Send a custom request header
-  vector api sites -H 'Accept: text/plain'`,
+  vector api sites -H 'Accept: text/plain'
+
+  # Inspect the response status line and headers
+  vector api sites -i
+
+  # Echo the resolved request to stderr before sending
+  vector api sites --verbose`,
 		Args: cobra.ExactArgs(1),
-		RunE: apiRunE(&method, &rawFields, &fields, &input, &reqHeaders),
+		RunE: apiRunE(&method, &rawFields, &fields, &input, &reqHeaders, &include, &verbose),
 	}
 
 	cmd.Flags().StringVarP(&method, "method", "X", http.MethodGet,
@@ -87,12 +99,16 @@ func NewAPICmd() *cobra.Command {
 		"send a raw request body read from a file, or from stdin when set to -")
 	cmd.Flags().StringArrayVarP(&reqHeaders, "header", "H", nil,
 		"add a request header in key:value format; overrides defaults (repeatable)")
+	cmd.Flags().BoolVarP(&include, "include", "i", false,
+		"print the response status line and headers before the body")
+	cmd.Flags().BoolVar(&verbose, "verbose", false,
+		"echo the resolved request (method, URL, body) to stderr before sending")
 
 	return cmd
 }
 
 // apiRunE returns the RunE for the api passthrough command.
-func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHeaders *[]string) func(cmd *cobra.Command, args []string) error {
+func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHeaders *[]string, include, verbose *bool) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		app, err := requireApp(cmd)
 		if err != nil {
@@ -123,17 +139,16 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 		path := resolveAPIPath(args[0])
 
 		var (
-			reqBody io.Reader
-			headers http.Header
+			bodyBytes []byte
+			headers   http.Header
 		)
 
 		switch {
 		case hasInput:
-			raw, err := readInputBody(*input)
+			bodyBytes, err = readInputBody(*input)
 			if err != nil {
 				return err
 			}
-			reqBody = bytes.NewReader(raw)
 			headers = jsonContentTypeHeader()
 
 		case hasFields:
@@ -143,11 +158,10 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 			}
 
 			if methodsWithBody[resolvedMethod] {
-				encoded, err := json.Marshal(collected)
+				bodyBytes, err = json.Marshal(collected)
 				if err != nil {
 					return fmt.Errorf("failed to encode request body: %w", err)
 				}
-				reqBody = bytes.NewReader(encoded)
 				headers = jsonContentTypeHeader()
 			} else {
 				path = appendQueryParams(path, collected)
@@ -158,6 +172,15 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 		// Content-Type) as well as the client's default Authorization/Accept.
 		headers = mergeHeaders(headers, customHeaders)
 
+		if *verbose {
+			writeVerboseRequest(cmd.ErrOrStderr(), resolvedMethod, app.Client.BaseURL+path, bodyBytes)
+		}
+
+		var reqBody io.Reader
+		if bodyBytes != nil {
+			reqBody = bytes.NewReader(bodyBytes)
+		}
+
 		resp, err := app.Client.Do(cmd.Context(), resolvedMethod, path, headers, reqBody)
 		if err != nil {
 			return fmt.Errorf("failed to make API request: %w", err)
@@ -167,6 +190,10 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHead
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("failed to make API request: %w", err)
+		}
+
+		if *include {
+			writeResponseHead(app.Output.Underlying(), resp)
 		}
 
 		return writeAPIResponse(app.Output, body)
@@ -384,6 +411,35 @@ func readFileOrStdin(source string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 	return raw, nil
+}
+
+// writeVerboseRequest echoes the resolved request (method, URL, and body when
+// present) to the given writer, which is always stderr so stdout stays pipeable.
+func writeVerboseRequest(w io.Writer, method, url string, body []byte) {
+	fmt.Fprintf(w, "> %s %s\n", method, url)
+	if len(body) > 0 {
+		fmt.Fprintf(w, "> %s\n", body)
+	}
+}
+
+// writeResponseHead prints the HTTP status line and response headers, sorted by
+// name, followed by a blank line. It runs before the body when -i/--include is
+// set.
+func writeResponseHead(w io.Writer, resp *http.Response) {
+	fmt.Fprintf(w, "%s %s\n", resp.Proto, resp.Status)
+
+	names := make([]string, 0, len(resp.Header))
+	for name := range resp.Header {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		for _, value := range resp.Header[name] {
+			fmt.Fprintf(w, "%s: %s\n", name, value)
+		}
+	}
+	fmt.Fprintln(w)
 }
 
 // writeAPIResponse prints the response body. When the body parses as JSON it is
