@@ -648,6 +648,31 @@ vector account secret delete <id>
 
 ### Utilities
 
+#### vector api
+
+```
+vector api <endpoint> [--json] [--jq <expr>]
+```
+
+Sends an authenticated GET request to any Vector Pro API endpoint and prints the
+raw response. Use it to reach endpoints that have no dedicated subcommand. An
+`<endpoint>` beginning with `/` is sent verbatim against the base URL; any other
+value has `/api/v1/vector/` prepended, so `sites` resolves to
+`/api/v1/vector/sites`. JSON responses are pretty-printed and honor `--jq`
+(which operates on the full envelope, including `data`/`meta`); non-JSON bodies
+are written verbatim.
+
+```bash
+# GET an endpoint with no dedicated subcommand
+vector api php-versions
+
+# Equivalent absolute path
+vector api /api/v1/vector/php-versions
+
+# Filter the full envelope with built-in jq
+vector api sites --jq '.data[].id'
+```
+
 #### vector php-versions
 
 ```

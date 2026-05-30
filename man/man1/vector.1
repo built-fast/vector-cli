@@ -427,6 +427,23 @@ Update a webhook.
 .TP
 .B webhook delete \fIWEBHOOK_ID\fR
 Delete a webhook.
+.SS api \- Make an authenticated API request
+.TP
+.B api \fIENDPOINT\fR
+Send an authenticated GET request to any Vector Pro API endpoint and print the
+raw response. An
+.I ENDPOINT
+beginning with
+.B /
+is sent verbatim against the base URL; any other value has
+.B /api/v1/vector/
+prepended, so
+.B sites
+resolves to
+.BR /api/v1/vector/sites .
+JSON responses are pretty\-printed (and honor
+.BR \-\-jq );
+other bodies are written verbatim.
 .SS php\-versions \- List available PHP versions
 .TP
 .B php\-versions

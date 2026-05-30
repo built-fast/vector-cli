@@ -4,6 +4,7 @@ ARG vector account secret show 0 id
 ARG vector account secret update 0 id
 ARG vector account ssh-key delete 0 key-id
 ARG vector account ssh-key show 0 key-id
+ARG vector api 0 endpoint
 ARG vector archive import 0 site-id
 ARG vector archive import 1 file
 ARG vector backup download create 0 backup-id
@@ -98,6 +99,7 @@ CMD vector account ssh-key create
 CMD vector account ssh-key delete
 CMD vector account ssh-key list
 CMD vector account ssh-key show
+CMD vector api
 CMD vector archive
 CMD vector archive import
 CMD vector auth
