@@ -611,6 +611,103 @@ func TestAPICmd_InvalidFieldFormat(t *testing.T) {
 	assert.Equal(t, 3, apiErr.ExitCode)
 }
 
+// --- Custom request headers (US-004) ---
+
+// newAPIHeaderEchoServer returns a server that captures the request's Accept and
+// X-Custom headers into the provided pointers and echoes a minimal JSON envelope.
+func newAPIHeaderEchoServer(t *testing.T, validToken string, gotAccept, gotCustom *string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Unauthenticated.", "http_status": 401})
+			return
+		}
+
+		*gotAccept = r.Header.Get("Accept")
+		*gotCustom = r.Header.Get("X-Custom")
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"ok": true}, "http_status": 200})
+	}))
+}
+
+func TestAPICmd_CustomHeaderIsSent(t *testing.T) {
+	var accept, custom string
+	ts := newAPIHeaderEchoServer(t, "valid-token", &accept, &custom)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-H", "X-Custom: hello"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "hello", custom)
+}
+
+func TestAPICmd_CustomHeaderOverridesDefault(t *testing.T) {
+	var accept, custom string
+	ts := newAPIHeaderEchoServer(t, "valid-token", &accept, &custom)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-H", "Accept: text/plain"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "text/plain", accept)
+}
+
+func TestAPICmd_CustomHeaderOverridesJSONContentType(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "name=a", "-H", "Content-Type: application/yaml"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "application/yaml", c.contentType)
+}
+
+func TestAPICmd_MalformedHeaderIsError(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-H", "no-colon-here"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
+func TestParseHeaders(t *testing.T) {
+	got, err := parseHeaders([]string{"X-One: a", "X-Two:b", "Accept:  application/json"})
+	require.NoError(t, err)
+	assert.Equal(t, "a", got.Get("X-One"))
+	assert.Equal(t, "b", got.Get("X-Two"))
+	// Leading whitespace after the colon is trimmed.
+	assert.Equal(t, "application/json", got.Get("Accept"))
+}
+
+func TestParseHeaders_Empty(t *testing.T) {
+	got, err := parseHeaders(nil)
+	require.NoError(t, err)
+	assert.Nil(t, got)
+}
+
+func TestParseHeaders_Malformed(t *testing.T) {
+	_, err := parseHeaders([]string{"missing-colon"})
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
 // --- collectFields (unit) ---
 
 func TestCollectFields(t *testing.T) {

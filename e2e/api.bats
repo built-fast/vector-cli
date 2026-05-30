@@ -59,6 +59,23 @@ load test_helper
 }
 
 
+# --- custom request headers ---
+
+@test "api sends a custom request header" {
+  create_credentials "test-token"
+  run vector api sites -H 'X-Custom: hello'
+  assert_success
+  is_valid_json
+}
+
+@test "api with a malformed header fails with exit code 3" {
+  create_credentials "test-token"
+  run vector api sites -H no-colon-here
+  assert_failure
+  assert_exit_code 3
+}
+
+
 # --- auth required ---
 
 @test "api without auth fails with exit code 2" {

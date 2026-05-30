@@ -36,10 +36,11 @@ var methodsWithBody = map[string]bool{
 // NewAPICmd creates the api passthrough command.
 func NewAPICmd() *cobra.Command {
 	var (
-		method    string
-		rawFields []string
-		fields    []string
-		input     string
+		method     string
+		rawFields  []string
+		fields     []string
+		input      string
+		reqHeaders []string
 	)
 
 	cmd := &cobra.Command{
@@ -68,9 +69,12 @@ func NewAPICmd() *cobra.Command {
 
   # Send a raw request body from a file or stdin
   vector api sites --method POST --input body.json
-  echo '{"customer_id":"cust_123"}' | vector api sites -X POST --input -`,
+  echo '{"customer_id":"cust_123"}' | vector api sites -X POST --input -
+
+  # Send a custom request header
+  vector api sites -H 'Accept: text/plain'`,
 		Args: cobra.ExactArgs(1),
-		RunE: apiRunE(&method, &rawFields, &fields, &input),
+		RunE: apiRunE(&method, &rawFields, &fields, &input, &reqHeaders),
 	}
 
 	cmd.Flags().StringVarP(&method, "method", "X", http.MethodGet,
@@ -81,14 +85,21 @@ func NewAPICmd() *cobra.Command {
 		"add a typed parameter in key=value format; @file/@- load the value (repeatable)")
 	cmd.Flags().StringVar(&input, "input", "",
 		"send a raw request body read from a file, or from stdin when set to -")
+	cmd.Flags().StringArrayVarP(&reqHeaders, "header", "H", nil,
+		"add a request header in key:value format; overrides defaults (repeatable)")
 
 	return cmd
 }
 
 // apiRunE returns the RunE for the api passthrough command.
-func apiRunE(method *string, rawFields, fields *[]string, input *string) func(cmd *cobra.Command, args []string) error {
+func apiRunE(method *string, rawFields, fields *[]string, input *string, reqHeaders *[]string) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		app, err := requireApp(cmd)
+		if err != nil {
+			return err
+		}
+
+		customHeaders, err := parseHeaders(*reqHeaders)
 		if err != nil {
 			return err
 		}
@@ -143,6 +154,10 @@ func apiRunE(method *string, rawFields, fields *[]string, input *string) func(cm
 			}
 		}
 
+		// Custom -H headers override any default we set above (e.g. the JSON
+		// Content-Type) as well as the client's default Authorization/Accept.
+		headers = mergeHeaders(headers, customHeaders)
+
 		resp, err := app.Client.Do(cmd.Context(), resolvedMethod, path, headers, reqBody)
 		if err != nil {
 			return fmt.Errorf("failed to make API request: %w", err)
@@ -173,6 +188,47 @@ func jsonContentTypeHeader() http.Header {
 	h := http.Header{}
 	h.Set("Content-Type", "application/json")
 	return h
+}
+
+// parseHeaders converts -H "key:value" specs into an http.Header. The value is
+// trimmed of leading whitespace after the colon, matching gh api. A spec without
+// a colon is a loud client-side error (exit code 3). A nil/empty input returns a
+// nil header so no custom headers are sent.
+func parseHeaders(specs []string) (http.Header, error) {
+	if len(specs) == 0 {
+		return nil, nil
+	}
+
+	headers := http.Header{}
+	for _, spec := range specs {
+		key, value, ok := strings.Cut(spec, ":")
+		if !ok || key == "" {
+			return nil, &api.APIError{
+				Message:  fmt.Sprintf("invalid header %q: expected key:value", spec),
+				ExitCode: 3,
+			}
+		}
+		headers.Add(key, strings.TrimSpace(value))
+	}
+	return headers, nil
+}
+
+// mergeHeaders layers custom headers over base headers. A custom header replaces
+// any same-named base header so an explicit -H wins over a default we set. Either
+// argument may be nil.
+func mergeHeaders(base, custom http.Header) http.Header {
+	if len(custom) == 0 {
+		return base
+	}
+
+	merged := http.Header{}
+	for key, values := range base {
+		merged[key] = values
+	}
+	for key, values := range custom {
+		merged[http.CanonicalHeaderKey(key)] = values
+	}
+	return merged
 }
 
 // collectFields merges -f (raw string) and -F (typed) fields into a single
