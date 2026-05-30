@@ -429,8 +429,8 @@ Update a webhook.
 Delete a webhook.
 .SS api \- Make an authenticated API request
 .TP
-.B api \fIENDPOINT\fR
-Send an authenticated GET request to any Vector Pro API endpoint and print the
+.B api \fIENDPOINT\fR \fR[\fIOPTIONS\fR]
+Send an authenticated request to any Vector Pro API endpoint and print the
 raw response. An
 .I ENDPOINT
 beginning with
@@ -441,9 +441,41 @@ prepended, so
 .B sites
 resolves to
 .BR /api/v1/vector/sites .
+The method defaults to GET, or POST when any field or
+.B \-\-input
+is given.
 JSON responses are pretty\-printed (and honor
 .BR \-\-jq );
 other bodies are written verbatim.
+.TP
+.B \-X, \-\-method
+HTTP method (GET, POST, PUT, PATCH, DELETE).
+.TP
+.B \-f, \-\-raw\-field
+Add a string parameter in \fIkey=value\fR format (repeatable).
+.TP
+.B \-F, \-\-field
+Add a typed parameter in \fIkey=value\fR format (repeatable):
+.BR true ,
+.BR false ,
+and
+.B null
+plus numeric literals are coerced to JSON types;
+.B @file
+loads the value from a file and
+.B @-
+reads it from stdin. Reusing a plain key is an error; use the
+.B key[]=value
+suffix to build an array. For body\-bearing methods, collected fields are sent
+as a JSON body; for GET they are appended to the query string.
+.TP
+.B \-\-input
+Send a raw request body read from a file, or from stdin when set to
+.BR - .
+Mutually exclusive with
+.B \-f
+and
+.BR \-F .
 .SS php\-versions \- List available PHP versions
 .TP
 .B php\-versions

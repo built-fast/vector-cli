@@ -35,6 +35,30 @@ load test_helper
 }
 
 
+# --- method selection & request body ---
+
+@test "api POST with typed fields auto-selects POST and creates a site" {
+  create_credentials "test-token"
+  run vector api sites -f customer_id=cust_123 -F dev_php_version=8.3
+  assert_success
+  is_valid_json
+}
+
+@test "api POST with a raw body from stdin succeeds" {
+  create_credentials "test-token"
+  run bash -c 'echo "{\"customer_id\":\"cust_123\",\"dev_php_version\":\"8.3\"}" | '"$VECTOR_BINARY"' api sites -X POST --input -'
+  assert_success
+  is_valid_json
+}
+
+@test "api with both --input and -f fails with exit code 3" {
+  create_credentials "test-token"
+  run vector api sites --input - -f name=a
+  assert_failure
+  assert_exit_code 3
+}
+
+
 # --- auth required ---
 
 @test "api without auth fails with exit code 2" {

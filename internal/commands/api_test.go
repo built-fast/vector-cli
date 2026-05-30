@@ -3,8 +3,14 @@ package commands
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/itchyny/gojq"
@@ -320,4 +326,313 @@ func TestAPICmd_HelpText(t *testing.T) {
 	out := stdout.String()
 	assert.Contains(t, out, "api <endpoint>")
 	assert.Contains(t, out, "Vector Pro API")
+}
+
+// --- Method selection & request body (US-003) ---
+
+// captured records what an echo test server received.
+type captured struct {
+	method      string
+	path        string
+	rawQuery    string
+	contentType string
+	body        []byte
+}
+
+// newAPIEchoServer returns a server that records the request and echoes a
+// minimal JSON envelope, capturing the request into c.
+func newAPIEchoServer(t *testing.T, validToken string, c *captured) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+validToken {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Unauthenticated.", "http_status": 401})
+			return
+		}
+
+		c.method = r.Method
+		c.path = r.URL.Path
+		c.rawQuery = r.URL.RawQuery
+		c.contentType = r.Header.Get("Content-Type")
+		c.body, _ = io.ReadAll(r.Body)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"ok": true}, "http_status": 201})
+	}))
+}
+
+func TestAPICmd_MethodOverride(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites/1", "--method", "delete"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "DELETE", c.method)
+	assert.Equal(t, "/api/v1/vector/sites/1", c.path)
+}
+
+func TestAPICmd_AutoPOSTWhenFieldsGiven(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-f", "customer_id=cust_1"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "POST", c.method)
+	assert.Equal(t, "application/json", c.contentType)
+}
+
+func TestAPICmd_AutoPOSTWhenInputGiven(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	dir := t.TempDir()
+	bodyFile := filepath.Join(dir, "body.json")
+	require.NoError(t, os.WriteFile(bodyFile, []byte(`{"a":1}`), 0o600))
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--input", bodyFile})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "POST", c.method)
+}
+
+func TestAPICmd_RawFieldIsString(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "count=42", "-f", "flag=true"})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"count":"42","flag":"true"}`, string(c.body))
+}
+
+func TestAPICmd_TypedFieldCoercion(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{
+		"api", "sites", "-X", "POST",
+		"-F", "count=42",
+		"-F", "ratio=1.5",
+		"-F", "flag=true",
+		"-F", "off=false",
+		"-F", "empty=null",
+		"-F", "name=hello",
+	})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"count":42,"ratio":1.5,"flag":true,"off":false,"empty":null,"name":"hello"}`, string(c.body))
+}
+
+func TestAPICmd_TypedFieldFromFile(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	dir := t.TempDir()
+	valueFile := filepath.Join(dir, "value.txt")
+	require.NoError(t, os.WriteFile(valueFile, []byte("from-file"), 0o600))
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-F", "note=@" + valueFile})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"note":"from-file"}`, string(c.body))
+}
+
+func TestAPICmd_TypedFieldFromStdin(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	orig := apiStdinReader
+	apiStdinReader = strings.NewReader("from-stdin")
+	t.Cleanup(func() { apiStdinReader = orig })
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-F", "note=@-"})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"note":"from-stdin"}`, string(c.body))
+}
+
+func TestAPICmd_FieldsAsQueryForGET(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "GET", "-f", "status=active", "-F", "page=2"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "GET", c.method)
+	assert.Empty(t, c.body)
+
+	values, err := url.ParseQuery(c.rawQuery)
+	require.NoError(t, err)
+	assert.Equal(t, "active", values.Get("status"))
+	assert.Equal(t, "2", values.Get("page"))
+}
+
+func TestAPICmd_ReusedScalarKeyIsError(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "name=a", "-F", "name=b"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+	assert.Contains(t, apiErr.Error(), `under "name"`)
+	assert.Empty(t, c.method, "request should not have been sent")
+}
+
+func TestAPICmd_ArrayKeyAppends(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-F", "tag[]=a", "-F", "tag[]=b"})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"tag":["a","b"]}`, string(c.body))
+}
+
+func TestAPICmd_ArrayThenScalarSameKeyIsError(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "tag[]=a", "-f", "tag=b"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
+func TestAPICmd_InputFromFile(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	dir := t.TempDir()
+	bodyFile := filepath.Join(dir, "body.json")
+	require.NoError(t, os.WriteFile(bodyFile, []byte(`{"customer_id":"cust_9"}`), 0o600))
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "--input", bodyFile})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "application/json", c.contentType)
+	assert.JSONEq(t, `{"customer_id":"cust_9"}`, string(c.body))
+}
+
+func TestAPICmd_InputFromStdin(t *testing.T) {
+	var c captured
+	ts := newAPIEchoServer(t, "valid-token", &c)
+	defer ts.Close()
+
+	orig := apiStdinReader
+	apiStdinReader = strings.NewReader(`{"customer_id":"cust_stdin"}`)
+	t.Cleanup(func() { apiStdinReader = orig })
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "--input", "-"})
+
+	require.NoError(t, cmd.Execute())
+	assert.JSONEq(t, `{"customer_id":"cust_stdin"}`, string(c.body))
+}
+
+func TestAPICmd_InputMissingFileError(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	missing := filepath.Join(t.TempDir(), "nope.json")
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "--input", missing})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	// A missing input file is a general error (exit code 1), not an *api.APIError.
+	var apiErr *api.APIError
+	assert.False(t, errors.As(err, &apiErr), "missing file should be a general error, not an APIError")
+}
+
+func TestAPICmd_InputAndFieldsMutuallyExclusive(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "--input", "-", "-f", "name=a"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
+func TestAPICmd_InvalidFieldFormat(t *testing.T) {
+	ts := newAPITestServer("valid-token")
+	defer ts.Close()
+
+	cmd, _, _ := buildAPICmd(ts.URL, "valid-token", output.JSON)
+	cmd.SetArgs([]string{"api", "sites", "-X", "POST", "-f", "noequals"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
+}
+
+// --- collectFields (unit) ---
+
+func TestCollectFields(t *testing.T) {
+	got, err := collectFields(
+		[]string{"name=alice"},
+		[]string{"age=30", "active=true", "tag[]=x", "tag[]=y"},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"name":   "alice",
+		"age":    int64(30),
+		"active": true,
+		"tag":    []any{"x", "y"},
+	}, got)
+}
+
+func TestCollectFields_ReusedScalarKey(t *testing.T) {
+	_, err := collectFields(nil, []string{"k=1", "k=2"})
+	require.Error(t, err)
+
+	var apiErr *api.APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, 3, apiErr.ExitCode)
 }
