@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -579,7 +578,7 @@ func TestAPICmd_InputMissingFileError(t *testing.T) {
 
 	// A missing input file is a general error (exit code 1), not an *api.APIError.
 	var apiErr *api.APIError
-	assert.False(t, errors.As(err, &apiErr), "missing file should be a general error, not an APIError")
+	require.NotErrorAs(t, err, &apiErr, "missing file should be a general error, not an APIError")
 }
 
 func TestAPICmd_InputAndFieldsMutuallyExclusive(t *testing.T) {

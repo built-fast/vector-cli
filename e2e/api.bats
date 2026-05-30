@@ -39,14 +39,14 @@ load test_helper
 
 @test "api POST with typed fields auto-selects POST and creates a site" {
   create_credentials "test-token"
-  run vector api sites -f customer_id=cust_123 -F dev_php_version=8.3
+  run vector api sites -f your_customer_id=cust_123 -f dev_php_version=8.3
   assert_success
   is_valid_json
 }
 
 @test "api POST with a raw body from stdin succeeds" {
   create_credentials "test-token"
-  run bash -c 'echo "{\"customer_id\":\"cust_123\",\"dev_php_version\":\"8.3\"}" | '"$VECTOR_BINARY"' api sites -X POST --input -'
+  run bash -c 'echo "{\"your_customer_id\":\"cust_123\",\"dev_php_version\":\"8.3\"}" | '"$VECTOR_BINARY"' api sites -X POST --input -'
   assert_success
   is_valid_json
 }

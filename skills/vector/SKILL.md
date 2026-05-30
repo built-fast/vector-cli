@@ -651,16 +651,31 @@ vector account secret delete <id>
 #### vector api
 
 ```
-vector api <endpoint> [--json] [--jq <expr>]
+vector api <endpoint> [--method <verb>] [--raw-field <k=v>] [--field <k=v>] [--input <file|->] [--json] [--jq <expr>]
 ```
 
-Sends an authenticated GET request to any Vector Pro API endpoint and prints the
+Sends an authenticated request to any Vector Pro API endpoint and prints the
 raw response. Use it to reach endpoints that have no dedicated subcommand. An
 `<endpoint>` beginning with `/` is sent verbatim against the base URL; any other
 value has `/api/v1/vector/` prepended, so `sites` resolves to
 `/api/v1/vector/sites`. JSON responses are pretty-printed and honor `--jq`
 (which operates on the full envelope, including `data`/`meta`); non-JSON bodies
 are written verbatim.
+
+Flags:
+
+- `--method`, `-X` — HTTP method. Defaults to GET, or POST when any field or
+  `--input` is given.
+- `--raw-field`, `-f` — add a **string** parameter in `key=value` form
+  (repeatable).
+- `--field`, `-F` — add a **typed** parameter in `key=value` form (repeatable):
+  `true`/`false`/`null` and numeric literals become JSON types; `@file` loads
+  the value from a file and `@-` reads it from stdin. Reusing a plain key is an
+  error (exit code 3); use the `key[]=value` suffix to build an array. For
+  POST/PUT/PATCH/DELETE, fields are sent as a JSON body; for GET they become
+  query parameters.
+- `--input` — send a raw request body from a file, or from stdin when set to
+  `-`. Mutually exclusive with `-f`/`-F`.
 
 ```bash
 # GET an endpoint with no dedicated subcommand
@@ -671,6 +686,13 @@ vector api /api/v1/vector/php-versions
 
 # Filter the full envelope with built-in jq
 vector api sites --jq '.data[].id'
+
+# Create a resource with typed fields (auto-POST)
+vector api sites -f your_customer_id=cust_123 -F dev_php_version=8.3
+
+# Send a raw JSON body from a file or stdin
+vector api sites --method POST --input body.json
+echo '{"your_customer_id":"cust_123"}' | vector api sites -X POST --input -
 ```
 
 #### vector php-versions
