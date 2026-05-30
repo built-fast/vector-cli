@@ -76,6 +76,26 @@ load test_helper
 }
 
 
+# --- response inspection ---
+
+@test "api --include prints the status line and headers" {
+  create_credentials "test-token"
+  run vector api sites -i
+  assert_success
+  assert_output_contains "HTTP/"
+  assert_output_contains "Content-Type:"
+  assert_output_contains "data"
+}
+
+@test "api --verbose echoes the resolved request" {
+  create_credentials "test-token"
+  run vector api sites --verbose
+  assert_success
+  assert_output_contains "GET"
+  assert_output_contains "/api/v1/vector/sites"
+}
+
+
 # --- auth required ---
 
 @test "api without auth fails with exit code 2" {
