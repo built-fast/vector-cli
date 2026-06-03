@@ -143,13 +143,43 @@ func (c *Client) jsonRequest(ctx context.Context, method, path string, body any)
 	return c.do(req)
 }
 
+// Do performs an arbitrary HTTP request through the standard auth/base-URL
+// pipeline. The path is appended to the client's BaseURL. Caller-supplied
+// headers override the default Authorization, Accept, and User-Agent headers.
+// When a body is supplied and no Content-Type header is given, it defaults to
+// "application/json". Non-2xx responses return an *APIError.
+func (c *Client) Do(ctx context.Context, method, path string, headers http.Header, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("creating %s request: %w", method, err)
+	}
+
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
+	if body != nil && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	return c.do(req)
+}
+
 // do executes a request, adding standard headers and handling error responses.
+// Default Authorization, Accept, and User-Agent headers are only applied when
+// not already present, so callers (e.g. Do) can override them.
 func (c *Client) do(req *http.Request) (*http.Response, error) {
-	if c.Token != "" {
+	if c.Token != "" && req.Header.Get("Authorization") == "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", c.UserAgent)
+	if req.Header.Get("Accept") == "" {
+		req.Header.Set("Accept", "application/json")
+	}
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", c.UserAgent)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

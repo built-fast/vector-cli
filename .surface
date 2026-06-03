@@ -4,6 +4,7 @@ ARG vector account secret show 0 id
 ARG vector account secret update 0 id
 ARG vector account ssh-key delete 0 key-id
 ARG vector account ssh-key show 0 key-id
+ARG vector api 0 endpoint
 ARG vector archive import 0 site-id
 ARG vector archive import 1 file
 ARG vector backup download create 0 backup-id
@@ -98,6 +99,7 @@ CMD vector account ssh-key create
 CMD vector account ssh-key delete
 CMD vector account ssh-key list
 CMD vector account ssh-key show
+CMD vector api
 CMD vector archive
 CMD vector archive import
 CMD vector auth
@@ -218,6 +220,14 @@ FLAG vector account ssh-key create --name type=string
 FLAG vector account ssh-key create --public-key type=string
 FLAG vector account ssh-key list --page type=int
 FLAG vector account ssh-key list --per-page type=int
+FLAG vector api --field type=stringArray
+FLAG vector api --header type=stringArray
+FLAG vector api --include type=bool
+FLAG vector api --input type=string
+FLAG vector api --method type=string
+FLAG vector api --paginate type=bool
+FLAG vector api --raw-field type=stringArray
+FLAG vector api --verbose type=bool
 FLAG vector archive import --disable-foreign-keys type=bool
 FLAG vector archive import --drop-tables type=bool
 FLAG vector archive import --search-replace-from type=string

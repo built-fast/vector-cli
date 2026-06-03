@@ -427,6 +427,69 @@ Update a webhook.
 .TP
 .B webhook delete \fIWEBHOOK_ID\fR
 Delete a webhook.
+.SS api \- Make an authenticated API request
+.TP
+.B api \fIENDPOINT\fR \fR[\fIOPTIONS\fR]
+Send an authenticated request to any Vector Pro API endpoint and print the
+raw response. An
+.I ENDPOINT
+beginning with
+.B /
+is sent verbatim against the base URL; any other value has
+.B /api/v1/vector/
+prepended, so
+.B sites
+resolves to
+.BR /api/v1/vector/sites .
+The method defaults to GET, or POST when any field or
+.B \-\-input
+is given.
+JSON responses are pretty\-printed (and honor
+.BR \-\-jq );
+other bodies are written verbatim.
+.TP
+.B \-X, \-\-method
+HTTP method (GET, POST, PUT, PATCH, DELETE).
+.TP
+.B \-f, \-\-raw\-field
+Add a string parameter in \fIkey=value\fR format (repeatable).
+.TP
+.B \-F, \-\-field
+Add a typed parameter in \fIkey=value\fR format (repeatable):
+.BR true ,
+.BR false ,
+and
+.B null
+plus numeric literals are coerced to JSON types;
+.B @file
+loads the value from a file and
+.B @-
+reads it from stdin. Reusing a plain key is an error; use the
+.B key[]=value
+suffix to build an array. For body\-bearing methods, collected fields are sent
+as a JSON body; for GET they are appended to the query string.
+.TP
+.B \-\-input
+Send a raw request body read from a file, or from stdin when set to
+.BR - .
+Mutually exclusive with
+.B \-f
+and
+.BR \-F .
+.TP
+.B \-H, \-\-header
+Add a request header in \fIkey:value\fR format (repeatable). A custom header
+overrides the matching default header.
+.TP
+.B \-i, \-\-include
+Print the response status line and headers before the body.
+.TP
+.B \-\-verbose
+Echo the resolved request (method, URL, and body) to stderr before sending it;
+stdout is unchanged.
+.TP
+.B \-\-paginate
+Fetch every page of a paginated collection, merging results into one JSON array.
 .SS php\-versions \- List available PHP versions
 .TP
 .B php\-versions

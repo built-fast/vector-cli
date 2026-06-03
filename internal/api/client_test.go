@@ -316,6 +316,139 @@ func TestClient_ServerErrorResponse(t *testing.T) {
 	assert.Equal(t, 5, apiErr.ExitCode)
 }
 
+func TestClient_Do_MethodAndURL(t *testing.T) {
+	var gotMethod, gotPath, gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotQuery = r.URL.RawQuery
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":"ok"}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "tok", "")
+	resp, err := c.Do(context.Background(), http.MethodGet, "/api/v1/items?page=2", nil, nil)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.MethodGet, gotMethod)
+	assert.Equal(t, "/api/v1/items", gotPath)
+	assert.Equal(t, "page=2", gotQuery)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestClient_Do_DefaultHeaders(t *testing.T) {
+	var gotHeaders http.Header
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "test-token", "vector-cli/test")
+	resp, err := c.Do(context.Background(), http.MethodGet, "/test", nil, nil)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, "Bearer test-token", gotHeaders.Get("Authorization"))
+	assert.Equal(t, "application/json", gotHeaders.Get("Accept"))
+	assert.Equal(t, "vector-cli/test", gotHeaders.Get("User-Agent"))
+}
+
+func TestClient_Do_CallerHeadersOverrideDefaults(t *testing.T) {
+	var gotHeaders http.Header
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "test-token", "vector-cli/test")
+	headers := http.Header{}
+	headers.Set("Accept", "text/plain")
+	resp, err := c.Do(context.Background(), http.MethodGet, "/test", headers, nil)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, "text/plain", gotHeaders.Get("Accept"))
+	// Unspecified defaults are still applied.
+	assert.Equal(t, "Bearer test-token", gotHeaders.Get("Authorization"))
+	assert.Equal(t, "vector-cli/test", gotHeaders.Get("User-Agent"))
+}
+
+func TestClient_Do_BodyPassthroughDefaultContentType(t *testing.T) {
+	var gotContentType string
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotContentType = r.Header.Get("Content-Type")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "tok", "")
+	resp, err := c.Do(context.Background(), http.MethodPost, "/test", nil, bytes.NewReader([]byte(`{"name":"x"}`)))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, "application/json", gotContentType)
+	assert.JSONEq(t, `{"name":"x"}`, string(gotBody))
+}
+
+func TestClient_Do_PreservesCallerContentType(t *testing.T) {
+	var gotContentType string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotContentType = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "tok", "")
+	headers := http.Header{}
+	headers.Set("Content-Type", "text/csv")
+	resp, err := c.Do(context.Background(), http.MethodPost, "/test", headers, bytes.NewReader([]byte("a,b,c")))
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, "text/csv", gotContentType)
+}
+
+func TestClient_Do_NoContentTypeWithoutBody(t *testing.T) {
+	var gotContentType string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotContentType = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "tok", "")
+	resp, err := c.Do(context.Background(), http.MethodGet, "/test", nil, nil)
+	require.NoError(t, err)
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Empty(t, gotContentType)
+}
+
+func TestClient_Do_ErrorResponse(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"data":{},"message":"Not found.","http_status":404}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "tok", "")
+	_, err := c.Do(context.Background(), http.MethodGet, "/api/v1/missing", nil, nil)
+	require.Error(t, err)
+
+	apiErr, ok := err.(*APIError)
+	require.True(t, ok, "error should be *APIError")
+	assert.Equal(t, 404, apiErr.HTTPStatus)
+	assert.Equal(t, 4, apiErr.ExitCode)
+	assert.Equal(t, "Not found.", apiErr.Message)
+}
+
 func TestClient_PutFileErrorResponse(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)

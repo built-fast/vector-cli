@@ -129,6 +129,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.AddCommand(commands.NewArchiveCmd())
 	cmd.AddCommand(commands.NewMcpCmd())
 	cmd.AddCommand(commands.NewSkillCmd())
+	cmd.AddCommand(commands.NewAPICmd())
 
 	return cmd
 }
