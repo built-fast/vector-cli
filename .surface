@@ -126,6 +126,7 @@ CMD vector deploy list
 CMD vector deploy rollback
 CMD vector deploy show
 CMD vector deploy trigger
+CMD vector doctor
 CMD vector env
 CMD vector env create
 CMD vector env db

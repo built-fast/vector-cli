@@ -1,0 +1,12 @@
+{
+  "name": "vector",
+  "version": "0.8.0",
+  "description": "Vector Pro integration for Claude Code. Manage sites, environments, deployments, backups, WAF, and SSL via the vector CLI, plus a /vector:doctor health check.",
+  "author": {
+    "name": "BuiltFast",
+    "email": "support@builtfast.com"
+  },
+  "homepage": "https://github.com/built-fast/vector-cli",
+  "repository": "https://github.com/built-fast/vector-cli",
+  "license": "MIT"
+}
